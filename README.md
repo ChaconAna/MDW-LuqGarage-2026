@@ -1,17 +1,17 @@
-# Proyecto MDW 2026 — <NOMBRE DEL SISTEMA>
+# Proyecto MDW 2026 — <LuqGarage>
 
 > Reemplazá este bloque en la clase 1.
 
 **Equipo:**
 
-- Nombre Apellido — responsable del repositorio (creó el repo y tiene la cuenta de Vercel)
-- Nombre Apellido
-- Nombre Apellido
-- Nombre Apellido
+- Ana Chacón — responsable del repositorio (creó el repo y tiene la cuenta de Vercel)
+- Cintia Lucero
+- Lucia Maximino
 
-**Producción:** https://<tu-proyecto>.vercel.app
-**Problema que resuelve:** una oración.
-**Flujo principal:** una oración.
+
+**Producción:** https://mdw-luq-garage-2026.vercel.app/
+**Problema que resuelve:** La gestión de siniestros, presupuestos y órdenes de trabajo se realiza de forma manual y descentralizada. Esto provoca demoras en los tiempos de respuesta, errores en los registros y fallas de comunicación con las aseguradoras, dificultando el seguimiento continuo de las reparaciones en el taller.
+**Flujo principal:** El usuario registra el siniestro en el sistema, genera el presupuesto correspondiente para la aseguradora, emite la orden de trabajo para el taller tras su aprobación y realiza el seguimiento del estado de la reparación de forma centralizada hasta su finalización.
 
 ---
 
