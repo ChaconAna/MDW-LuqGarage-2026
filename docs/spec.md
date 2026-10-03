@@ -150,9 +150,14 @@ Los siguientes datos estarán inicialmente precargados mediante datos de inicial
 - Repuesto
 - Sector
 
-Cada Modelo pertenece a una única Marca. Una Marca puede tener múltiples Modelos.
-
-Cada Localidad pertenece a una única Provincia. Una Provincia puede tener múltiples Localidades.
+- **Marca:** tiene un atributo `nombre`, que debe ser único.
+- **Modelo:** tiene un atributo `nombre`. Cada Modelo pertenece a una única Marca y una Marca puede tener múltiples Modelos. Dentro de una misma Marca no puede existir más de un Modelo con el mismo nombre, aunque el mismo nombre puede utilizarse en Marcas diferentes.
+- **TipoVehiculo:** tiene un atributo `nombre`, que debe ser único.
+- **Provincia:** tiene un atributo `nombre`, que debe ser único.
+- **Localidad:** tiene un atributo `nombre`. Cada Localidad pertenece a una única Provincia y una Provincia puede tener múltiples Localidades. Dentro de una misma Provincia no puede existir más de una Localidad con el mismo nombre, aunque el mismo nombre puede utilizarse en Provincias diferentes.
+- **Sector:** tiene un atributo `nombre`, que debe ser único.
+- **Reparacion:** tiene un atributo `nombre`, que debe ser único.
+- **Repuesto:** tiene un atributo `nombre`, que debe ser único.
 
 No se requiere implementar interfaces de administración para estos catálogos dentro del alcance actual.
 
