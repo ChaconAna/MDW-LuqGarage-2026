@@ -4,7 +4,8 @@
 // campo que el spec no necesita, sobra; si el spec necesita un dato que no está,
 // falta.
 //
-// El corte actual implementa los catálogos base, Aseguradora, Cliente y Vehiculo.
+// El corte actual implementa los catálogos base, Aseguradora, Cliente, Vehiculo
+// y el núcleo persistente de Siniestro.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -25,6 +26,18 @@ datasource db {
   // las conexiones de Postgres.
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+enum GradoDano {
+  LEVE
+  MODERADO
+  GRAVE
+}
+
+enum EstadoSiniestro {
+  REGISTRADO
+  PRESUPUESTADO
+  PENDIENTE_DE_FACTURACION
 }
 
 // ¿El equipo eligió MongoDB? Se cambia el provider a "mongodb", se usa una
@@ -112,26 +125,28 @@ model Repuesto {
 }
 
 model Aseguradora {
-  id        String  @id @default(uuid()) @db.Uuid
-  nombre    String
-  cuit      String  @unique
-  telefono  String
-  email     String
-  direccion String
-  activo    Boolean @default(true)
+  id         String      @id @default(uuid()) @db.Uuid
+  nombre     String
+  cuit       String      @unique
+  telefono   String
+  email      String
+  direccion  String
+  activo     Boolean     @default(true)
+  siniestros Siniestro[]
 }
 
 model Cliente {
-  id          String    @id @default(uuid()) @db.Uuid
+  id          String      @id @default(uuid()) @db.Uuid
   nombre      String
   apellido    String
-  dni         String    @unique
+  dni         String      @unique
   telefono    String
   email       String
   direccion   String
-  activo      Boolean   @default(true)
-  localidad   Localidad @relation(fields: [localidadId], references: [id])
-  localidadId String    @db.Uuid
+  activo      Boolean     @default(true)
+  localidad   Localidad   @relation(fields: [localidadId], references: [id])
+  localidadId String      @db.Uuid
+  siniestros  Siniestro[]
 }
 
 model Vehiculo {
@@ -142,4 +157,25 @@ model Vehiculo {
   modeloId       String       @db.Uuid
   tipoVehiculo   TipoVehiculo @relation(fields: [tipoVehiculoId], references: [id])
   tipoVehiculoId String       @db.Uuid
+  siniestros     Siniestro[]
+}
+
+model Siniestro {
+  id              String          @id @default(uuid()) @db.Uuid
+  numeroSiniestro String          @unique
+  fechaSiniestro  DateTime
+  fechaRegistro   DateTime        @default(now())
+  gradoDano       GradoDano
+  numeroPoliza    String
+  estado          EstadoSiniestro @default(REGISTRADO)
+  cliente         Cliente         @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  clienteId       String          @db.Uuid
+  vehiculo        Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Restrict)
+  vehiculoId      String          @db.Uuid
+  aseguradora     Aseguradora     @relation(fields: [aseguradoraId], references: [id], onDelete: Restrict)
+  aseguradoraId   String          @db.Uuid
+
+  @@index([clienteId])
+  @@index([vehiculoId])
+  @@index([aseguradoraId])
 }
