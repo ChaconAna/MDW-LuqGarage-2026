@@ -295,11 +295,16 @@ El sistema debe permitir registrar:
 
 - Número de siniestro.
 - Fecha del siniestro.
+- Fecha de registro.
 - Grado del daño.
 - Número de póliza.
 - Cliente.
 - Vehículo.
 - Aseguradora.
+
+El número de siniestro y el número de póliza se almacenan como texto.
+
+La fecha de registro se persiste como fecha y hora, y se genera automáticamente en el momento en que el Siniestro queda efectivamente registrado. Esta fecha se utiliza como referencia para validar que la fecha del siniestro no sea posterior a la fecha de registro.
 
 ### Grado del daño
 
@@ -351,6 +356,7 @@ Si el servicio no responde, supera el tiempo máximo de espera o no puede interp
 - El número de siniestro debe ser único.
 - La fecha del siniestro es obligatoria.
 - La fecha del siniestro no puede ser posterior a la fecha de registro.
+- El grado del daño es obligatorio.
 - Debe existir un cliente activo.
 - Debe existir un vehículo activo.
 - Debe existir una aseguradora activa.
