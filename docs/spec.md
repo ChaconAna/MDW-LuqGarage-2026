@@ -135,6 +135,8 @@ Las principales entidades del dominio son:
 
 También existen catálogos y valores predefinidos asociados al dominio.
 
+Todas las entidades del sistema utilizarán UUID como identificador técnico.
+
 ## 4.1. Catálogos precargados
 
 Los siguientes datos estarán inicialmente precargados mediante datos de inicialización del sistema:
@@ -147,6 +149,10 @@ Los siguientes datos estarán inicialmente precargados mediante datos de inicial
 - Reparacion
 - Repuesto
 - Sector
+
+Cada Modelo pertenece a una única Marca. Una Marca puede tener múltiples Modelos.
+
+Cada Localidad pertenece a una única Provincia. Una Provincia puede tener múltiples Localidades.
 
 No se requiere implementar interfaces de administración para estos catálogos dentro del alcance actual.
 
@@ -168,6 +174,8 @@ Datos mínimos:
 - Localidad
 - Provincia
 - Estado activo/inactivo
+
+El DNI de cada cliente debe ser único.
 
 La relación entre un Cliente y un Vehículo se establece al registrar un Siniestro. Un cliente puede estar asociado a distintos vehículos en diferentes siniestros.
 
@@ -195,6 +203,8 @@ Datos mínimos:
 - Modelo
 - Tipo de vehículo
 - Estado activo/inactivo
+
+La patente de cada vehículo debe ser única.
 
 La relación entre un Cliente y un Vehículo se establece al registrar un Siniestro. Un vehículo puede estar asociado a distintos clientes en diferentes siniestros.
 
@@ -224,6 +234,8 @@ Datos:
 - Email
 - Dirección
 - Estado activo/inactivo
+
+El CUIT de cada aseguradora debe ser único.
 
 ## 7.1. Baja de Aseguradora
 
@@ -408,6 +420,8 @@ Cada reparación incorporada al presupuesto deberá registrar:
 
 Una misma reparación del catálogo puede utilizarse en diferentes presupuestos.
 
+Dentro de un mismo Presupuesto, una Reparación del catálogo no puede incorporarse más de una vez.
+
 El costo corresponde específicamente al presupuesto en el que se incorpora.
 
 
@@ -420,6 +434,8 @@ Cada repuesto incorporado debe registrar:
 
 - Repuesto.
 - Cantidad.
+
+Dentro de un mismo Presupuesto, un Repuesto del catálogo no puede incorporarse más de una vez. La cantidad requerida se registra en el campo Cantidad del detalle correspondiente.
 
 El sistema no administra el precio de los repuestos.
 
