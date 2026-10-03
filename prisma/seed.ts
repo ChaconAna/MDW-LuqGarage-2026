@@ -3,16 +3,28 @@
  *
  * Correr con: npm run db:seed
  */
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../lib/db/client";
+import { asegurarSectorPorNombre } from "../lib/db/sector";
 
-const prisma = new PrismaClient();
+const nombresSectores = [
+  "Desarme",
+  "Reparación",
+  "Preparación",
+  "Pintura",
+  "Armado",
+  "Terminado",
+] as const;
 
-async function main() {}
+async function main() {
+  for (const nombre of nombresSectores) {
+    await asegurarSectorPorNombre(nombre);
+  }
+}
 
 main()
   .catch((error) => {
-    console.error(error);
-    process.exit(1);
+    console.error("Error al ejecutar el seed:", error);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
