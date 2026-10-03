@@ -4,7 +4,7 @@
 // campo que el spec no necesita, sobra; si el spec necesita un dato que no está,
 // falta.
 //
-// El corte actual implementa únicamente los catálogos base de la sección 4.1.
+// El corte actual implementa los catálogos base y el modelo de Aseguradora.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -106,4 +106,14 @@ model Reparacion {
 model Repuesto {
   id     String @id @default(uuid()) @db.Uuid
   nombre String @unique
+}
+
+model Aseguradora {
+  id        String  @id @default(uuid()) @db.Uuid
+  nombre    String
+  cuit      String  @unique
+  telefono  String
+  email     String
+  direccion String
+  activo    Boolean @default(true)
 }
