@@ -1,10 +1,15 @@
-// Modelo de datos del proyecto.
+// Modelo de datos de LuqGarage.
 //
-// Lo que hay acá abajo es un EJEMPLO MÍNIMO para que el proyecto arranque.
-// En la clase 3 lo reemplazan por el modelo de su propio dominio.
+// Cada modelo de dominio de este archivo sale de `docs/spec.md`. Si aparece un
+// campo que el spec no necesita, sobra; si el spec necesita un dato que no está,
+// falta.
+//
+// El corte actual implementa únicamente los catálogos base de la sección 4.1.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
+//
+// Nunca se edita el SQL de una migración ya aplicada: se corrige con otra.
 
 generator client {
   provider = "prisma-client-js"
@@ -28,43 +33,77 @@ datasource db {
 // Ojo: con Mongo los ids llevan @map("_id") @db.ObjectId y la integridad
 // referencial la garantiza el código, no la base.
 
-enum Rol {
-  ADMIN
-  USUARIO
+// ---------------------------------------------------------------------------
+// Catálogos base
+//
+// Todos usan UUID como identificador técnico, según la sección 4 del spec.
+// `@db.Uuid` hace que PostgreSQL los almacene en su tipo UUID nativo.
+// ---------------------------------------------------------------------------
+
+// Una marca se identifica por un nombre único y puede agrupar varios modelos.
+model Marca {
+  id      String   @id @default(uuid()) @db.Uuid
+  nombre  String   @unique
+  modelos Modelo[]
 }
 
-model Usuario {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  nombre    String
-  rol       Rol      @default(USUARIO)
-  creadoEn  DateTime @default(now())
+// El nombre de un modelo es único dentro de su marca, pero puede repetirse en
+// marcas diferentes. La FK vive en este lado porque cada modelo tiene una sola
+// marca.
+model Modelo {
+  id      String @id @default(uuid()) @db.Uuid
+  nombre  String
+  marca   Marca  @relation(fields: [marcaId], references: [id])
+  marcaId String @db.Uuid
 
-  notas     Nota[]
+  @@unique([marcaId, nombre])
 }
 
-// Entidad de ejemplo: bórrenla en la clase 3.
-// Muestra el patrón de una relación 1-N con su índice.
-model Nota {
-  id            String   @id @default(cuid())
-  titulo        String
-  contenido     String
-  creadaEn      DateTime @default(now())
-  actualizadaEn DateTime @updatedAt
+// Catálogo de tipos de vehículo. Su nombre no puede repetirse.
+model TipoVehiculo {
+  id     String @id @default(uuid()) @db.Uuid
+  nombre String @unique
+}
 
-  // `onDelete` NO tiene un valor por defecto razonable: se decide relación por
-  // relación. Acá va Cascade porque una nota sin autor no significa nada, así
-  // que borrar la cuenta se lleva sus notas.
-  //
-  // En su dominio esa respuesta suele ser la contraria: lo que es historia
-  // —una aplicación de vacuna, un movimiento, un comprobante— va con Restrict,
-  // porque dar de baja a una persona no puede borrar el registro de lo que
-  // pasó. La pregunta para cada relación es: "si borro esto, ¿qué otra cosa
-  // tiene sentido que desaparezca?".
-  autor         Usuario  @relation(fields: [autorId], references: [id], onDelete: Cascade)
-  autorId       String
+// Una provincia se identifica por un nombre único y agrupa localidades.
+model Provincia {
+  id          String      @id @default(uuid()) @db.Uuid
+  nombre      String      @unique
+  localidades Localidad[]
+}
 
-  // Índice sobre la foreign key: sin esto, listar las notas de un usuario
-  // obliga a Postgres a recorrer la tabla entera.
-  @@index([autorId])
+// El nombre de una localidad es único dentro de su provincia, pero puede
+// repetirse en provincias diferentes.
+model Localidad {
+  id          String    @id @default(uuid()) @db.Uuid
+  nombre      String
+  provincia   Provincia @relation(fields: [provinciaId], references: [id])
+  provinciaId String    @db.Uuid
+
+  @@unique([provinciaId, nombre])
+}
+
+// Los sectores organizan las reparaciones de una Orden de Trabajo. El spec
+// define seis valores iniciales, que se incorporarán cuando se implemente el
+// seed de catálogos.
+model Sector {
+  id           String       @id @default(uuid()) @db.Uuid
+  nombre       String       @unique
+  reparaciones Reparacion[]
+}
+
+// Cada reparación pertenece a un único sector. Su nombre es único en todo el
+// catálogo.
+model Reparacion {
+  id       String @id @default(uuid()) @db.Uuid
+  nombre   String @unique
+  sector   Sector @relation(fields: [sectorId], references: [id])
+  sectorId String @db.Uuid
+}
+
+// Catálogo de repuestos. No almacena precio, costo ni stock porque esos datos
+// están fuera del alcance definido para el MVP.
+model Repuesto {
+  id     String @id @default(uuid()) @db.Uuid
+  nombre String @unique
 }
