@@ -440,6 +440,10 @@ El sistema recuperará:
 
 Un siniestro puede tener múltiples presupuestos.
 
+## 10.5. Datos del Presupuesto
+
+Cada Presupuesto pertenece a un único Siniestro y debe tener un `numeroPresupuesto` obligatorio, almacenado como texto y único globalmente. El MVP no define todavía un formato ni un mecanismo automático para generar este número.
+
 
 
 # 11. Reparaciones del Presupuesto
@@ -455,7 +459,9 @@ Una misma reparación del catálogo puede utilizarse en diferentes presupuestos.
 
 Dentro de un mismo Presupuesto, una Reparación del catálogo no puede incorporarse más de una vez.
 
-El costo corresponde específicamente al presupuesto en el que se incorpora.
+Cada detalle de reparación pertenece a un único Presupuesto y a una única Reparación. Un Presupuesto puede contener múltiples detalles de reparación y una Reparación puede aparecer en Presupuestos diferentes.
+
+El costo corresponde específicamente al presupuesto en el que se incorpora. Es un valor monetario decimal con precisión total de 12 dígitos y 2 decimales.
 
 
 
@@ -469,6 +475,10 @@ Cada repuesto incorporado debe registrar:
 - Cantidad.
 
 Dentro de un mismo Presupuesto, un Repuesto del catálogo no puede incorporarse más de una vez. La cantidad requerida se registra en el campo Cantidad del detalle correspondiente.
+
+Cada detalle de repuesto pertenece a un único Presupuesto y a un único Repuesto. Un Presupuesto puede contener múltiples detalles de repuesto y un Repuesto puede aparecer en Presupuestos diferentes.
+
+La cantidad representa unidades enteras y no admite valores fraccionarios.
 
 El sistema no administra el precio de los repuestos.
 
@@ -486,6 +496,8 @@ Conceptualmente:
 
 El total no incluye el valor de los repuestos.
 
+El total es un dato derivado de los detalles de reparación y no se persiste de forma redundante.
+
 
 
 # 14. Estados del Presupuesto
@@ -496,6 +508,8 @@ Los estados son:
 - `ENVIADO`
 - `APROBADO`
 - `RECHAZADO`
+
+Todo nuevo Presupuesto se crea inicialmente en estado `BORRADOR`.
 
 ## 14.1. Flujo
 

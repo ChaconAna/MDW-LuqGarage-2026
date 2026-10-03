@@ -5,7 +5,7 @@
 // falta.
 //
 // El corte actual implementa los catálogos base, Aseguradora, Cliente, Vehiculo,
-// Siniestro y su documentación asociada.
+// Siniestro, su documentación asociada y Presupuesto con sus detalles.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -48,6 +48,13 @@ enum TipoDocumentoSiniestro {
   TRASERA
   CERTIFICADO_COBERTURA
   ADICIONAL
+}
+
+enum EstadoPresupuesto {
+  BORRADOR
+  ENVIADO
+  APROBADO
+  RECHAZADO
 }
 
 // ¿El equipo eligió MongoDB? Se cambia el provider a "mongodb", se usa una
@@ -121,17 +128,19 @@ model Sector {
 // Cada reparación pertenece a un único sector. Su nombre es único en todo el
 // catálogo.
 model Reparacion {
-  id       String @id @default(uuid()) @db.Uuid
-  nombre   String @unique
-  sector   Sector @relation(fields: [sectorId], references: [id])
-  sectorId String @db.Uuid
+  id                  String              @id @default(uuid()) @db.Uuid
+  nombre              String              @unique
+  sector              Sector              @relation(fields: [sectorId], references: [id])
+  sectorId            String              @db.Uuid
+  detallesPresupuesto DetalleReparacion[]
 }
 
 // Catálogo de repuestos. No almacena precio, costo ni stock porque esos datos
 // están fuera del alcance definido para el MVP.
 model Repuesto {
-  id     String @id @default(uuid()) @db.Uuid
-  nombre String @unique
+  id                  String            @id @default(uuid()) @db.Uuid
+  nombre              String            @unique
+  detallesPresupuesto DetalleRepuesto[]
 }
 
 model Aseguradora {
@@ -185,6 +194,7 @@ model Siniestro {
   aseguradora     Aseguradora          @relation(fields: [aseguradoraId], references: [id], onDelete: Restrict)
   aseguradoraId   String               @db.Uuid
   documentos      DocumentoSiniestro[]
+  presupuestos    Presupuesto[]
 
   @@index([clienteId])
   @@index([vehiculoId])
@@ -199,4 +209,40 @@ model DocumentoSiniestro {
   siniestroId       String                 @db.Uuid
 
   @@index([siniestroId])
+}
+
+model Presupuesto {
+  id                String              @id @default(uuid()) @db.Uuid
+  numeroPresupuesto String              @unique
+  estado            EstadoPresupuesto   @default(BORRADOR)
+  siniestro         Siniestro           @relation(fields: [siniestroId], references: [id], onDelete: Restrict)
+  siniestroId       String              @db.Uuid
+  reparaciones      DetalleReparacion[]
+  repuestos         DetalleRepuesto[]
+
+  @@index([siniestroId])
+}
+
+model DetalleReparacion {
+  id            String      @id @default(uuid()) @db.Uuid
+  costo         Decimal     @db.Decimal(12, 2)
+  presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Restrict)
+  presupuestoId String      @db.Uuid
+  reparacion    Reparacion  @relation(fields: [reparacionId], references: [id], onDelete: Restrict)
+  reparacionId  String      @db.Uuid
+
+  @@unique([presupuestoId, reparacionId])
+  @@index([reparacionId])
+}
+
+model DetalleRepuesto {
+  id            String      @id @default(uuid()) @db.Uuid
+  cantidad      Int
+  presupuesto   Presupuesto @relation(fields: [presupuestoId], references: [id], onDelete: Restrict)
+  presupuestoId String      @db.Uuid
+  repuesto      Repuesto    @relation(fields: [repuestoId], references: [id], onDelete: Restrict)
+  repuestoId    String      @db.Uuid
+
+  @@unique([presupuestoId, repuestoId])
+  @@index([repuestoId])
 }
