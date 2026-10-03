@@ -4,7 +4,7 @@
 // campo que el spec no necesita, sobra; si el spec necesita un dato que no está,
 // falta.
 //
-// El corte actual implementa los catálogos base, Aseguradora y Cliente.
+// El corte actual implementa los catálogos base, Aseguradora, Cliente y Vehiculo.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -51,18 +51,20 @@ model Marca {
 // marcas diferentes. La FK vive en este lado porque cada modelo tiene una sola
 // marca.
 model Modelo {
-  id      String @id @default(uuid()) @db.Uuid
-  nombre  String
-  marca   Marca  @relation(fields: [marcaId], references: [id])
-  marcaId String @db.Uuid
+  id        String     @id @default(uuid()) @db.Uuid
+  nombre    String
+  marca     Marca      @relation(fields: [marcaId], references: [id])
+  marcaId   String     @db.Uuid
+  vehiculos Vehiculo[]
 
   @@unique([marcaId, nombre])
 }
 
 // Catálogo de tipos de vehículo. Su nombre no puede repetirse.
 model TipoVehiculo {
-  id     String @id @default(uuid()) @db.Uuid
-  nombre String @unique
+  id        String     @id @default(uuid()) @db.Uuid
+  nombre    String     @unique
+  vehiculos Vehiculo[]
 }
 
 // Una provincia se identifica por un nombre único y agrupa localidades.
@@ -130,4 +132,14 @@ model Cliente {
   activo      Boolean   @default(true)
   localidad   Localidad @relation(fields: [localidadId], references: [id])
   localidadId String    @db.Uuid
+}
+
+model Vehiculo {
+  id             String       @id @default(uuid()) @db.Uuid
+  patente        String       @unique
+  activo         Boolean      @default(true)
+  modelo         Modelo       @relation(fields: [modeloId], references: [id])
+  modeloId       String       @db.Uuid
+  tipoVehiculo   TipoVehiculo @relation(fields: [tipoVehiculoId], references: [id])
+  tipoVehiculoId String       @db.Uuid
 }
