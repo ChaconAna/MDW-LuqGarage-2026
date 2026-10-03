@@ -4,7 +4,7 @@
 // campo que el spec no necesita, sobra; si el spec necesita un dato que no está,
 // falta.
 //
-// El corte actual implementa los catálogos base y el modelo de Aseguradora.
+// El corte actual implementa los catálogos base, Aseguradora y Cliente.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -79,6 +79,7 @@ model Localidad {
   nombre      String
   provincia   Provincia @relation(fields: [provinciaId], references: [id])
   provinciaId String    @db.Uuid
+  clientes    Cliente[]
 
   @@unique([provinciaId, nombre])
 }
@@ -116,4 +117,17 @@ model Aseguradora {
   email     String
   direccion String
   activo    Boolean @default(true)
+}
+
+model Cliente {
+  id          String    @id @default(uuid()) @db.Uuid
+  nombre      String
+  apellido    String
+  dni         String    @unique
+  telefono    String
+  email       String
+  direccion   String
+  activo      Boolean   @default(true)
+  localidad   Localidad @relation(fields: [localidadId], references: [id])
+  localidadId String    @db.Uuid
 }
