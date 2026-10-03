@@ -180,13 +180,19 @@ Datos mínimos:
 - Provincia
 - Estado activo/inactivo
 
-El DNI de cada cliente debe ser único.
+El DNI de cada cliente se almacena como texto y debe ser único.
+
+El teléfono del cliente se almacena como texto.
+
+El estado activo/inactivo se representa mediante el campo booleano `activo`, cuyo valor inicial es `true`.
+
+Cada Cliente se relaciona directamente con una Localidad. La Provincia se obtiene mediante la Localidad asociada y no se persiste como una relación directa adicional del Cliente.
 
 La relación entre un Cliente y un Vehículo se establece al registrar un Siniestro. Un cliente puede estar asociado a distintos vehículos en diferentes siniestros.
 
 ## 5.1. Baja de Cliente
 
-La eliminación de un cliente será lógica.
+La eliminación de un cliente será lógica: consiste en establecer su campo `activo` en `false`, sin eliminar físicamente el registro.
 
 Un cliente dado de baja:
 
@@ -211,12 +217,18 @@ Datos mínimos:
 
 La patente de cada vehículo debe ser única.
 
+El estado activo/inactivo se representa mediante el campo booleano `activo`, cuyo valor inicial es `true`.
+
+Cada Vehículo se relaciona directamente con un Modelo. La Marca se obtiene mediante el Modelo asociado y no se persiste como una relación directa adicional del Vehículo.
+
+Cada Vehículo se relaciona directamente con un TipoVehiculo.
+
 La relación entre un Cliente y un Vehículo se establece al registrar un Siniestro. Un vehículo puede estar asociado a distintos clientes en diferentes siniestros.
 
 
 ## 6.1. Baja de Vehículo
 
-La eliminación será lógica.
+La eliminación será lógica: consiste en establecer el campo `activo` en `false`, sin eliminar físicamente el registro.
 
 Un vehículo inactivo:
 
@@ -240,11 +252,15 @@ Datos:
 - Dirección
 - Estado activo/inactivo
 
-El CUIT de cada aseguradora debe ser único.
+El CUIT de cada aseguradora se almacena como texto y debe ser único.
+
+El teléfono de la aseguradora se almacena como texto.
+
+El estado activo/inactivo se representa mediante el campo booleano `activo`, cuyo valor inicial es `true`.
 
 ## 7.1. Baja de Aseguradora
 
-La eliminación será lógica.
+La eliminación será lógica: consiste en establecer el campo `activo` en `false`, sin eliminar físicamente el registro.
 
 Una aseguradora inactiva:
 
