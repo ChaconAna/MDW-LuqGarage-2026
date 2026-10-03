@@ -643,6 +643,8 @@ Una Orden de Trabajo puede contener múltiples presupuestos.
 
 Un presupuesto puede pertenecer como máximo a una Orden de Trabajo.
 
+Cada Orden de Trabajo pertenece a un único Siniestro. La asociación de un Presupuesto con una Orden de Trabajo es opcional.
+
 Una vez asociado a una Orden de Trabajo, no podrá reutilizarse para generar otra.
 
 
@@ -654,6 +656,8 @@ Las tareas de la Orden de Trabajo provienen de las reparaciones existentes en lo
 Cada reparación del presupuesto equivale a una tarea de la Orden de Trabajo.
 
 No pueden agregarse tareas nuevas directamente desde la Orden de Trabajo.
+
+Las reparaciones no se duplican en la Orden de Trabajo: se obtienen a través de los detalles de reparación de sus Presupuestos asociados.
 
 
 
@@ -674,11 +678,15 @@ Un sector puede contener múltiples reparaciones.
 
 Al generar la Orden de Trabajo, las reparaciones provenientes de los presupuestos deberán organizarse de acuerdo con su sector.
 
+El Sector de cada reparación se obtiene de la relación existente entre Reparacion y Sector y no se persiste de forma redundante en la tarea.
+
 
 
 # 20. Observaciones por Sector
 
 Cada sector incluido en una Orden de Trabajo podrá tener una observación opcional.
+
+La relación entre una Orden de Trabajo y cada Sector incluido se registra una sola vez mediante OrdenTrabajoSector, que conserva la observación opcional.
 
 La observación:
 
@@ -693,6 +701,8 @@ Los estados incluidos en el MVP son:
 
 - `BORRADOR`
 - `FINALIZADA`
+
+Toda nueva Orden de Trabajo se crea inicialmente en estado `BORRADOR`.
 
 No se incluye un estado `EN_PROCESO`, debido a que la ejecución de las reparaciones dentro del taller queda fuera del alcance actual.
 

@@ -5,7 +5,7 @@
 // falta.
 //
 // El corte actual implementa los catálogos base, Aseguradora, Cliente, Vehiculo,
-// Siniestro, su documentación asociada y Presupuesto con sus detalles.
+// Siniestro, su documentación asociada, Presupuesto y Orden de Trabajo.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -55,6 +55,11 @@ enum EstadoPresupuesto {
   ENVIADO
   APROBADO
   RECHAZADO
+}
+
+enum EstadoOrdenTrabajo {
+  BORRADOR
+  FINALIZADA
 }
 
 // ¿El equipo eligió MongoDB? Se cambia el provider a "mongodb", se usa una
@@ -120,9 +125,10 @@ model Localidad {
 // define seis valores iniciales, que se incorporarán cuando se implemente el
 // seed de catálogos.
 model Sector {
-  id           String       @id @default(uuid()) @db.Uuid
-  nombre       String       @unique
-  reparaciones Reparacion[]
+  id                     String               @id @default(uuid()) @db.Uuid
+  nombre                 String               @unique
+  reparaciones           Reparacion[]
+  ordenesTrabajoSectores OrdenTrabajoSector[]
 }
 
 // Cada reparación pertenece a un único sector. Su nombre es único en todo el
@@ -195,6 +201,7 @@ model Siniestro {
   aseguradoraId   String               @db.Uuid
   documentos      DocumentoSiniestro[]
   presupuestos    Presupuesto[]
+  ordenesTrabajo  OrdenDeTrabajo[]
 
   @@index([clienteId])
   @@index([vehiculoId])
@@ -219,8 +226,11 @@ model Presupuesto {
   siniestroId       String              @db.Uuid
   reparaciones      DetalleReparacion[]
   repuestos         DetalleRepuesto[]
+  ordenTrabajo      OrdenDeTrabajo?     @relation(fields: [ordenTrabajoId], references: [id], onDelete: Restrict)
+  ordenTrabajoId    String?             @db.Uuid
 
   @@index([siniestroId])
+  @@index([ordenTrabajoId])
 }
 
 model DetalleReparacion {
@@ -245,4 +255,27 @@ model DetalleRepuesto {
 
   @@unique([presupuestoId, repuestoId])
   @@index([repuestoId])
+}
+
+model OrdenDeTrabajo {
+  id           String               @id @default(uuid()) @db.Uuid
+  estado       EstadoOrdenTrabajo   @default(BORRADOR)
+  siniestro    Siniestro            @relation(fields: [siniestroId], references: [id], onDelete: Restrict)
+  siniestroId  String               @db.Uuid
+  presupuestos Presupuesto[]
+  sectores     OrdenTrabajoSector[]
+
+  @@index([siniestroId])
+}
+
+model OrdenTrabajoSector {
+  id             String         @id @default(uuid()) @db.Uuid
+  observacion    String?
+  ordenTrabajo   OrdenDeTrabajo @relation(fields: [ordenTrabajoId], references: [id], onDelete: Restrict)
+  ordenTrabajoId String         @db.Uuid
+  sector         Sector         @relation(fields: [sectorId], references: [id], onDelete: Restrict)
+  sectorId       String         @db.Uuid
+
+  @@unique([ordenTrabajoId, sectorId])
+  @@index([sectorId])
 }
