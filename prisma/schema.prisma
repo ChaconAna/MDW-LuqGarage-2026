@@ -4,8 +4,8 @@
 // campo que el spec no necesita, sobra; si el spec necesita un dato que no está,
 // falta.
 //
-// El corte actual implementa los catálogos base, Aseguradora, Cliente, Vehiculo
-// y el núcleo persistente de Siniestro.
+// El corte actual implementa los catálogos base, Aseguradora, Cliente, Vehiculo,
+// Siniestro y su documentación asociada.
 //
 // Después de cualquier cambio en este archivo:
 //   npx prisma migrate dev --name <descripcion-del-cambio>
@@ -38,6 +38,16 @@ enum EstadoSiniestro {
   REGISTRADO
   PRESUPUESTADO
   PENDIENTE_DE_FACTURACION
+}
+
+enum TipoDocumentoSiniestro {
+  DENUNCIA
+  LATERAL_DERECHA
+  LATERAL_IZQUIERDA
+  FRONTAL
+  TRASERA
+  CERTIFICADO_COBERTURA
+  ADICIONAL
 }
 
 // ¿El equipo eligió MongoDB? Se cambia el provider a "mongodb", se usa una
@@ -161,21 +171,32 @@ model Vehiculo {
 }
 
 model Siniestro {
-  id              String          @id @default(uuid()) @db.Uuid
-  numeroSiniestro String          @unique
+  id              String               @id @default(uuid()) @db.Uuid
+  numeroSiniestro String               @unique
   fechaSiniestro  DateTime
-  fechaRegistro   DateTime        @default(now())
+  fechaRegistro   DateTime             @default(now())
   gradoDano       GradoDano
   numeroPoliza    String
-  estado          EstadoSiniestro @default(REGISTRADO)
-  cliente         Cliente         @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  clienteId       String          @db.Uuid
-  vehiculo        Vehiculo        @relation(fields: [vehiculoId], references: [id], onDelete: Restrict)
-  vehiculoId      String          @db.Uuid
-  aseguradora     Aseguradora     @relation(fields: [aseguradoraId], references: [id], onDelete: Restrict)
-  aseguradoraId   String          @db.Uuid
+  estado          EstadoSiniestro      @default(REGISTRADO)
+  cliente         Cliente              @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  clienteId       String               @db.Uuid
+  vehiculo        Vehiculo             @relation(fields: [vehiculoId], references: [id], onDelete: Restrict)
+  vehiculoId      String               @db.Uuid
+  aseguradora     Aseguradora          @relation(fields: [aseguradoraId], references: [id], onDelete: Restrict)
+  aseguradoraId   String               @db.Uuid
+  documentos      DocumentoSiniestro[]
 
   @@index([clienteId])
   @@index([vehiculoId])
   @@index([aseguradoraId])
+}
+
+model DocumentoSiniestro {
+  id                String                 @id @default(uuid()) @db.Uuid
+  tipo              TipoDocumentoSiniestro
+  referenciaArchivo String
+  siniestro         Siniestro              @relation(fields: [siniestroId], references: [id], onDelete: Restrict)
+  siniestroId       String                 @db.Uuid
+
+  @@index([siniestroId])
 }

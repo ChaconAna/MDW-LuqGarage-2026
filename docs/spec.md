@@ -320,16 +320,22 @@ El grado del daño es únicamente informativo y no modifica otras reglas de nego
 
 Para registrar el siniestro deberán adjuntarse:
 
-- Foto de la denuncia.
-- Foto lateral derecha.
-- Foto lateral izquierda.
-- Foto frontal.
-- Foto trasera.
-- Foto del certificado de cobertura.
+- Una foto de la denuncia, con categoría `DENUNCIA`.
+- Una foto lateral derecha, con categoría `LATERAL_DERECHA`.
+- Una foto lateral izquierda, con categoría `LATERAL_IZQUIERDA`.
+- Una foto frontal, con categoría `FRONTAL`.
+- Una foto trasera, con categoría `TRASERA`.
+- Una foto del certificado de cobertura, con categoría `CERTIFICADO_COBERTURA`.
 
-También podrán adjuntarse fotografías adicionales opcionales.
+En un Siniestro registrado debe existir exactamente un archivo de cada una de estas seis categorías obligatorias.
 
-Los archivos se almacenarán utilizando un servicio externo de almacenamiento.
+También podrán adjuntarse cero o más fotografías adicionales opcionales, todas identificadas con la categoría `ADICIONAL`.
+
+Cada DocumentoSiniestro pertenece a un único Siniestro y un Siniestro puede contener múltiples documentos. Los archivos se almacenan mediante un servicio externo de almacenamiento; PostgreSQL conserva para cada documento la referencia textual necesaria para localizar el archivo y relacionarlo con su Siniestro.
+
+La presencia y la unicidad de las seis categorías obligatorias se validan en el servidor al confirmar el registro. Esta validación no utiliza una restricción de unicidad compuesta en la base de datos, ya que un mismo Siniestro puede contener múltiples documentos de categoría `ADICIONAL`.
+
+Antes de confirmar el registro puede reemplazarse un archivo y el MVP no conserva versiones anteriores. Una vez registrado el Siniestro, sus documentos forman parte del historial y no pueden eliminarse.
 
 ## 8.6. Extracción automática de información
 
