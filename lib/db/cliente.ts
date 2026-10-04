@@ -140,3 +140,12 @@ export async function actualizarClientePorId(
     throw error;
   }
 }
+
+export async function darDeBajaClientePorId(id: string) {
+  const resultado = await prisma.cliente.updateMany({
+    where: { id },
+    data: { activo: false },
+  });
+
+  return resultado.count === 1;
+}

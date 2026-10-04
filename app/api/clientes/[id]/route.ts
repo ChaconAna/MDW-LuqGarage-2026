@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { actualizarClientePorId, obtenerClientePorId } from "@/lib/db/cliente";
+import {
+  actualizarClientePorId,
+  darDeBajaClientePorId,
+  obtenerClientePorId,
+} from "@/lib/db/cliente";
 import {
   actualizarClienteSchema,
   parametrosClienteSchema,
@@ -96,4 +100,31 @@ export async function PATCH(
   }
 
   return NextResponse.json(resultadoActualizacion.cliente);
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: ContextoRutaCliente,
+) {
+  const resultadoParametros = parametrosClienteSchema.safeParse(await params);
+
+  if (!resultadoParametros.success) {
+    return NextResponse.json(
+      { error: "El id debe ser un UUID válido." },
+      { status: 400 },
+    );
+  }
+
+  const clienteDadoDeBaja = await darDeBajaClientePorId(
+    resultadoParametros.data.id,
+  );
+
+  if (!clienteDadoDeBaja) {
+    return NextResponse.json(
+      { error: "Cliente no encontrado." },
+      { status: 404 },
+    );
+  }
+
+  return new NextResponse(null, { status: 204 });
 }
