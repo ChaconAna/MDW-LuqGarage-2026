@@ -12,7 +12,7 @@ El MVP comprende tres procesos principales:
 2. Gestión de presupuestos.
 3. Generación de órdenes de trabajo.
 
-El flujo funcional del MVP finaliza con la generación de la Orden de Trabajo. La ejecución y seguimiento de las reparaciones dentro del taller quedan fuera del alcance de esta versión.
+El flujo funcional del MVP finaliza cuando concluye la confección de la Orden de Trabajo y queda disponible para consulta del Mecánico. La ejecución y seguimiento de las reparaciones dentro del taller quedan fuera del alcance de esta versión.
 
 
 
@@ -26,13 +26,13 @@ El sistema permitirá:
 - Registrar siniestros.
 - Adjuntar documentación y fotografías a los siniestros.
 - Registrar presupuestos asociados a siniestros.
-- Incorporar reparaciones y repuestos a los presupuestos.
+- Incorporar al menos una reparación y, opcionalmente, repuestos a los presupuestos.
 - Enviar presupuestos a una aseguradora mediante email.
 - Procesar la respuesta recibida por email.
 - Aprobar o rechazar automáticamente un presupuesto según dicha respuesta.
 - Generar una Orden de Trabajo utilizando uno o varios presupuestos aprobados pertenecientes al mismo siniestro.
 - Organizar las reparaciones de la Orden de Trabajo por sectores.
-- Consultar las Órdenes de Trabajo generadas.
+- Consultar las Órdenes de Trabajo finalizadas.
 - Gestionar usuarios y permisos.
 
 El sistema será implementado inicialmente como backend y deberá permitir ejecutar el flujo completo mediante requests HTTP, sin requerir una interfaz gráfica.
@@ -391,7 +391,6 @@ Los estados incluidos en el MVP son:
 
 - `REGISTRADO`
 - `PRESUPUESTADO`
-- `PENDIENTE_DE_FACTURACION`
 
 ## 9.1. Transiciones
 
@@ -399,13 +398,9 @@ Los estados incluidos en el MVP son:
 
 Ocurre cuando se registra el primer presupuesto asociado al siniestro.
 
-`PRESUPUESTADO → PENDIENTE_DE_FACTURACION`
+El siniestro permanece en estado `PRESUPUESTADO` durante el resto del flujo del MVP. La finalización de una Orden de Trabajo no modifica su estado.
 
-Ocurre cuando se finaliza la generación de la Orden de Trabajo correspondiente al trabajo que continuará en el taller.
-
-`PENDIENTE_DE_FACTURACION` representa el final del flujo implementado en este MVP.
-
-La facturación, los pagos y el cierre administrativo posterior quedan fuera del alcance.
+La ejecución física de las reparaciones, su seguimiento, la facturación, los pagos y el cierre administrativo posterior quedan fuera del alcance.
 
 
 
@@ -444,7 +439,7 @@ Un siniestro puede tener múltiples presupuestos.
 
 Cada Presupuesto pertenece a un único Siniestro y debe tener un `numeroPresupuesto` obligatorio, almacenado como texto y único globalmente. El MVP no define todavía un formato ni un mecanismo automático para generar este número.
 
-La creación de un Presupuesto es una operación agregada: en el alta pueden informarse las reparaciones y los repuestos que formarán parte de su `BORRADOR` inicial.
+La creación de un Presupuesto es una operación agregada: en el alta debe informarse al menos una reparación y pueden informarse, opcionalmente, los repuestos que formarán parte de su `BORRADOR` inicial.
 
 
 
@@ -461,13 +456,13 @@ Una misma reparación del catálogo puede utilizarse en diferentes presupuestos.
 
 Dentro de un mismo Presupuesto, una Reparación del catálogo no puede incorporarse más de una vez.
 
-Cada detalle de reparación pertenece a un único Presupuesto y a una única Reparación. Un Presupuesto puede contener múltiples detalles de reparación y una Reparación puede aparecer en Presupuestos diferentes.
+Cada detalle de reparación pertenece a un único Presupuesto y a una única Reparación. Todo Presupuesto debe contener uno o más detalles de reparación y una Reparación puede aparecer en Presupuestos diferentes. La cardinalidad de Presupuesto a Reparaciones es `1..N`.
 
 El costo corresponde específicamente al presupuesto en el que se incorpora. Es un valor monetario decimal con precisión total de 12 dígitos y 2 decimales.
 
 El costo de cada reparación debe ser mayor o igual a `0`. El valor `0.00` es válido y no se admiten valores negativos.
 
-Un Presupuesto en estado `BORRADOR` puede guardarse inicialmente sin reparaciones. La colección de reparaciones puede permanecer vacía durante el borrador. Esta posibilidad no define las condiciones necesarias para confirmar o enviar el Presupuesto.
+Un Presupuesto se crea con al menos una reparación y debe conservar al menos una durante toda su existencia. Un Presupuesto en estado `BORRADOR` no puede guardarse sin reparaciones.
 
 
 
@@ -482,7 +477,7 @@ Cada repuesto incorporado debe registrar:
 
 Dentro de un mismo Presupuesto, un Repuesto del catálogo no puede incorporarse más de una vez. La cantidad requerida se registra en el campo Cantidad del detalle correspondiente.
 
-Cada detalle de repuesto pertenece a un único Presupuesto y a un único Repuesto. Un Presupuesto puede contener múltiples detalles de repuesto y un Repuesto puede aparecer en Presupuestos diferentes.
+Cada detalle de repuesto pertenece a un único Presupuesto y a un único Repuesto. Un Presupuesto puede contener cero o más detalles de repuesto y un Repuesto puede aparecer en Presupuestos diferentes. La cardinalidad de Presupuesto a Repuestos es `0..N`.
 
 La cantidad representa unidades enteras, debe ser mayor o igual a `1` y no admite valores fraccionarios.
 
@@ -530,7 +525,7 @@ o:
 Mientras el presupuesto esté en estado `BORRADOR`:
 
 - puede modificarse;
-- pueden agregarse o quitarse reparaciones;
+- pueden agregarse o quitarse reparaciones, siempre que se conserve al menos una;
 - pueden agregarse o quitarse repuestos;
 - puede guardarse y continuarse posteriormente.
 
@@ -653,6 +648,8 @@ Cada Orden de Trabajo pertenece a un único Siniestro. La asociación de un Pres
 
 Una vez asociado a una Orden de Trabajo, no podrá reutilizarse para generar otra.
 
+Un mismo Siniestro puede dar lugar a múltiples Órdenes de Trabajo a lo largo de su historial, sin un límite de cantidad definido por el MVP.
+
 
 
 # 18. Tareas de la Orden de Trabajo
@@ -714,7 +711,7 @@ No se incluye un estado `EN_PROCESO`, debido a que la ejecución de las reparaci
 
 ## 21.1. Borrador
 
-La Orden de Trabajo puede guardarse en `BORRADOR` y continuar editándose posteriormente.
+La Orden de Trabajo puede guardarse en `BORRADOR` y continuar confeccionándose y organizándose posteriormente.
 
 ## 21.2. Finalización
 
@@ -723,9 +720,21 @@ Una Orden de Trabajo puede pasar a `FINALIZADA` cuando:
 - tiene al menos un presupuesto aprobado asociado;
 - todas las reparaciones provenientes de los presupuestos están asociadas a un sector.
 
-La finalización representa que **la creación de la Orden de Trabajo ha concluido**, no que el vehículo haya sido reparado.
+La finalización representa que **la confección de la Orden de Trabajo ha concluido** y que queda disponible para consulta del Mecánico. No representa que las reparaciones físicas del vehículo hayan terminado.
 
 Las fechas reales de inicio y finalización de la reparación del vehículo no forman parte de este MVP.
+
+Una Orden de Trabajo `FINALIZADA` no se reabre para incorporar reparaciones descubiertas posteriormente y permanece como parte del historial.
+
+## 21.3. Reparaciones adicionales posteriores
+
+Si aparecen nuevas reparaciones para el mismo Siniestro después de finalizar una Orden de Trabajo:
+
+1. se crea un nuevo Presupuesto para el mismo Siniestro;
+2. el nuevo Presupuesto recorre el flujo normal de envío y aprobación;
+3. una vez aprobado, puede utilizarse para generar una nueva Orden de Trabajo;
+4. la Orden de Trabajo anterior permanece `FINALIZADA` e histórica;
+5. el Siniestro permanece en estado `PRESUPUESTADO`.
 
 
 # 22. Reglas de negocio
@@ -762,9 +771,9 @@ Todo presupuesto debe pertenecer a un siniestro existente.
 
 Un siniestro puede tener múltiples presupuestos.
 
-### RN09 — Edición del presupuesto
+### RN09 — Composición y edición del presupuesto
 
-Solo los presupuestos en estado `BORRADOR` pueden modificarse.
+Todo Presupuesto debe contener al menos una reparación. Solo los presupuestos en estado `BORRADOR` pueden modificarse y, durante su edición, no puede eliminarse su última reparación.
 
 ### RN10 — Envío del presupuesto
 
@@ -812,15 +821,15 @@ Un sector puede contener múltiples reparaciones.
 
 ### RN20 — Finalización de la Orden de Trabajo
 
-La creación de la Orden de Trabajo solo puede finalizar cuando todas las reparaciones se encuentren correctamente sectorizadas.
+La confección de la Orden de Trabajo solo puede finalizar cuando todas las reparaciones se encuentren correctamente sectorizadas. Al pasar a `FINALIZADA`, queda disponible para consulta del Mecánico y no puede reabrirse. Esta finalización no representa que las reparaciones físicas hayan terminado.
 
 ### RN21 — Estado del siniestro
 
 Cuando se registra el primer presupuesto, el siniestro pasa a `PRESUPUESTADO`.
 
-Cuando se finaliza la Orden de Trabajo correspondiente, el siniestro pasa a `PENDIENTE_DE_FACTURACION`.
+La finalización de una Orden de Trabajo no modifica el estado del Siniestro, que permanece `PRESUPUESTADO`.
 
-Un siniestro en estado `PENDIENTE_DE_FACTURACION` no admite la creación de nuevos Presupuestos.
+Si aparecen nuevas reparaciones después de finalizar una Orden de Trabajo, debe crearse un nuevo Presupuesto y recorrerse nuevamente el flujo de envío y aprobación antes de generar una nueva Orden de Trabajo para el mismo Siniestro. La Orden de Trabajo anterior permanece `FINALIZADA` e histórica.
 
 ### RN22 — Baja lógica
 
@@ -1001,6 +1010,7 @@ Quedan fuera del alcance del MVP:
 - Facturación.
 - Registro de pagos.
 - Generación de recibos.
+- Ejecución física de las reparaciones.
 - Seguimiento de avance de reparaciones.
 - Asignación de mecánicos a tareas.
 - Registro de inicio real de una reparación.
@@ -1068,11 +1078,13 @@ RECEPCIONISTA / ENCARGADO
               FINALIZADA
                   │
                   ▼
-              SINIESTRO:
-      PENDIENTE_DE_FACTURACION
+      Disponible para consulta
+           del Mecánico
                   │
                   ▼
           FIN DEL MVP
+
+La finalización de la Orden de Trabajo no cambia el estado del Siniestro, que permanece `PRESUPUESTADO`. Si posteriormente aparecen nuevas reparaciones, se inicia para el mismo Siniestro otro ciclo de Presupuesto, envío, aprobación y nueva Orden de Trabajo; la Orden de Trabajo anterior permanece `FINALIZADA` e histórica.
 
 
 # 31. Criterio de finalización del MVP
@@ -1084,16 +1096,14 @@ El MVP se considera funcional cuando el flujo completo puede ejecutarse desde un
 3. Registrar/consultar Vehículo.
 4. Registrar/consultar Aseguradora.
 5. Registrar un Siniestro con su documentación.
-6. Crear un Presupuesto.
-7. Incorporar reparaciones y, opcionalmente, repuestos.
-8. Guardarlo como `BORRADOR`.
-9. Confirmarlo y enviarlo.
-10. Procesar una respuesta simulada de aseguradora.
-11. Obtener un presupuesto `APROBADO`.
-12. Seleccionar uno o varios presupuestos aprobados del mismo siniestro.
-13. Generar una Orden de Trabajo.
-14. Organizar sus reparaciones por sectores.
-15. Finalizar la Orden de Trabajo.
-16. Obtener el Siniestro en estado `PENDIENTE_DE_FACTURACION`.
+6. Crear un Presupuesto en estado `BORRADOR` con al menos una reparación y, opcionalmente, repuestos.
+7. Confirmarlo y enviarlo.
+8. Procesar una respuesta simulada de aseguradora.
+9. Obtener un presupuesto `APROBADO`.
+10. Seleccionar uno o varios presupuestos aprobados del mismo siniestro.
+11. Generar una Orden de Trabajo.
+12. Organizar sus reparaciones por sectores.
+13. Finalizar la confección de la Orden de Trabajo y dejarla disponible para consulta del Mecánico.
+14. Mantener el Siniestro en estado `PRESUPUESTADO`.
 
 Todo el flujo deberá respetar las reglas de negocio, autenticación, autorización, validaciones y manejo de fallas definidos en este documento.
