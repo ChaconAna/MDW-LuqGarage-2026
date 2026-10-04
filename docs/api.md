@@ -1,9 +1,9 @@
 # Contrato HTTP actual — LuqGarage
 
 Este documento describe exclusivamente la API implementada actualmente para
-Cliente, Aseguradora, Vehículo, Siniestro y la consulta paginada de
-Presupuesto. No documenta operaciones futuras de detalle, alta, modificación
-o transición de Presupuesto, ni endpoints de Orden de Trabajo o catálogos.
+Cliente, Aseguradora, Vehículo, Siniestro y la consulta de Presupuesto. No
+documenta operaciones futuras de alta, modificación o transición de
+Presupuesto, ni endpoints de Orden de Trabajo o catálogos.
 
 ## Estado de la autorización
 
@@ -460,15 +460,55 @@ La representación no incluye reparaciones, repuestos, total, Orden de Trabajo
 ni datos adicionales del Siniestro. El modelo actual tampoco contiene una
 fecha de creación del Presupuesto.
 
+### Representación del detalle
+
+El detalle contiene los campos de la representación del listado y agrega:
+
+```json
+{
+  "reparaciones": [
+    {
+      "id": "uuid",
+      "costo": "150000.00",
+      "reparacion": {
+        "id": "uuid",
+        "nombre": "Reparación Demo de Chapa"
+      }
+    }
+  ],
+  "repuestos": [
+    {
+      "id": "uuid",
+      "cantidad": 2,
+      "repuesto": {
+        "id": "uuid",
+        "nombre": "Repuesto Demo"
+      }
+    }
+  ],
+  "total": "150000.00"
+}
+```
+
+`costo` y `total` son strings decimales con exactamente dos posiciones. El
+total se calcula como la suma de los costos de las reparaciones, sin incluir
+repuestos, y no se persiste. Un Presupuesto sin repuestos devuelve
+`"repuestos": []`; si no se recuperan reparaciones, devuelve
+`"reparaciones": []` y `"total": "0.00"`.
+
+El detalle no incluye Sector, Orden de Trabajo ni datos adicionales del
+Siniestro.
+
 ### Operaciones
 
 | Método y ruta | Propósito | Éxito actual | Errores actuales |
 |---|---|---|---|
 | `GET /api/presupuestos` | Lista Presupuestos con paginación y resumen del Siniestro | `200` | `400` query inválida |
+| `GET /api/presupuestos/[id]` | Obtiene un Presupuesto con reparaciones, repuestos y total derivado | `200` | `400` UUID inválido, `404` inexistente |
 
 El endpoint acepta `page` y `limit` según las convenciones generales de
 paginación, ordena establemente por `id` ascendente y devuelve `200 OK` con
 `data: []` cuando la página solicitada no contiene resultados.
 
-No están implementados el detalle, la creación, la modificación, el envío ni
-las transiciones de estado de Presupuesto.
+No están implementados la creación, la modificación, el envío ni las
+transiciones de estado de Presupuesto.

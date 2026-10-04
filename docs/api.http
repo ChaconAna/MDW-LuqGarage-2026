@@ -657,6 +657,7 @@ Content-Type: application/json
 ###############################################################################
 
 ### Listar Presupuestos con paginación por defecto → 200
+# @name listarPresupuestos
 GET {{baseUrl}}/api/presupuestos
 
 
@@ -666,3 +667,15 @@ GET {{baseUrl}}/api/presupuestos?page=1&limit=5
 
 ### Paginación inválida → 400
 GET {{baseUrl}}/api/presupuestos?page=0&limit=101
+
+
+### Consultar el primer Presupuesto del listado → 200
+GET {{baseUrl}}/api/presupuestos/{{listarPresupuestos.response.body.$.data[0].id}}
+
+
+### ID de Presupuesto con formato inválido → 400
+GET {{baseUrl}}/api/presupuestos/no-es-un-uuid
+
+
+### Presupuesto inexistente → 404
+GET {{baseUrl}}/api/presupuestos/{{uuidInexistente}}

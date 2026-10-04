@@ -16,6 +16,36 @@ const seleccionPresupuesto = {
   },
 } satisfies Prisma.PresupuestoSelect;
 
+const seleccionDetallePresupuesto = {
+  ...seleccionPresupuesto,
+  reparaciones: {
+    orderBy: { id: "asc" },
+    select: {
+      id: true,
+      costo: true,
+      reparacion: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+    },
+  },
+  repuestos: {
+    orderBy: { id: "asc" },
+    select: {
+      id: true,
+      cantidad: true,
+      repuesto: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.PresupuestoSelect;
+
 type DatosPresupuesto = {
   numeroPresupuesto: string;
   estado: EstadoPresupuesto;
@@ -46,4 +76,11 @@ export async function listarPresupuestos(page: number, limit: number) {
   ]);
 
   return { presupuestos, total };
+}
+
+export function obtenerPresupuestoPorId(id: string) {
+  return prisma.presupuesto.findUnique({
+    where: { id },
+    select: seleccionDetallePresupuesto,
+  });
 }
