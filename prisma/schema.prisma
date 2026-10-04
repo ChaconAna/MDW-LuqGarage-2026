@@ -139,6 +139,8 @@ model Reparacion {
   sector              Sector              @relation(fields: [sectorId], references: [id])
   sectorId            String              @db.Uuid
   detallesPresupuesto DetalleReparacion[]
+
+  @@index([sectorId])
 }
 
 // Catálogo de repuestos. No almacena precio, costo ni stock porque esos datos
