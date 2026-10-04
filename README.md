@@ -1,85 +1,37 @@
-# Proyecto MDW 2026 — <LuqGarage>
+# LuqGarage — gestión para taller de chapa y pintura
 
-> Reemplazá este bloque en la clase 1.
-
-**Equipo:**
+## Equipo
 
 - Ana Chacón — responsable del repositorio (creó el repo y tiene la cuenta de Vercel)
 - Cintia Lucero
 - Lucia Maximino
 
+## Producción
 
-**Producción:** https://mdw-luq-garage-2026.vercel.app/
-**Problema que resuelve:** La gestión de siniestros, presupuestos y órdenes de trabajo se realiza de forma manual y descentralizada. Esto provoca demoras en los tiempos de respuesta, errores en los registros y fallas de comunicación con las aseguradoras, dificultando el seguimiento continuo de las reparaciones en el taller.
-**Flujo principal:** El usuario registra el siniestro en el sistema, genera el presupuesto correspondiente para la aseguradora, emite la orden de trabajo para el taller tras su aprobación y realiza el seguimiento del estado de la reparación de forma centralizada hasta su finalización.
+https://mdw-luq-garage-2026.vercel.app/
 
----
+## De qué se trata
 
-## Puesta en marcha
+LuqGarage es un MVP académico desarrollado para Metodologías y Desarrollos Web (MDW) 2026. Busca centralizar la gestión de un taller de chapa y pintura que trabaja con compañías aseguradoras.
 
-Requisitos: Node 20+, npm, y una base de datos: **Postgres** (Supabase) o **MongoDB** (Atlas). Las dos tienen plan gratuito.
+El alcance actual corresponde al backend de las clases 1 a 7 y comprende tres procesos: registro de siniestros, gestión de presupuestos y generación de órdenes de trabajo.
 
-```bash
-npm install
-cp .env.example .env.local     # completar DATABASE_URL y AUTH_SECRET
-npx prisma migrate dev --name init
-npm run db:seed
-npm run dev                       # http://localhost:3000
-```
+Roles: recepcionista (gestiona la información administrativa y los siniestros), encargado del taller (gestiona presupuestos y órdenes de trabajo), mecánico (consulta órdenes finalizadas) y administrador (gestiona usuarios, roles y permisos).
 
-Generar el `AUTH_SECRET`:
+Problema que resuelve: La gestión de siniestros, presupuestos y órdenes de trabajo se realiza de forma manual y descentralizada. Esto provoca demoras en los tiempos de respuesta, errores en los registros y fallas de comunicación con las aseguradoras, dificultando el seguimiento continuo de las reparaciones en el taller.
 
-```bash
-npx auth secret
-```
+Flujo principal: `Siniestro → Presupuesto → aprobación/rechazo → Orden de Trabajo`.
 
-> Usen **npm** en todo el equipo y commiteen el `package-lock.json`. Si alguien instala con otro gestor aparece un segundo lockfile y las instalaciones dejan de ser reproducibles.
+El flujo del MVP termina al finalizar la generación de la Orden de Trabajo. La ejecución y el seguimiento de las reparaciones dentro del taller quedan fuera del alcance actual.
 
-## Comandos
+El backend todavía se encuentra en desarrollo y el repositorio conserva principalmente la estructura y el código de ejemplo iniciales. La especificación funcional completa está en [`docs/spec.md`](./docs/spec.md).
 
-| Comando | Para qué |
-|---|---|
-| `npm run dev` | Levantar en desarrollo |
-| `npm run build` | Build de producción (lo mismo que corre Vercel) |
-| `npm run lint` | Lint |
-| `npm run typecheck` | Chequeo de tipos sin emitir |
-| `npm test` | Tests |
-| `npx prisma migrate dev` | Crear y aplicar una migración |
-| `npx prisma studio` | Ver y editar los datos a mano |
-| `npm run db:seed` | Cargar datos de ejemplo |
+## Stack
 
-## Estructura
+Next.js (App Router) + TypeScript + PostgreSQL (Supabase) + Prisma + Zod + Auth.js + Tailwind CSS + shadcn/ui.
 
-```
-app/                    rutas (App Router)
-  (public)/             páginas sin sesión
-  (app)/                páginas con sesión
-  api/                  Route Handlers
-components/             componentes de UI
-lib/
-  db/                   acceso a datos — ÚNICO lugar que habla con Prisma
-  schemas/              schemas de Zod (validación + tipos)
-  auth.ts               configuración de sesión y roles
-prisma/
-  schema.prisma         modelo de datos
-  seed.ts               datos de ejemplo
-docs/
-  spec.md               qué hace el sistema (requerimientos)
-  adr/                  decisiones técnicas y por qué
-```
+Supabase Storage para archivos, Mailtrap para simular emails y un servicio externo de IA para la extracción asistida de datos. Deploy en Vercel.
 
-## Reglas del equipo
+## Cómo levantarlo
 
-- Nadie pushea a `main`. Todo entra por Pull Request con al menos 1 aprobación.
-- Las convenciones de código están en [`AGENTS.md`](./AGENTS.md) — mantenerlo al día es responsabilidad del equipo.
-- Una decisión técnica que cueste revertir se documenta como ADR en `docs/adr/`.
-
-## Definition of Done
-
-Una tarea está terminada cuando:
-
-- [ ] Funciona en el preview deployment, no solo en la máquina de quien la escribió.
-- [ ] La validación está en el servidor, no solo en el cliente.
-- [ ] Los estados de carga y error están resueltos en la UI.
-- [ ] `npm run build` y `npm run typecheck` pasan.
-- [ ] Alguien más del equipo la revisó y puede explicarla.
+`npm install` · copiar `.env.example` a `.env.local` · `npm run dev`

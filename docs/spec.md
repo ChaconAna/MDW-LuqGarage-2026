@@ -135,6 +135,8 @@ Las principales entidades del dominio son:
 
 También existen catálogos y valores predefinidos asociados al dominio.
 
+Todas las entidades del sistema utilizarán UUID como identificador técnico.
+
 ## 4.1. Catálogos precargados
 
 Los siguientes datos estarán inicialmente precargados mediante datos de inicialización del sistema:
@@ -147,6 +149,15 @@ Los siguientes datos estarán inicialmente precargados mediante datos de inicial
 - Reparacion
 - Repuesto
 - Sector
+
+- **Marca:** tiene un atributo `nombre`, que debe ser único.
+- **Modelo:** tiene un atributo `nombre`. Cada Modelo pertenece a una única Marca y una Marca puede tener múltiples Modelos. Dentro de una misma Marca no puede existir más de un Modelo con el mismo nombre, aunque el mismo nombre puede utilizarse en Marcas diferentes.
+- **TipoVehiculo:** tiene un atributo `nombre`, que debe ser único.
+- **Provincia:** tiene un atributo `nombre`, que debe ser único.
+- **Localidad:** tiene un atributo `nombre`. Cada Localidad pertenece a una única Provincia y una Provincia puede tener múltiples Localidades. Dentro de una misma Provincia no puede existir más de una Localidad con el mismo nombre, aunque el mismo nombre puede utilizarse en Provincias diferentes.
+- **Sector:** tiene un atributo `nombre`, que debe ser único.
+- **Reparacion:** tiene un atributo `nombre`, que debe ser único.
+- **Repuesto:** tiene un atributo `nombre`, que debe ser único.
 
 No se requiere implementar interfaces de administración para estos catálogos dentro del alcance actual.
 
@@ -169,11 +180,19 @@ Datos mínimos:
 - Provincia
 - Estado activo/inactivo
 
+El DNI de cada cliente se almacena como texto y debe ser único.
+
+El teléfono del cliente se almacena como texto.
+
+El estado activo/inactivo se representa mediante el campo booleano `activo`, cuyo valor inicial es `true`.
+
+Cada Cliente se relaciona directamente con una Localidad. La Provincia se obtiene mediante la Localidad asociada y no se persiste como una relación directa adicional del Cliente.
+
 La relación entre un Cliente y un Vehículo se establece al registrar un Siniestro. Un cliente puede estar asociado a distintos vehículos en diferentes siniestros.
 
 ## 5.1. Baja de Cliente
 
-La eliminación de un cliente será lógica.
+La eliminación de un cliente será lógica: consiste en establecer su campo `activo` en `false`, sin eliminar físicamente el registro.
 
 Un cliente dado de baja:
 
@@ -196,12 +215,20 @@ Datos mínimos:
 - Tipo de vehículo
 - Estado activo/inactivo
 
+La patente de cada vehículo debe ser única.
+
+El estado activo/inactivo se representa mediante el campo booleano `activo`, cuyo valor inicial es `true`.
+
+Cada Vehículo se relaciona directamente con un Modelo. La Marca se obtiene mediante el Modelo asociado y no se persiste como una relación directa adicional del Vehículo.
+
+Cada Vehículo se relaciona directamente con un TipoVehiculo.
+
 La relación entre un Cliente y un Vehículo se establece al registrar un Siniestro. Un vehículo puede estar asociado a distintos clientes en diferentes siniestros.
 
 
 ## 6.1. Baja de Vehículo
 
-La eliminación será lógica.
+La eliminación será lógica: consiste en establecer el campo `activo` en `false`, sin eliminar físicamente el registro.
 
 Un vehículo inactivo:
 
@@ -225,9 +252,15 @@ Datos:
 - Dirección
 - Estado activo/inactivo
 
+El CUIT de cada aseguradora se almacena como texto y debe ser único.
+
+El teléfono de la aseguradora se almacena como texto.
+
+El estado activo/inactivo se representa mediante el campo booleano `activo`, cuyo valor inicial es `true`.
+
 ## 7.1. Baja de Aseguradora
 
-La eliminación será lógica.
+La eliminación será lógica: consiste en establecer el campo `activo` en `false`, sin eliminar físicamente el registro.
 
 Una aseguradora inactiva:
 
@@ -262,11 +295,16 @@ El sistema debe permitir registrar:
 
 - Número de siniestro.
 - Fecha del siniestro.
+- Fecha de registro.
 - Grado del daño.
 - Número de póliza.
 - Cliente.
 - Vehículo.
 - Aseguradora.
+
+El número de siniestro y el número de póliza se almacenan como texto.
+
+La fecha de registro se persiste como fecha y hora, y se genera automáticamente en el momento en que el Siniestro queda efectivamente registrado. Esta fecha se utiliza como referencia para validar que la fecha del siniestro no sea posterior a la fecha de registro.
 
 ### Grado del daño
 
@@ -282,16 +320,22 @@ El grado del daño es únicamente informativo y no modifica otras reglas de nego
 
 Para registrar el siniestro deberán adjuntarse:
 
-- Foto de la denuncia.
-- Foto lateral derecha.
-- Foto lateral izquierda.
-- Foto frontal.
-- Foto trasera.
-- Foto del certificado de cobertura.
+- Una foto de la denuncia, con categoría `DENUNCIA`.
+- Una foto lateral derecha, con categoría `LATERAL_DERECHA`.
+- Una foto lateral izquierda, con categoría `LATERAL_IZQUIERDA`.
+- Una foto frontal, con categoría `FRONTAL`.
+- Una foto trasera, con categoría `TRASERA`.
+- Una foto del certificado de cobertura, con categoría `CERTIFICADO_COBERTURA`.
 
-También podrán adjuntarse fotografías adicionales opcionales.
+En un Siniestro registrado debe existir exactamente un archivo de cada una de estas seis categorías obligatorias.
 
-Los archivos se almacenarán utilizando un servicio externo de almacenamiento.
+También podrán adjuntarse cero o más fotografías adicionales opcionales, todas identificadas con la categoría `ADICIONAL`.
+
+Cada DocumentoSiniestro pertenece a un único Siniestro y un Siniestro puede contener múltiples documentos. Los archivos se almacenan mediante un servicio externo de almacenamiento; PostgreSQL conserva para cada documento la referencia textual necesaria para localizar el archivo y relacionarlo con su Siniestro.
+
+La presencia y la unicidad de las seis categorías obligatorias se validan en el servidor al confirmar el registro. Esta validación no utiliza una restricción de unicidad compuesta en la base de datos, ya que un mismo Siniestro puede contener múltiples documentos de categoría `ADICIONAL`.
+
+Antes de confirmar el registro puede reemplazarse un archivo y el MVP no conserva versiones anteriores. Una vez registrado el Siniestro, sus documentos forman parte del historial y no pueden eliminarse.
 
 ## 8.6. Extracción automática de información
 
@@ -318,6 +362,7 @@ Si el servicio no responde, supera el tiempo máximo de espera o no puede interp
 - El número de siniestro debe ser único.
 - La fecha del siniestro es obligatoria.
 - La fecha del siniestro no puede ser posterior a la fecha de registro.
+- El grado del daño es obligatorio.
 - Debe existir un cliente activo.
 - Debe existir un vehículo activo.
 - Debe existir una aseguradora activa.
@@ -395,6 +440,10 @@ El sistema recuperará:
 
 Un siniestro puede tener múltiples presupuestos.
 
+## 10.5. Datos del Presupuesto
+
+Cada Presupuesto pertenece a un único Siniestro y debe tener un `numeroPresupuesto` obligatorio, almacenado como texto y único globalmente. El MVP no define todavía un formato ni un mecanismo automático para generar este número.
+
 
 
 # 11. Reparaciones del Presupuesto
@@ -408,7 +457,11 @@ Cada reparación incorporada al presupuesto deberá registrar:
 
 Una misma reparación del catálogo puede utilizarse en diferentes presupuestos.
 
-El costo corresponde específicamente al presupuesto en el que se incorpora.
+Dentro de un mismo Presupuesto, una Reparación del catálogo no puede incorporarse más de una vez.
+
+Cada detalle de reparación pertenece a un único Presupuesto y a una única Reparación. Un Presupuesto puede contener múltiples detalles de reparación y una Reparación puede aparecer en Presupuestos diferentes.
+
+El costo corresponde específicamente al presupuesto en el que se incorpora. Es un valor monetario decimal con precisión total de 12 dígitos y 2 decimales.
 
 
 
@@ -420,6 +473,12 @@ Cada repuesto incorporado debe registrar:
 
 - Repuesto.
 - Cantidad.
+
+Dentro de un mismo Presupuesto, un Repuesto del catálogo no puede incorporarse más de una vez. La cantidad requerida se registra en el campo Cantidad del detalle correspondiente.
+
+Cada detalle de repuesto pertenece a un único Presupuesto y a un único Repuesto. Un Presupuesto puede contener múltiples detalles de repuesto y un Repuesto puede aparecer en Presupuestos diferentes.
+
+La cantidad representa unidades enteras y no admite valores fraccionarios.
 
 El sistema no administra el precio de los repuestos.
 
@@ -437,6 +496,8 @@ Conceptualmente:
 
 El total no incluye el valor de los repuestos.
 
+El total es un dato derivado de los detalles de reparación y no se persiste de forma redundante.
+
 
 
 # 14. Estados del Presupuesto
@@ -447,6 +508,8 @@ Los estados son:
 - `ENVIADO`
 - `APROBADO`
 - `RECHAZADO`
+
+Todo nuevo Presupuesto se crea inicialmente en estado `BORRADOR`.
 
 ## 14.1. Flujo
 
@@ -580,6 +643,8 @@ Una Orden de Trabajo puede contener múltiples presupuestos.
 
 Un presupuesto puede pertenecer como máximo a una Orden de Trabajo.
 
+Cada Orden de Trabajo pertenece a un único Siniestro. La asociación de un Presupuesto con una Orden de Trabajo es opcional.
+
 Una vez asociado a una Orden de Trabajo, no podrá reutilizarse para generar otra.
 
 
@@ -591,6 +656,8 @@ Las tareas de la Orden de Trabajo provienen de las reparaciones existentes en lo
 Cada reparación del presupuesto equivale a una tarea de la Orden de Trabajo.
 
 No pueden agregarse tareas nuevas directamente desde la Orden de Trabajo.
+
+Las reparaciones no se duplican en la Orden de Trabajo: se obtienen a través de los detalles de reparación de sus Presupuestos asociados.
 
 
 
@@ -611,11 +678,15 @@ Un sector puede contener múltiples reparaciones.
 
 Al generar la Orden de Trabajo, las reparaciones provenientes de los presupuestos deberán organizarse de acuerdo con su sector.
 
+El Sector de cada reparación se obtiene de la relación existente entre Reparacion y Sector y no se persiste de forma redundante en la tarea.
+
 
 
 # 20. Observaciones por Sector
 
 Cada sector incluido en una Orden de Trabajo podrá tener una observación opcional.
+
+La relación entre una Orden de Trabajo y cada Sector incluido se registra una sola vez mediante OrdenTrabajoSector, que conserva la observación opcional.
 
 La observación:
 
@@ -630,6 +701,8 @@ Los estados incluidos en el MVP son:
 
 - `BORRADOR`
 - `FINALIZADA`
+
+Toda nueva Orden de Trabajo se crea inicialmente en estado `BORRADOR`.
 
 No se incluye un estado `EN_PROCESO`, debido a que la ejecución de las reparaciones dentro del taller queda fuera del alcance actual.
 
