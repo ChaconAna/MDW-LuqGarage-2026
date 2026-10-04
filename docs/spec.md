@@ -444,6 +444,8 @@ Un siniestro puede tener múltiples presupuestos.
 
 Cada Presupuesto pertenece a un único Siniestro y debe tener un `numeroPresupuesto` obligatorio, almacenado como texto y único globalmente. El MVP no define todavía un formato ni un mecanismo automático para generar este número.
 
+La creación de un Presupuesto es una operación agregada: en el alta pueden informarse las reparaciones y los repuestos que formarán parte de su `BORRADOR` inicial.
+
 
 
 # 11. Reparaciones del Presupuesto
@@ -463,6 +465,10 @@ Cada detalle de reparación pertenece a un único Presupuesto y a una única Rep
 
 El costo corresponde específicamente al presupuesto en el que se incorpora. Es un valor monetario decimal con precisión total de 12 dígitos y 2 decimales.
 
+El costo de cada reparación debe ser mayor o igual a `0`. El valor `0.00` es válido y no se admiten valores negativos.
+
+Un Presupuesto en estado `BORRADOR` puede guardarse inicialmente sin reparaciones. La colección de reparaciones puede permanecer vacía durante el borrador. Esta posibilidad no define las condiciones necesarias para confirmar o enviar el Presupuesto.
+
 
 
 # 12. Repuestos del Presupuesto
@@ -478,7 +484,7 @@ Dentro de un mismo Presupuesto, un Repuesto del catálogo no puede incorporarse 
 
 Cada detalle de repuesto pertenece a un único Presupuesto y a un único Repuesto. Un Presupuesto puede contener múltiples detalles de repuesto y un Repuesto puede aparecer en Presupuestos diferentes.
 
-La cantidad representa unidades enteras y no admite valores fraccionarios.
+La cantidad representa unidades enteras, debe ser mayor o igual a `1` y no admite valores fraccionarios.
 
 El sistema no administra el precio de los repuestos.
 
@@ -813,6 +819,8 @@ La creación de la Orden de Trabajo solo puede finalizar cuando todas las repara
 Cuando se registra el primer presupuesto, el siniestro pasa a `PRESUPUESTADO`.
 
 Cuando se finaliza la Orden de Trabajo correspondiente, el siniestro pasa a `PENDIENTE_DE_FACTURACION`.
+
+Un siniestro en estado `PENDIENTE_DE_FACTURACION` no admite la creación de nuevos Presupuestos.
 
 ### RN22 — Baja lógica
 
