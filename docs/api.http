@@ -1,0 +1,420 @@
+# Pruebas reproducibles de la API actual de LuqGarage
+#
+# Requisitos:
+#   1. Ejecutar `npm run db:seed` sobre la base de desarrollo.
+#   2. Levantar la aplicación con `npm run dev`.
+#   3. Ejecutar primero el listado de cada sección. Los requests siguientes
+#      reutilizan IDs obtenidos de esas respuestas; no hay UUID de catálogos
+#      inventados ni copiados de otro entorno.
+#
+# Las creaciones usan valores únicos fijos para que los casos sean legibles.
+# Como DELETE es una baja lógica, al repetir toda la secuencia hay que cambiar
+# el DNI, CUIT o patente de documentación: el registro anterior sigue en la
+# base y la restricción UNIQUE se conserva.
+#
+# No se envían tokens: autenticación y autorización llegan en Clase 6.
+
+@baseUrl = http://localhost:3000
+@uuidInexistente = 00000000-0000-4000-8000-000000000000
+
+###############################################################################
+# CLIENTES
+###############################################################################
+
+### Listar clientes con paginación por defecto → 200
+# @name listarClientes
+GET {{baseUrl}}/api/clientes
+
+
+### Listar clientes con paginación explícita → 200
+GET {{baseUrl}}/api/clientes?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/clientes?page=0&limit=101
+
+
+### Consultar el primer Cliente del listado → 200
+GET {{baseUrl}}/api/clientes/{{listarClientes.response.body.$.data[0].id}}
+
+
+### ID de Cliente con formato inválido → 400
+GET {{baseUrl}}/api/clientes/no-es-un-uuid
+
+
+### Cliente inexistente → 404
+GET {{baseUrl}}/api/clientes/{{uuidInexistente}}
+
+
+### Crear un Cliente → 201
+# La Localidad se toma del primer Cliente sembrado porque todavía no existe un
+# endpoint de catálogos. Cambiar el DNI si esta creación ya fue ejecutada.
+# @name crearClienteDocumentacion
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente",
+  "apellido": "Documentación",
+  "dni": "99123456",
+  "telefono": "1199990001",
+  "email": "cliente.documentacion@luqgarage.invalid",
+  "direccion": "Calle de Prueba 100",
+  "localidadId": "{{listarClientes.response.body.$.data[0].localidad.id}}"
+}
+
+
+### Body de Cliente incompleto → 400
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Sin campos obligatorios"
+}
+
+
+### Localidad inexistente → 404
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente",
+  "apellido": "Sin localidad",
+  "dni": "99123457",
+  "telefono": "1199990002",
+  "email": "sin.localidad@luqgarage.invalid",
+  "direccion": "Calle de Prueba 101",
+  "localidadId": "{{uuidInexistente}}"
+}
+
+
+### DNI del Cliente sembrado duplicado → 409
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente",
+  "apellido": "Duplicado",
+  "dni": "00000000",
+  "telefono": "1199990003",
+  "email": "dni.duplicado@luqgarage.invalid",
+  "direccion": "Calle de Prueba 102",
+  "localidadId": "{{listarClientes.response.body.$.data[0].localidad.id}}"
+}
+
+
+### Modificar parcialmente el Cliente creado → 200
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "telefono": "1199990099"
+}
+
+
+### PATCH de Cliente con Localidad inexistente → 404
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "localidadId": "{{uuidInexistente}}"
+}
+
+
+### PATCH de Cliente con DNI duplicado → 409
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "dni": "00000000"
+}
+
+
+### PATCH de Cliente vacío → 400
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### PATCH de Cliente con campo adicional → 400
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "activo": true
+}
+
+
+### Dar de baja el Cliente creado → 204 sin body
+DELETE {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+
+
+### Repetir la baja del mismo Cliente → 204 sin body
+DELETE {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+
+
+### Consultar el Cliente inactivo: continúa existiendo → 200
+GET {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+
+
+### Dar de baja un Cliente inexistente → 404
+DELETE {{baseUrl}}/api/clientes/{{uuidInexistente}}
+
+
+###############################################################################
+# ASEGURADORAS
+###############################################################################
+
+### Listar aseguradoras con paginación por defecto → 200
+# @name listarAseguradoras
+GET {{baseUrl}}/api/aseguradoras
+
+
+### Listar aseguradoras con paginación explícita → 200
+GET {{baseUrl}}/api/aseguradoras?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/aseguradoras?page=-1&limit=10
+
+
+### Consultar la primera Aseguradora del listado → 200
+GET {{baseUrl}}/api/aseguradoras/{{listarAseguradoras.response.body.$.data[0].id}}
+
+
+### ID de Aseguradora con formato inválido → 400
+GET {{baseUrl}}/api/aseguradoras/no-es-un-uuid
+
+
+### Aseguradora inexistente → 404
+GET {{baseUrl}}/api/aseguradoras/{{uuidInexistente}}
+
+
+### Crear una Aseguradora → 201
+# Cambiar el CUIT si esta creación ya fue ejecutada.
+# @name crearAseguradoraDocumentacion
+POST {{baseUrl}}/api/aseguradoras
+Content-Type: application/json
+
+{
+  "nombre": "Aseguradora Documentación",
+  "cuit": "99-12345678-9",
+  "telefono": "1199991001",
+  "email": "aseguradora.documentacion@luqgarage.invalid",
+  "direccion": "Avenida de Prueba 200"
+}
+
+
+### Body de Aseguradora con campo adicional → 400
+POST {{baseUrl}}/api/aseguradoras
+Content-Type: application/json
+
+{
+  "nombre": "Aseguradora Inválida",
+  "cuit": "99-12345679-9",
+  "telefono": "1199991002",
+  "email": "aseguradora.invalida@luqgarage.invalid",
+  "direccion": "Avenida de Prueba 201",
+  "activo": true
+}
+
+
+### CUIT de la Aseguradora sembrada duplicado → 409
+POST {{baseUrl}}/api/aseguradoras
+Content-Type: application/json
+
+{
+  "nombre": "Aseguradora Duplicada",
+  "cuit": "00-00000000-0",
+  "telefono": "1199991003",
+  "email": "cuit.duplicado@luqgarage.invalid",
+  "direccion": "Avenida de Prueba 202"
+}
+
+
+### Modificar parcialmente la Aseguradora creada → 200
+PATCH {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "telefono": "1199991099"
+}
+
+
+### PATCH de Aseguradora con CUIT duplicado → 409
+PATCH {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "cuit": "00-00000000-0"
+}
+
+
+### PATCH de Aseguradora vacío → 400
+PATCH {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### Dar de baja la Aseguradora creada → 204 sin body
+DELETE {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+
+
+### Repetir la baja de la misma Aseguradora → 204 sin body
+DELETE {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+
+
+### Consultar la Aseguradora inactiva: continúa existiendo → 200
+GET {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+
+
+### Dar de baja una Aseguradora inexistente → 404
+DELETE {{baseUrl}}/api/aseguradoras/{{uuidInexistente}}
+
+
+###############################################################################
+# VEHÍCULOS
+###############################################################################
+
+### Listar vehículos con paginación por defecto → 200
+# @name listarVehiculos
+GET {{baseUrl}}/api/vehiculos
+
+
+### Listar vehículos con paginación explícita → 200
+GET {{baseUrl}}/api/vehiculos?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/vehiculos?page=1&limit=0
+
+
+### Consultar el primer Vehículo del listado → 200
+GET {{baseUrl}}/api/vehiculos/{{listarVehiculos.response.body.$.data[0].id}}
+
+
+### ID de Vehículo con formato inválido → 400
+GET {{baseUrl}}/api/vehiculos/no-es-un-uuid
+
+
+### Vehículo inexistente → 404
+GET {{baseUrl}}/api/vehiculos/{{uuidInexistente}}
+
+
+### Crear un Vehículo → 201
+# Modelo y TipoVehiculo se toman del primer Vehículo sembrado porque todavía
+# no existen endpoints de catálogos. Cambiar la patente si ya fue ejecutado.
+# @name crearVehiculoDocumentacion
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS001",
+  "modeloId": "{{listarVehiculos.response.body.$.data[0].modelo.id}}",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### Body de Vehículo con UUID inválido → 400
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS002",
+  "modeloId": "no-es-un-uuid",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### Modelo inexistente → 404
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS003",
+  "modeloId": "{{uuidInexistente}}",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### TipoVehiculo inexistente → 404
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS004",
+  "modeloId": "{{listarVehiculos.response.body.$.data[0].modelo.id}}",
+  "tipoVehiculoId": "{{uuidInexistente}}"
+}
+
+
+### Patente del Vehículo sembrado duplicada → 409
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "SEED000",
+  "modeloId": "{{listarVehiculos.response.body.$.data[0].modelo.id}}",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### Modificar parcialmente el Vehículo creado → 200
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "patente": "DOCS099"
+}
+
+
+### PATCH de Vehículo con patente duplicada → 409
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "patente": "SEED000"
+}
+
+
+### PATCH de Vehículo vacío → 400
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### PATCH de Vehículo con campo prohibido → 400
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "clienteId": "{{uuidInexistente}}"
+}
+
+
+### PATCH con Modelo inexistente → 404
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "modeloId": "{{uuidInexistente}}"
+}
+
+
+### Dar de baja el Vehículo creado → 204 sin body
+DELETE {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+
+
+### Repetir la baja del mismo Vehículo → 204 sin body
+DELETE {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+
+
+### Consultar el Vehículo inactivo: continúa existiendo → 200
+GET {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+
+
+### Dar de baja un Vehículo inexistente → 404
+DELETE {{baseUrl}}/api/vehiculos/{{uuidInexistente}}
