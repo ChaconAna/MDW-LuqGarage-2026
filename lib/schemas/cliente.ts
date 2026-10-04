@@ -24,3 +24,12 @@ export const crearClienteSchema = z
   .strict();
 
 export type DatosCreacionCliente = z.infer<typeof crearClienteSchema>;
+
+export const actualizarClienteSchema = crearClienteSchema.partial().refine(
+  (datos) => Object.keys(datos).length > 0,
+  { message: "Debe indicar al menos un campo para actualizar." },
+);
+
+export type DatosActualizacionCliente = z.infer<
+  typeof actualizarClienteSchema
+>;

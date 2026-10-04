@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { obtenerClientePorId } from "@/lib/db/cliente";
+import { actualizarClientePorId, obtenerClientePorId } from "@/lib/db/cliente";
 import {
+  actualizarClienteSchema,
   parametrosClienteSchema,
   type ParametrosCliente,
 } from "@/lib/schemas/cliente";
@@ -33,4 +34,66 @@ export async function GET(
   }
 
   return NextResponse.json(cliente);
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: ContextoRutaCliente,
+) {
+  const resultadoParametros = parametrosClienteSchema.safeParse(await params);
+
+  if (!resultadoParametros.success) {
+    return NextResponse.json(
+      { error: "El id debe ser un UUID válido." },
+      { status: 400 },
+    );
+  }
+
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "El cuerpo de la solicitud no es un JSON válido." },
+      { status: 400 },
+    );
+  }
+
+  const resultadoBody = actualizarClienteSchema.safeParse(body);
+
+  if (!resultadoBody.success) {
+    return NextResponse.json(
+      { error: "Los datos del Cliente son inválidos." },
+      { status: 400 },
+    );
+  }
+
+  const resultadoActualizacion = await actualizarClientePorId(
+    resultadoParametros.data.id,
+    resultadoBody.data,
+  );
+
+  if (!resultadoActualizacion.actualizado) {
+    if (resultadoActualizacion.motivo === "CLIENTE_NO_ENCONTRADO") {
+      return NextResponse.json(
+        { error: "Cliente no encontrado." },
+        { status: 404 },
+      );
+    }
+
+    if (resultadoActualizacion.motivo === "LOCALIDAD_NO_ENCONTRADA") {
+      return NextResponse.json(
+        { error: "Localidad no encontrada." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Ya existe un Cliente con el DNI indicado." },
+      { status: 409 },
+    );
+  }
+
+  return NextResponse.json(resultadoActualizacion.cliente);
 }
