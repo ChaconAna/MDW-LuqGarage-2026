@@ -1,8 +1,9 @@
 # Contrato HTTP actual — LuqGarage
 
 Este documento describe exclusivamente la API implementada actualmente para
-Cliente, Aseguradora y Vehículo. No documenta endpoints futuros de Siniestro,
-Presupuesto, Orden de Trabajo ni catálogos.
+Cliente, Aseguradora, Vehículo y la consulta de Siniestro. No documenta
+operaciones futuras de alta, modificación o eliminación de Siniestro, ni
+endpoints de Presupuesto, Orden de Trabajo o catálogos.
 
 ## Estado de la autorización
 
@@ -30,14 +31,14 @@ devuelven `401 Unauthorized` ni `403 Forbidden`.
   solamente como strings.
 - Los listados incluyen registros activos e inactivos y se ordenan por `id`.
 - `GET` individual, `POST` y `PATCH` exitosos devuelven la representación
-  completa del recurso correspondiente. En los listados, `data` contiene un
-  array de esas representaciones.
+  definida para el recurso correspondiente. En los listados, `data` contiene
+  un array de las representaciones definidas para cada listado.
 - Los DELETE realizan baja lógica (`activo = false`), son idempotentes para un
   registro existente y nunca eliminan físicamente información.
 
 ### Paginación
 
-Los tres endpoints de listado aceptan:
+Los cuatro endpoints de listado aceptan:
 
 | Query param | Tipo | Default | Restricción |
 |---|---:|---:|---|
@@ -277,3 +278,89 @@ inactivo, pero PATCH no puede modificar `activo` ni reactivarlo.
 
 No recibe body. Si el Vehículo existe, esté activo o inactivo, establece
 `activo=false` y devuelve `204 No Content`.
+
+## Siniestro
+
+Rol futuro: **Recepcionista o Encargado del Taller**. Actualmente no se
+controla sesión ni rol porque la autenticación y la autorización se
+implementarán en Clase 6.
+
+El listado incluye Siniestros de cualquier estado y devuelve una
+representación resumida sin documentos. El detalle devuelve la misma
+información más los documentos asociados. Ninguna de las dos operaciones
+incluye Presupuestos ni Órdenes de Trabajo.
+
+### Representación del listado
+
+```json
+{
+  "id": "uuid",
+  "numeroSiniestro": "SIN-SEED-VALIDO-001",
+  "fechaSiniestro": "2026-03-01T12:00:00.000Z",
+  "fechaRegistro": "2026-03-02T12:00:00.000Z",
+  "gradoDano": "MODERADO",
+  "numeroPoliza": "POL-SEED-001",
+  "estado": "PENDIENTE_DE_FACTURACION",
+  "cliente": {
+    "id": "uuid",
+    "nombre": "Cliente",
+    "apellido": "Ficticio",
+    "dni": "00000000",
+    "activo": true
+  },
+  "vehiculo": {
+    "id": "uuid",
+    "patente": "SEED000",
+    "activo": true,
+    "modelo": {
+      "id": "uuid",
+      "nombre": "Modelo",
+      "marca": {
+        "id": "uuid",
+        "nombre": "Marca"
+      }
+    },
+    "tipoVehiculo": {
+      "id": "uuid",
+      "nombre": "Automóvil"
+    }
+  },
+  "aseguradora": {
+    "id": "uuid",
+    "nombre": "Aseguradora Ficticia",
+    "cuit": "00-00000000-0",
+    "activo": true
+  }
+}
+```
+
+### Representación del detalle
+
+El detalle contiene todos los campos de la representación del listado y
+agrega exclusivamente:
+
+```json
+{
+  "documentos": [
+    {
+      "id": "uuid",
+      "tipo": "DENUNCIA",
+      "referenciaArchivo": "seed/flujo-valido/denuncia.jpg"
+    }
+  ]
+}
+```
+
+`referenciaArchivo` se devuelve exactamente como está persistido. En esta
+etapa es una referencia textual: la API no asume que sea una URL pública, una
+URL firmada, un path definitivo de Supabase o una key de Storage, y no
+consulta la existencia física del archivo.
+
+### Operaciones
+
+| Método y ruta | Propósito | Éxito actual | Errores actuales |
+|---|---|---|---|
+| `GET /api/siniestros` | Lista Siniestros con paginación, sin documentos | `200` | `400` query inválida |
+| `GET /api/siniestros/[id]` | Obtiene un Siniestro con sus documentos | `200` | `400` UUID inválido, `404` inexistente |
+
+No están implementados `POST`, `PATCH` ni `DELETE` de Siniestro.
