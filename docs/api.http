@@ -650,3 +650,19 @@ Content-Type: application/json
 # No se incluye un request de relación inactiva: el seed deja activas las tres
 # relaciones y producir ese estado requeriría ejecutar bajas lógicas ajenas a
 # este incremento. El contrato y el handler sí contemplan el caso con 409.
+
+
+###############################################################################
+# PRESUPUESTOS
+###############################################################################
+
+### Listar Presupuestos con paginación por defecto → 200
+GET {{baseUrl}}/api/presupuestos
+
+
+### Listar Presupuestos con paginación explícita → 200
+GET {{baseUrl}}/api/presupuestos?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/presupuestos?page=0&limit=101

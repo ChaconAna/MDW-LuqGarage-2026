@@ -1,9 +1,9 @@
 # Contrato HTTP actual — LuqGarage
 
 Este documento describe exclusivamente la API implementada actualmente para
-Cliente, Aseguradora, Vehículo y la consulta de Siniestro. No documenta
-operaciones futuras de alta, modificación o eliminación de Siniestro, ni
-endpoints de Presupuesto, Orden de Trabajo o catálogos.
+Cliente, Aseguradora, Vehículo, Siniestro y la consulta paginada de
+Presupuesto. No documenta operaciones futuras de detalle, alta, modificación
+o transición de Presupuesto, ni endpoints de Orden de Trabajo o catálogos.
 
 ## Estado de la autorización
 
@@ -38,7 +38,7 @@ devuelven `401 Unauthorized` ni `403 Forbidden`.
 
 ### Paginación
 
-Los cuatro endpoints de listado aceptan:
+Los cinco endpoints de listado aceptan:
 
 | Query param | Tipo | Default | Restricción |
 |---|---:|---:|---|
@@ -433,3 +433,42 @@ Supabase Storage; esa integración queda pendiente para el incremento de
 servicios externos.
 
 No están implementados `PATCH` ni `DELETE` de Siniestro.
+
+## Presupuesto
+
+Rol futuro: **Encargado del Taller**. Actualmente no se controla sesión ni rol
+porque la autenticación y la autorización se implementarán en Clase 6.
+
+El listado incluye Presupuestos de todos los estados: `BORRADOR`, `ENVIADO`,
+`APROBADO` y `RECHAZADO`.
+
+### Representación del listado
+
+```json
+{
+  "id": "uuid",
+  "numeroPresupuesto": "PRES-SEED-001",
+  "estado": "APROBADO",
+  "siniestro": {
+    "id": "uuid",
+    "numeroSiniestro": "SIN-SEED-VALIDO-001"
+  }
+}
+```
+
+La representación no incluye reparaciones, repuestos, total, Orden de Trabajo
+ni datos adicionales del Siniestro. El modelo actual tampoco contiene una
+fecha de creación del Presupuesto.
+
+### Operaciones
+
+| Método y ruta | Propósito | Éxito actual | Errores actuales |
+|---|---|---|---|
+| `GET /api/presupuestos` | Lista Presupuestos con paginación y resumen del Siniestro | `200` | `400` query inválida |
+
+El endpoint acepta `page` y `limit` según las convenciones generales de
+paginación, ordena establemente por `id` ascendente y devuelve `200 OK` con
+`data: []` cuando la página solicitada no contiene resultados.
+
+No están implementados el detalle, la creación, la modificación, el envío ni
+las transiciones de estado de Presupuesto.
