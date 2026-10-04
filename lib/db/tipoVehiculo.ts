@@ -1,10 +1,10 @@
 import type { ClienteTransaccion } from "./transaccion";
 
-export function asegurarSectorPorNombre(
+export function asegurarTipoVehiculoPorNombre(
   cliente: ClienteTransaccion,
   nombre: string,
 ) {
-  return cliente.sector.upsert({
+  return cliente.tipoVehiculo.upsert({
     where: { nombre },
     update: {},
     create: { nombre },
