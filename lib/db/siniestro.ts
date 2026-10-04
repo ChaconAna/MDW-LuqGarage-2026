@@ -1,8 +1,11 @@
-import type { EstadoSiniestro, GradoDano, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { EstadoSiniestro, GradoDano } from "@prisma/client";
 
+import type { DatosCreacionSiniestro } from "../schemas/siniestro";
 import type { ClienteTransaccion } from "./transaccion";
 
 import { prisma } from "./client";
+import { ejecutarTransaccion } from "./transaccion";
 
 const seleccionSiniestro = {
   id: true,
@@ -109,4 +112,85 @@ export function obtenerSiniestroPorId(id: string) {
     where: { id },
     select: seleccionDetalleSiniestro,
   });
+}
+
+export async function crearSiniestro(
+  datos: DatosCreacionSiniestro,
+  fechaRegistro: Date,
+) {
+  try {
+    return await ejecutarTransaccion(async (cliente) => {
+      const [clienteExistente, vehiculo, aseguradora] = await Promise.all([
+        cliente.cliente.findUnique({
+          where: { id: datos.clienteId },
+          select: { activo: true },
+        }),
+        cliente.vehiculo.findUnique({
+          where: { id: datos.vehiculoId },
+          select: { activo: true },
+        }),
+        cliente.aseguradora.findUnique({
+          where: { id: datos.aseguradoraId },
+          select: { activo: true },
+        }),
+      ]);
+
+      if (!clienteExistente) {
+        return {
+          creado: false,
+          motivo: "CLIENTE_NO_ENCONTRADO",
+        } as const;
+      }
+
+      if (!vehiculo) {
+        return {
+          creado: false,
+          motivo: "VEHICULO_NO_ENCONTRADO",
+        } as const;
+      }
+
+      if (!aseguradora) {
+        return {
+          creado: false,
+          motivo: "ASEGURADORA_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (!clienteExistente.activo) {
+        return { creado: false, motivo: "CLIENTE_INACTIVO" } as const;
+      }
+
+      if (!vehiculo.activo) {
+        return { creado: false, motivo: "VEHICULO_INACTIVO" } as const;
+      }
+
+      if (!aseguradora.activo) {
+        return { creado: false, motivo: "ASEGURADORA_INACTIVA" } as const;
+      }
+
+      const { documentos, ...datosSiniestro } = datos;
+      const siniestro = await cliente.siniestro.create({
+        data: {
+          ...datosSiniestro,
+          fechaRegistro,
+          estado: "REGISTRADO",
+          documentos: {
+            create: documentos,
+          },
+        },
+        select: seleccionDetalleSiniestro,
+      });
+
+      return { creado: true, siniestro } as const;
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { creado: false, motivo: "NUMERO_DUPLICADO" } as const;
+    }
+
+    throw error;
+  }
 }

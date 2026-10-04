@@ -361,6 +361,75 @@ consulta la existencia física del archivo.
 | Método y ruta | Propósito | Éxito actual | Errores actuales |
 |---|---|---|---|
 | `GET /api/siniestros` | Lista Siniestros con paginación, sin documentos | `200` | `400` query inválida |
+| `POST /api/siniestros` | Registra un Siniestro con toda su documentación | `201` | `400` body/RN02/RN06 inválidos, `404` relación inexistente, `409` número duplicado o relación inactiva |
 | `GET /api/siniestros/[id]` | Obtiene un Siniestro con sus documentos | `200` | `400` UUID inválido, `404` inexistente |
 
-No están implementados `POST`, `PATCH` ni `DELETE` de Siniestro.
+### POST `/api/siniestros`
+
+Body exacto:
+
+```json
+{
+  "numeroSiniestro": "SIN-2026-0001",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "MODERADO",
+  "numeroPoliza": "POL-123456",
+  "clienteId": "uuid",
+  "vehiculoId": "uuid",
+  "aseguradoraId": "uuid",
+  "documentos": [
+    {
+      "tipo": "DENUNCIA",
+      "referenciaArchivo": "documentos/denuncia.jpg"
+    },
+    {
+      "tipo": "LATERAL_DERECHA",
+      "referenciaArchivo": "documentos/lateral-derecha.jpg"
+    },
+    {
+      "tipo": "LATERAL_IZQUIERDA",
+      "referenciaArchivo": "documentos/lateral-izquierda.jpg"
+    },
+    {
+      "tipo": "FRONTAL",
+      "referenciaArchivo": "documentos/frontal.jpg"
+    },
+    {
+      "tipo": "TRASERA",
+      "referenciaArchivo": "documentos/trasera.jpg"
+    },
+    {
+      "tipo": "CERTIFICADO_COBERTURA",
+      "referenciaArchivo": "documentos/certificado.jpg"
+    }
+  ]
+}
+```
+
+`numeroSiniestro`, `numeroPoliza` y cada `referenciaArchivo` deben ser strings
+no vacíos. `fechaSiniestro` debe ser un timestamp ISO válido y no puede ser
+posterior a la fecha de registro capturada por el servidor. `gradoDano` acepta
+`LEVE`, `MODERADO` o `GRAVE`. Los tres identificadores relacionados deben ser
+UUID.
+
+El array `documentos` debe contener exactamente un elemento de cada tipo
+obligatorio: `DENUNCIA`, `LATERAL_DERECHA`, `LATERAL_IZQUIERDA`, `FRONTAL`,
+`TRASERA` y `CERTIFICADO_COBERTURA`. Puede contener cero o más elementos
+`ADICIONAL`; no se exige que `referenciaArchivo` sea único.
+
+El body es estricto. No acepta `id`, `fechaRegistro`, `estado`,
+`documentos[].id`, `documentos[].siniestroId` ni otros campos adicionales.
+El servidor genera esos valores, establece el estado `REGISTRADO` y crea el
+Siniestro y todos sus documentos atómicamente. La respuesta `201` utiliza la
+representación del detalle definida arriba.
+
+Una relación inexistente devuelve `404`. Una relación existente pero inactiva
+o un `numeroSiniestro` duplicado devuelve `409`. Una fecha posterior a la de
+registro o una composición documental que incumple RN06 devuelve `400`.
+
+En este incremento, `referenciaArchivo` es exclusivamente la referencia
+textual persistida. El POST no carga ni comprueba físicamente archivos en
+Supabase Storage; esa integración queda pendiente para el incremento de
+servicios externos.
+
+No están implementados `PATCH` ni `DELETE` de Siniestro.

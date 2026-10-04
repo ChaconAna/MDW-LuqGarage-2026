@@ -447,3 +447,206 @@ GET {{baseUrl}}/api/siniestros/no-es-un-uuid
 
 ### Siniestro inexistente → 404
 GET {{baseUrl}}/api/siniestros/{{uuidInexistente}}
+
+
+### Crear un Siniestro con dos documentos adicionales → 201
+# Los recursos relacionados se toman del Siniestro sembrado. Cambiar el
+# numeroSiniestro si esta creación ya fue ejecutada.
+# @name crearSiniestroDocumentacion
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-POST-001",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "MODERADO",
+  "numeroPoliza": "POL-DOCS-POST-001",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/post/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/post/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/post/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/post/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/post/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/post/certificado.jpg" },
+    { "tipo": "ADICIONAL", "referenciaArchivo": "docs/post/adicional-1.jpg" },
+    { "tipo": "ADICIONAL", "referenciaArchivo": "docs/post/adicional-2.jpg" }
+  ]
+}
+
+
+### Body de Siniestro inválido → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "id": "{{uuidInexistente}}"
+}
+
+
+### Fecha del Siniestro posterior a fechaRegistro → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-RN02-INVALIDO",
+  "fechaSiniestro": "2099-01-01T00:00:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-RN02",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/rn02/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/rn02/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/rn02/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/rn02/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/rn02/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/rn02/certificado.jpg" }
+  ]
+}
+
+
+### Documentación obligatoria incompleta: falta TRASERA → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-RN06-INCOMPLETO",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-RN06-1",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/incompleto/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/incompleto/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/incompleto/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/incompleto/frontal.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/incompleto/certificado.jpg" }
+  ]
+}
+
+
+### Categoría obligatoria DENUNCIA duplicada → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-RN06-DUPLICADO",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-RN06-2",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/duplicado/denuncia-1.jpg" },
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/duplicado/denuncia-2.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/duplicado/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/duplicado/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/duplicado/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/duplicado/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/duplicado/certificado.jpg" }
+  ]
+}
+
+
+### Cliente inexistente → 404
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-CLIENTE-INEXISTENTE",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-404-1",
+  "clienteId": "{{uuidInexistente}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-1/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-1/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-1/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-1/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-1/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-1/certificado.jpg" }
+  ]
+}
+
+
+### Vehículo inexistente → 404
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-VEHICULO-INEXISTENTE",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-404-2",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{uuidInexistente}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-2/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-2/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-2/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-2/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-2/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-2/certificado.jpg" }
+  ]
+}
+
+
+### Aseguradora inexistente → 404
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-ASEGURADORA-INEXISTENTE",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-404-3",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{uuidInexistente}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-3/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-3/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-3/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-3/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-3/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-3/certificado.jpg" }
+  ]
+}
+
+
+### Número del Siniestro sembrado duplicado, sin ADICIONAL → 409
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-SEED-VALIDO-001",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-DUPLICADO",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/409/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/409/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/409/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/409/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/409/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/409/certificado.jpg" }
+  ]
+}
+
+
+# No se incluye un request de relación inactiva: el seed deja activas las tres
+# relaciones y producir ese estado requeriría ejecutar bajas lógicas ajenas a
+# este incremento. El contrato y el handler sí contemplan el caso con 409.
