@@ -1,5 +1,6 @@
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
+import type { DatosCreacionCliente } from "../schemas/cliente";
 import type { ClienteTransaccion } from "./transaccion";
 
 import { prisma } from "./client";
@@ -68,4 +69,34 @@ export async function listarClientes(page: number, limit: number) {
   ]);
 
   return { clientes, total };
+}
+
+export async function crearCliente(datos: DatosCreacionCliente) {
+  try {
+    const cliente = await prisma.cliente.create({
+      data: {
+        ...datos,
+        activo: true,
+      },
+      select: seleccionCliente,
+    });
+
+    return { creado: true, cliente } as const;
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { creado: false, motivo: "DNI_DUPLICADO" } as const;
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2003"
+    ) {
+      return { creado: false, motivo: "LOCALIDAD_NO_ENCONTRADA" } as const;
+    }
+
+    throw error;
+  }
 }
