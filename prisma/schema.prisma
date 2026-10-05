@@ -37,7 +37,6 @@ enum GradoDano {
 enum EstadoSiniestro {
   REGISTRADO
   PRESUPUESTADO
-  PENDIENTE_DE_FACTURACION
 }
 
 enum TipoDocumentoSiniestro {

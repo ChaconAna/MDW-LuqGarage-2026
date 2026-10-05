@@ -1,0 +1,1332 @@
+# Pruebas reproducibles de la API actual de LuqGarage
+#
+# Requisitos:
+#   1. Ejecutar `npm run db:seed` sobre la base de desarrollo.
+#   2. Levantar la aplicación con `npm run dev`.
+#   3. Ejecutar primero el listado de cada sección. Los requests siguientes
+#      reutilizan IDs obtenidos de esas respuestas; no hay UUID de catálogos
+#      inventados ni copiados de otro entorno.
+#
+# Las creaciones usan valores únicos fijos para que los casos sean legibles.
+# Como DELETE es una baja lógica, al repetir toda la secuencia hay que cambiar
+# el DNI, CUIT o patente de documentación: el registro anterior sigue en la
+# base y la restricción UNIQUE se conserva.
+#
+# No se envían tokens: autenticación y autorización llegan en Clase 6.
+
+@baseUrl = http://localhost:3000
+@uuidInexistente = 00000000-0000-4000-8000-000000000000
+
+###############################################################################
+# CLIENTES
+###############################################################################
+
+### Listar clientes con paginación por defecto → 200
+# @name listarClientes
+GET {{baseUrl}}/api/clientes
+
+
+### Listar clientes con paginación explícita → 200
+GET {{baseUrl}}/api/clientes?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/clientes?page=0&limit=101
+
+
+### Consultar el primer Cliente del listado → 200
+GET {{baseUrl}}/api/clientes/{{listarClientes.response.body.$.data[0].id}}
+
+
+### ID de Cliente con formato inválido → 400
+GET {{baseUrl}}/api/clientes/no-es-un-uuid
+
+
+### Cliente inexistente → 404
+GET {{baseUrl}}/api/clientes/{{uuidInexistente}}
+
+
+### Crear un Cliente → 201
+# La Localidad se toma del primer Cliente sembrado porque todavía no existe un
+# endpoint de catálogos. Cambiar el DNI si esta creación ya fue ejecutada.
+# @name crearClienteDocumentacion
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente",
+  "apellido": "Documentación",
+  "dni": "99123456",
+  "telefono": "1199990001",
+  "email": "cliente.documentacion@luqgarage.invalid",
+  "direccion": "Calle de Prueba 100",
+  "localidadId": "{{listarClientes.response.body.$.data[0].localidad.id}}"
+}
+
+
+### Body de Cliente incompleto → 400
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Sin campos obligatorios"
+}
+
+
+### Localidad inexistente → 404
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente",
+  "apellido": "Sin localidad",
+  "dni": "99123457",
+  "telefono": "1199990002",
+  "email": "sin.localidad@luqgarage.invalid",
+  "direccion": "Calle de Prueba 101",
+  "localidadId": "{{uuidInexistente}}"
+}
+
+
+### DNI del Cliente sembrado duplicado → 409
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Cliente",
+  "apellido": "Duplicado",
+  "dni": "00000000",
+  "telefono": "1199990003",
+  "email": "dni.duplicado@luqgarage.invalid",
+  "direccion": "Calle de Prueba 102",
+  "localidadId": "{{listarClientes.response.body.$.data[0].localidad.id}}"
+}
+
+
+### Modificar parcialmente el Cliente creado → 200
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "telefono": "1199990099"
+}
+
+
+### PATCH de Cliente con Localidad inexistente → 404
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "localidadId": "{{uuidInexistente}}"
+}
+
+
+### PATCH de Cliente con DNI duplicado → 409
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "dni": "00000000"
+}
+
+
+### PATCH de Cliente vacío → 400
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### PATCH de Cliente con campo adicional → 400
+PATCH {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "activo": true
+}
+
+
+### Dar de baja el Cliente creado → 204 sin body
+DELETE {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+
+
+### Repetir la baja del mismo Cliente → 204 sin body
+DELETE {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+
+
+### Consultar el Cliente inactivo: continúa existiendo → 200
+GET {{baseUrl}}/api/clientes/{{crearClienteDocumentacion.response.body.$.id}}
+
+
+### Dar de baja un Cliente inexistente → 404
+DELETE {{baseUrl}}/api/clientes/{{uuidInexistente}}
+
+
+###############################################################################
+# ASEGURADORAS
+###############################################################################
+
+### Listar aseguradoras con paginación por defecto → 200
+# @name listarAseguradoras
+GET {{baseUrl}}/api/aseguradoras
+
+
+### Listar aseguradoras con paginación explícita → 200
+GET {{baseUrl}}/api/aseguradoras?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/aseguradoras?page=-1&limit=10
+
+
+### Consultar la primera Aseguradora del listado → 200
+GET {{baseUrl}}/api/aseguradoras/{{listarAseguradoras.response.body.$.data[0].id}}
+
+
+### ID de Aseguradora con formato inválido → 400
+GET {{baseUrl}}/api/aseguradoras/no-es-un-uuid
+
+
+### Aseguradora inexistente → 404
+GET {{baseUrl}}/api/aseguradoras/{{uuidInexistente}}
+
+
+### Crear una Aseguradora → 201
+# Cambiar el CUIT si esta creación ya fue ejecutada.
+# @name crearAseguradoraDocumentacion
+POST {{baseUrl}}/api/aseguradoras
+Content-Type: application/json
+
+{
+  "nombre": "Aseguradora Documentación",
+  "cuit": "99-12345678-9",
+  "telefono": "1199991001",
+  "email": "aseguradora.documentacion@luqgarage.invalid",
+  "direccion": "Avenida de Prueba 200"
+}
+
+
+### Body de Aseguradora con campo adicional → 400
+POST {{baseUrl}}/api/aseguradoras
+Content-Type: application/json
+
+{
+  "nombre": "Aseguradora Inválida",
+  "cuit": "99-12345679-9",
+  "telefono": "1199991002",
+  "email": "aseguradora.invalida@luqgarage.invalid",
+  "direccion": "Avenida de Prueba 201",
+  "activo": true
+}
+
+
+### CUIT de la Aseguradora sembrada duplicado → 409
+POST {{baseUrl}}/api/aseguradoras
+Content-Type: application/json
+
+{
+  "nombre": "Aseguradora Duplicada",
+  "cuit": "00-00000000-0",
+  "telefono": "1199991003",
+  "email": "cuit.duplicado@luqgarage.invalid",
+  "direccion": "Avenida de Prueba 202"
+}
+
+
+### Modificar parcialmente la Aseguradora creada → 200
+PATCH {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "telefono": "1199991099"
+}
+
+
+### PATCH de Aseguradora con CUIT duplicado → 409
+PATCH {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "cuit": "00-00000000-0"
+}
+
+
+### PATCH de Aseguradora vacío → 400
+PATCH {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### Dar de baja la Aseguradora creada → 204 sin body
+DELETE {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+
+
+### Repetir la baja de la misma Aseguradora → 204 sin body
+DELETE {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+
+
+### Consultar la Aseguradora inactiva: continúa existiendo → 200
+GET {{baseUrl}}/api/aseguradoras/{{crearAseguradoraDocumentacion.response.body.$.id}}
+
+
+### Dar de baja una Aseguradora inexistente → 404
+DELETE {{baseUrl}}/api/aseguradoras/{{uuidInexistente}}
+
+
+###############################################################################
+# VEHÍCULOS
+###############################################################################
+
+### Listar vehículos con paginación por defecto → 200
+# @name listarVehiculos
+GET {{baseUrl}}/api/vehiculos
+
+
+### Listar vehículos con paginación explícita → 200
+GET {{baseUrl}}/api/vehiculos?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/vehiculos?page=1&limit=0
+
+
+### Consultar el primer Vehículo del listado → 200
+GET {{baseUrl}}/api/vehiculos/{{listarVehiculos.response.body.$.data[0].id}}
+
+
+### ID de Vehículo con formato inválido → 400
+GET {{baseUrl}}/api/vehiculos/no-es-un-uuid
+
+
+### Vehículo inexistente → 404
+GET {{baseUrl}}/api/vehiculos/{{uuidInexistente}}
+
+
+### Crear un Vehículo → 201
+# Modelo y TipoVehiculo se toman del primer Vehículo sembrado porque todavía
+# no existen endpoints de catálogos. Cambiar la patente si ya fue ejecutado.
+# @name crearVehiculoDocumentacion
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS001",
+  "modeloId": "{{listarVehiculos.response.body.$.data[0].modelo.id}}",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### Body de Vehículo con UUID inválido → 400
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS002",
+  "modeloId": "no-es-un-uuid",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### Modelo inexistente → 404
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS003",
+  "modeloId": "{{uuidInexistente}}",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### TipoVehiculo inexistente → 404
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "DOCS004",
+  "modeloId": "{{listarVehiculos.response.body.$.data[0].modelo.id}}",
+  "tipoVehiculoId": "{{uuidInexistente}}"
+}
+
+
+### Patente del Vehículo sembrado duplicada → 409
+POST {{baseUrl}}/api/vehiculos
+Content-Type: application/json
+
+{
+  "patente": "SEED000",
+  "modeloId": "{{listarVehiculos.response.body.$.data[0].modelo.id}}",
+  "tipoVehiculoId": "{{listarVehiculos.response.body.$.data[0].tipoVehiculo.id}}"
+}
+
+
+### Modificar parcialmente el Vehículo creado → 200
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "patente": "DOCS099"
+}
+
+
+### PATCH de Vehículo con patente duplicada → 409
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "patente": "SEED000"
+}
+
+
+### PATCH de Vehículo vacío → 400
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### PATCH de Vehículo con campo prohibido → 400
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "clienteId": "{{uuidInexistente}}"
+}
+
+
+### PATCH con Modelo inexistente → 404
+PATCH {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "modeloId": "{{uuidInexistente}}"
+}
+
+
+### Dar de baja el Vehículo creado → 204 sin body
+DELETE {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+
+
+### Repetir la baja del mismo Vehículo → 204 sin body
+DELETE {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+
+
+### Consultar el Vehículo inactivo: continúa existiendo → 200
+GET {{baseUrl}}/api/vehiculos/{{crearVehiculoDocumentacion.response.body.$.id}}
+
+
+### Dar de baja un Vehículo inexistente → 404
+DELETE {{baseUrl}}/api/vehiculos/{{uuidInexistente}}
+
+
+###############################################################################
+# SINIESTROS
+###############################################################################
+
+### Listar Siniestros con paginación por defecto → 200
+# @name listarSiniestros
+GET {{baseUrl}}/api/siniestros
+
+
+### Listar Siniestros con paginación explícita → 200
+GET {{baseUrl}}/api/siniestros?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/siniestros?page=0&limit=101
+
+
+### Consultar el primer Siniestro del listado, con sus documentos → 200
+GET {{baseUrl}}/api/siniestros/{{listarSiniestros.response.body.$.data[0].id}}
+
+
+### ID de Siniestro con formato inválido → 400
+GET {{baseUrl}}/api/siniestros/no-es-un-uuid
+
+
+### Siniestro inexistente → 404
+GET {{baseUrl}}/api/siniestros/{{uuidInexistente}}
+
+
+### Crear un Siniestro con dos documentos adicionales → 201
+# Los recursos relacionados se toman del Siniestro sembrado. Cambiar el
+# numeroSiniestro si esta creación ya fue ejecutada.
+# @name crearSiniestroDocumentacion
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-POST-001",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "MODERADO",
+  "numeroPoliza": "POL-DOCS-POST-001",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/post/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/post/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/post/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/post/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/post/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/post/certificado.jpg" },
+    { "tipo": "ADICIONAL", "referenciaArchivo": "docs/post/adicional-1.jpg" },
+    { "tipo": "ADICIONAL", "referenciaArchivo": "docs/post/adicional-2.jpg" }
+  ]
+}
+
+
+### Body de Siniestro inválido → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "id": "{{uuidInexistente}}"
+}
+
+
+### Fecha del Siniestro posterior a fechaRegistro → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-RN02-INVALIDO",
+  "fechaSiniestro": "2099-01-01T00:00:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-RN02",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/rn02/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/rn02/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/rn02/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/rn02/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/rn02/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/rn02/certificado.jpg" }
+  ]
+}
+
+
+### Documentación obligatoria incompleta: falta TRASERA → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-RN06-INCOMPLETO",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-RN06-1",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/incompleto/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/incompleto/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/incompleto/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/incompleto/frontal.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/incompleto/certificado.jpg" }
+  ]
+}
+
+
+### Categoría obligatoria DENUNCIA duplicada → 400
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-RN06-DUPLICADO",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-RN06-2",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/duplicado/denuncia-1.jpg" },
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/duplicado/denuncia-2.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/duplicado/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/duplicado/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/duplicado/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/duplicado/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/duplicado/certificado.jpg" }
+  ]
+}
+
+
+### Cliente inexistente → 404
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-CLIENTE-INEXISTENTE",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-404-1",
+  "clienteId": "{{uuidInexistente}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-1/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-1/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-1/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-1/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-1/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-1/certificado.jpg" }
+  ]
+}
+
+
+### Vehículo inexistente → 404
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-VEHICULO-INEXISTENTE",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-404-2",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{uuidInexistente}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-2/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-2/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-2/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-2/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-2/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-2/certificado.jpg" }
+  ]
+}
+
+
+### Aseguradora inexistente → 404
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-DOCS-ASEGURADORA-INEXISTENTE",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-404-3",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{uuidInexistente}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-3/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-3/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-3/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-3/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-3/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-3/certificado.jpg" }
+  ]
+}
+
+
+### Número del Siniestro sembrado duplicado, sin ADICIONAL → 409
+POST {{baseUrl}}/api/siniestros
+Content-Type: application/json
+
+{
+  "numeroSiniestro": "SIN-SEED-VALIDO-001",
+  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
+  "gradoDano": "LEVE",
+  "numeroPoliza": "POL-DOCS-DUPLICADO",
+  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
+  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
+  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
+  "documentos": [
+    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/409/denuncia.jpg" },
+    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/409/lateral-derecha.jpg" },
+    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/409/lateral-izquierda.jpg" },
+    { "tipo": "FRONTAL", "referenciaArchivo": "docs/409/frontal.jpg" },
+    { "tipo": "TRASERA", "referenciaArchivo": "docs/409/trasera.jpg" },
+    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/409/certificado.jpg" }
+  ]
+}
+
+
+# No se incluye un request de relación inactiva: el seed deja activas las tres
+# relaciones y producir ese estado requeriría ejecutar bajas lógicas ajenas a
+# este incremento. El contrato y el handler sí contemplan el caso con 409.
+
+
+###############################################################################
+# PRESUPUESTOS
+###############################################################################
+
+### Listar Presupuestos con paginación por defecto → 200
+# @name listarPresupuestos
+GET {{baseUrl}}/api/presupuestos
+
+
+### Listar Presupuestos con paginación explícita → 200
+GET {{baseUrl}}/api/presupuestos?page=1&limit=5
+
+
+### Paginación inválida → 400
+GET {{baseUrl}}/api/presupuestos?page=0&limit=101
+
+
+### Consultar el primer Presupuesto del listado → 200
+# @name obtenerPresupuestoSembrado
+GET {{baseUrl}}/api/presupuestos/{{listarPresupuestos.response.body.$.data[0].id}}
+
+
+### ID de Presupuesto con formato inválido → 400
+GET {{baseUrl}}/api/presupuestos/no-es-un-uuid
+
+
+### Presupuesto inexistente → 404
+GET {{baseUrl}}/api/presupuestos/{{uuidInexistente}}
+
+
+### Crear un Presupuesto sin repuestos → 201
+# Cambiar numeroPresupuesto si esta creación ya fue ejecutada.
+# @name crearPresupuestoBorrador
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-POST-001",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "250000.00"
+    }
+  ]
+}
+
+
+### Crear un Presupuesto con repuestos → 201
+# Cambiar numeroPresupuesto si esta creación ya fue ejecutada.
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-POST-002",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "300000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 1
+    }
+  ]
+}
+
+
+### Presupuesto sin reparaciones → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-SIN-REPARACIONES",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": []
+}
+
+
+### Reparación duplicada → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPARACION-DUPLICADA",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    },
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "200000.00"
+    }
+  ]
+}
+
+
+### Repuesto duplicado → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPUESTO-DUPLICADO",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 1
+    },
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 2
+    }
+  ]
+}
+
+
+### Costo con más de dos decimales → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-COSTO-INVALIDO",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.999"
+    }
+  ]
+}
+
+
+### Cantidad de Repuesto inválida → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-CANTIDAD-INVALIDA",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 0
+    }
+  ]
+}
+
+
+### Siniestro inexistente → 404
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-SINIESTRO-404",
+  "siniestroId": "{{uuidInexistente}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### Reparación inexistente → 404
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPARACION-404",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{uuidInexistente}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### Repuesto inexistente → 404
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPUESTO-404",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{uuidInexistente}}",
+      "cantidad": 1
+    }
+  ]
+}
+
+
+### Número de Presupuesto duplicado → 409
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-SEED-001",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### Modificar sólo Reparaciones del Presupuesto en BORRADOR → 200
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "275000.00"
+    }
+  ]
+}
+
+
+### Modificar sólo Repuestos del Presupuesto en BORRADOR → 200
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 3
+    }
+  ]
+}
+
+
+### Eliminar todos los Repuestos del Presupuesto en BORRADOR → 200
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": []
+}
+
+
+### PATCH de Presupuesto con body vacío → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### PATCH de Presupuesto con Reparaciones vacías → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "reparaciones": []
+}
+
+
+### Intentar modificar numeroPresupuesto → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-PATCH-NO-PERMITIDO"
+}
+
+
+### Intentar modificar siniestroId → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}"
+}
+
+
+### PATCH con Reparación inexistente → 404
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "reparaciones": [
+    {
+      "reparacionId": "{{uuidInexistente}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### PATCH con Repuesto inexistente → 404
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": [
+    {
+      "repuestoId": "{{uuidInexistente}}",
+      "cantidad": 1
+    }
+  ]
+}
+
+
+### PATCH de Presupuesto inexistente → 404
+PATCH {{baseUrl}}/api/presupuestos/{{uuidInexistente}}
+Content-Type: application/json
+
+{
+  "repuestos": []
+}
+
+
+### PATCH del Presupuesto sembrado APROBADO → 409
+PATCH {{baseUrl}}/api/presupuestos/{{obtenerPresupuestoSembrado.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": []
+}
+
+
+###############################################################################
+# ÓRDENES DE TRABAJO
+###############################################################################
+# El seed actual deja una única OT FINALIZADA y su único Presupuesto APROBADO
+# ya asociado. Los ejemplos que dependen de crear una OT BORRADOR no pueden
+# encadenarse sólo con este archivo: POST /api/presupuestos crea BORRADORES y
+# la API actual no expone la transición a APROBADO. Los placeholders se
+# conservan de forma explícita para no presentar UUID ficticios como ejemplos
+# reproducibles.
+
+### Listar Órdenes de Trabajo con paginación por defecto → 200
+# @name listarOrdenesTrabajo
+GET {{baseUrl}}/api/ordenes-trabajo
+
+
+### Listar Órdenes de Trabajo con paginación explícita → 200
+GET {{baseUrl}}/api/ordenes-trabajo?page=1&limit=5
+
+
+### Page inválido → 400
+GET {{baseUrl}}/api/ordenes-trabajo?page=0
+
+
+### Limit inválido → 400
+GET {{baseUrl}}/api/ordenes-trabajo?limit=101
+
+
+### Consultar la primera Orden de Trabajo del listado → 200
+# @name obtenerOrdenTrabajoSembrada
+GET {{baseUrl}}/api/ordenes-trabajo/{{listarOrdenesTrabajo.response.body.$.data[0].id}}
+
+
+### ID de Orden de Trabajo con formato inválido → 400
+GET {{baseUrl}}/api/ordenes-trabajo/no-es-un-uuid
+
+
+### Orden de Trabajo inexistente → 404
+GET {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
+
+
+### Crear una Orden de Trabajo con Presupuestos aprobados disponibles → 201
+# Requiere reemplazar ambos valores por IDs reales de un Siniestro y de un
+# Presupuesto APROBADO de ese Siniestro que todavía no pertenezca a otra OT.
+# El seed no deja un Presupuesto con ese estado disponible: el APROBADO sembrado
+# ya forma parte de la OT histórica FINALIZADA, y los endpoints actuales no
+# permiten aprobar el Presupuesto BORRADOR que puede crearse en este archivo.
+# @name crearOrdenTrabajoBorrador
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "REEMPLAZAR-POR-UUID-DE-SINIESTRO",
+  "presupuestoIds": [
+    "REEMPLAZAR-POR-UUID-DE-PRESUPUESTO-APROBADO-DISPONIBLE"
+  ]
+}
+
+
+### Body de Orden de Trabajo inválido: Presupuesto repetido → 400
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}",
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Siniestro inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{uuidInexistente}}",
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Presupuesto inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
+  "presupuestoIds": ["{{uuidInexistente}}"]
+}
+
+
+### Presupuesto en BORRADOR, no aprobado → 409
+# Requiere haber ejecutado antes "Crear un Presupuesto sin repuestos".
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{crearPresupuestoBorrador.response.body.$.siniestro.id}}",
+  "presupuestoIds": ["{{crearPresupuestoBorrador.response.body.$.id}}"]
+}
+
+
+### Presupuesto ya asociado a otra Orden de Trabajo → 409
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Modificar una observación de la OT BORRADOR → 200
+# Requiere haber ejecutado correctamente "Crear una Orden de Trabajo con
+# Presupuestos aprobados disponibles".
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{crearOrdenTrabajoBorrador.response.body.$.sectores[0].id}}",
+      "observacion": "Priorizar lateral izquierdo"
+    }
+  ]
+}
+
+
+### Eliminar una observación mediante null → 200
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{crearOrdenTrabajoBorrador.response.body.$.sectores[0].id}}",
+      "observacion": null
+    }
+  ]
+}
+
+
+### PATCH con Sectores vacíos → 400
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": []
+}
+
+
+### PATCH de Orden de Trabajo inexistente → 404
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{obtenerOrdenTrabajoSembrada.response.body.$.sectores[0].id}}",
+      "observacion": "No debe persistirse"
+    }
+  ]
+}
+
+
+### PATCH con Sector inexistente → 404
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{uuidInexistente}}",
+      "observacion": null
+    }
+  ]
+}
+
+
+### PATCH de Orden de Trabajo FINALIZADA → 409
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{obtenerOrdenTrabajoSembrada.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{obtenerOrdenTrabajoSembrada.response.body.$.sectores[0].id}}",
+      "observacion": "No debe persistirse"
+    }
+  ]
+}
+
+
+### PATCH con Sector existente ajeno a la OT → 409
+# Requiere reemplazar sectorId por un Sector existente que no pertenezca a la
+# OT BORRADOR utilizada. No existe un endpoint público de catálogo de Sectores
+# y el seed no garantiza un segundo Sector ajeno al conjunto de la OT creada.
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "REEMPLAZAR-POR-UUID-DE-SECTOR-AJENO",
+      "observacion": null
+    }
+  ]
+}
+
+
+### Agregar un Presupuesto aprobado disponible a una OT BORRADOR → 200
+# Requiere reemplazar el valor por un Presupuesto APROBADO del mismo Siniestro
+# que todavía no pertenezca a ninguna OT. El seed no contiene uno y la API
+# actual no permite llevar a APROBADO un Presupuesto creado como BORRADOR.
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "REEMPLAZAR-POR-UUID-DE-PRESUPUESTO-APROBADO-DISPONIBLE"
+  ]
+}
+
+
+### Incorporación con array vacío → 400
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": []
+}
+
+
+### Incorporación a Orden de Trabajo inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Incorporación de Presupuesto inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": ["{{uuidInexistente}}"]
+}
+
+
+### Incorporación a Orden de Trabajo FINALIZADA → 409
+POST {{baseUrl}}/api/ordenes-trabajo/{{obtenerOrdenTrabajoSembrada.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Incorporación de Presupuesto no aprobado → 409
+# Requiere haber ejecutado antes "Crear un Presupuesto sin repuestos".
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": ["{{crearPresupuestoBorrador.response.body.$.id}}"]
+}
+
+
+### Presupuesto que ya pertenece a esta Orden de Trabajo → 409
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{crearOrdenTrabajoBorrador.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Presupuesto asociado a otra Orden de Trabajo → 409
+# La OT BORRADOR de destino debe pertenecer al mismo Siniestro que el
+# Presupuesto sembrado para obtener específicamente este conflicto.
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Finalizar una Orden de Trabajo BORRADOR válida → 200
+# Ejecutar después de los ejemplos que modifican la OT creada: al finalizarla
+# ya no admitirá Presupuestos ni cambios de observaciones.
+# @name finalizarOrdenTrabajoBorrador
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/finalizar
+
+
+### Finalización con UUID inválido → 400
+POST {{baseUrl}}/api/ordenes-trabajo/no-es-un-uuid/finalizar
+
+
+### Finalización de Orden de Trabajo inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}/finalizar
+
+
+### Finalización de Orden de Trabajo ya FINALIZADA → 409
+POST {{baseUrl}}/api/ordenes-trabajo/{{obtenerOrdenTrabajoSembrada.response.body.$.id}}/finalizar
+
+
+# Los conflictos por OT sin Presupuestos, Presupuestos no aprobados o
+# Reparaciones sin sectorizar requieren fixtures de integración inconsistentes
+# con las operaciones públicas actuales. Sus respuestas 409 están documentadas
+# en docs/api.md; este archivo no inventa UUID ni altera la base para producirlos.

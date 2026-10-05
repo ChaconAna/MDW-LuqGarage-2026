@@ -101,18 +101,6 @@ const datosDesarrollo = {
       observacionSector: "Observación ficticia del seed",
     },
   },
-  casoRn02: {
-    siniestro: {
-      numeroSiniestro: "SIN-SEED-RN02-INVALIDO",
-      fechaSiniestro: new Date("2026-03-05T12:00:00.000Z"),
-      fechaRegistro: new Date("2026-03-04T12:00:00.000Z"),
-      numeroPoliza: "POL-SEED-RN02",
-    },
-    documentos: crearDocumentos(
-      "30000000-0000-4000-8000-",
-      "caso-rn02-invalido",
-    ),
-  },
 };
 
 async function main() {
@@ -180,7 +168,7 @@ async function main() {
     const siniestroValido = await asegurarSiniestroPorNumero(cliente, {
       ...datosDesarrollo.flujoValido.siniestro,
       gradoDano: "MODERADO",
-      estado: "PENDIENTE_DE_FACTURACION",
+      estado: "PRESUPUESTADO",
       clienteId: clienteCreado.id,
       vehiculoId: vehiculo.id,
       aseguradoraId: aseguradora.id,
@@ -224,22 +212,6 @@ async function main() {
       ordenTrabajoId: ordenTrabajo.id,
       sectorId: sectorReparacion.id,
     });
-
-    const siniestroRn02 = await asegurarSiniestroPorNumero(cliente, {
-      ...datosDesarrollo.casoRn02.siniestro,
-      gradoDano: "LEVE",
-      estado: "REGISTRADO",
-      clienteId: clienteCreado.id,
-      vehiculoId: vehiculo.id,
-      aseguradoraId: aseguradora.id,
-    });
-
-    for (const documento of datosDesarrollo.casoRn02.documentos) {
-      await asegurarDocumentoSiniestroPorId(cliente, {
-        ...documento,
-        siniestroId: siniestroRn02.id,
-      });
-    }
   });
 
   console.log("Seed completado correctamente.");
