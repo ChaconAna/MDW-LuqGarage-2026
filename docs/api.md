@@ -671,6 +671,7 @@ fechas ni datos adicionales del Siniestro o de los Presupuestos.
 | `GET /api/ordenes-trabajo` | Lista Órdenes de Trabajo con paginación y resumen del Siniestro | `200` | `400` query inválida, `500` error inesperado |
 | `POST /api/ordenes-trabajo` | Crea una Orden de Trabajo a partir de Presupuestos aprobados | `201` | `400` JSON/body inválido, `404` referencia inexistente, `409` regla de negocio, `500` error inesperado |
 | `GET /api/ordenes-trabajo/[id]` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente, `500` error inesperado |
+| `PATCH /api/ordenes-trabajo/[id]` | Modifica observaciones de Sectores de una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
 
 El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
 `1` y `100` con default `10`. Ordena establemente por `id` ascendente y devuelve
@@ -717,10 +718,42 @@ asociado a una Orden de Trabajo, devuelve respectivamente `409` con
 `{ "error": "Uno o más Presupuestos no pertenecen al Siniestro indicado." }`
 o `{ "error": "Uno o más Presupuestos ya están asociados a otra Orden de Trabajo." }`.
 
+La modificación de una Orden de Trabajo recibe exclusivamente uno o más
+Sectores con su nueva observación:
+
+```json
+{
+  "sectores": [
+    {
+      "sectorId": "uuid-sector-1",
+      "observacion": "Priorizar lateral izquierdo"
+    },
+    {
+      "sectorId": "uuid-sector-2",
+      "observacion": null
+    }
+  ]
+}
+```
+
+Sólo pueden modificarse Sectores que ya pertenezcan a una Orden de Trabajo en
+estado `BORRADOR`. Los Sectores omitidos permanecen sin cambios. `null` elimina
+la observación y el string vacío se conserva literalmente. La operación no
+permite modificar estado, Siniestro, Presupuestos, tareas, reparaciones ni la
+composición de Sectores, y actualiza atómicamente todas las observaciones
+indicadas. La respuesta `200` utiliza la misma representación del GET detalle.
+
+Un Sector inexistente devuelve `404` con
+`{ "error": "Uno o más Sectores no fueron encontrados." }`. Una Orden de
+Trabajo que no está en `BORRADOR` devuelve `409` con
+`{ "error": "La Orden de Trabajo no está en estado BORRADOR." }`. Un Sector
+existente que no pertenece a la Orden de Trabajo devuelve `409` con
+`{ "error": "Uno o más Sectores no pertenecen a la Orden de Trabajo." }`.
+
 Un UUID inválido devuelve `400` con
 `{ "error": "El id debe ser un UUID válido." }`. Una Orden de Trabajo
 inexistente devuelve `404` con
 `{ "error": "Orden de Trabajo no encontrada." }`.
 
-No están implementadas la modificación, la finalización ni la eliminación de
-Órdenes de Trabajo.
+No están implementadas la incorporación posterior de Presupuestos, la
+finalización ni la eliminación de Órdenes de Trabajo.

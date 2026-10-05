@@ -1044,6 +1044,7 @@ GET {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
 # Presupuesto APROBADO de ese Siniestro que todavía no pertenezca a otra OT.
 # El seed no deja un Presupuesto con ese estado disponible: el APROBADO sembrado
 # ya forma parte de la OT histórica FINALIZADA.
+# @name crearOrdenTrabajoBorrador
 POST {{baseUrl}}/api/ordenes-trabajo
 Content-Type: application/json
 
@@ -1109,5 +1110,102 @@ Content-Type: application/json
   "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
   "presupuestoIds": [
     "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Modificar una observación de la OT BORRADOR → 200
+# Requiere haber ejecutado correctamente "Crear una Orden de Trabajo con
+# Presupuestos aprobados disponibles".
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{crearOrdenTrabajoBorrador.response.body.$.sectores[0].id}}",
+      "observacion": "Priorizar lateral izquierdo"
+    }
+  ]
+}
+
+
+### Eliminar una observación mediante null → 200
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{crearOrdenTrabajoBorrador.response.body.$.sectores[0].id}}",
+      "observacion": null
+    }
+  ]
+}
+
+
+### PATCH con Sectores vacíos → 400
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": []
+}
+
+
+### PATCH de Orden de Trabajo inexistente → 404
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{obtenerOrdenTrabajoSembrada.response.body.$.sectores[0].id}}",
+      "observacion": "No debe persistirse"
+    }
+  ]
+}
+
+
+### PATCH con Sector inexistente → 404
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{uuidInexistente}}",
+      "observacion": null
+    }
+  ]
+}
+
+
+### PATCH de Orden de Trabajo FINALIZADA → 409
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{obtenerOrdenTrabajoSembrada.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "{{obtenerOrdenTrabajoSembrada.response.body.$.sectores[0].id}}",
+      "observacion": "No debe persistirse"
+    }
+  ]
+}
+
+
+### PATCH con Sector existente ajeno a la OT → 409
+# Requiere reemplazar sectorId por un Sector existente que no pertenezca a la
+# OT BORRADOR utilizada.
+PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "sectores": [
+    {
+      "sectorId": "REEMPLAZAR-POR-UUID-DE-SECTOR-AJENO",
+      "observacion": null
+    }
   ]
 }

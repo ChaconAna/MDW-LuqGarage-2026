@@ -1,6 +1,9 @@
 import type { EstadoOrdenTrabajo, Prisma } from "@prisma/client";
 
-import type { DatosCreacionOrdenTrabajo } from "../schemas/ordenTrabajo";
+import type {
+  DatosActualizacionObservacionesOrdenTrabajo,
+  DatosCreacionOrdenTrabajo,
+} from "../schemas/ordenTrabajo";
 import type { ClienteTransaccion } from "./transaccion";
 
 import { prisma } from "./client";
@@ -67,6 +70,13 @@ class ErrorAsociacionCondicionadaPresupuestos extends Error {
   constructor() {
     super("No fue posible asociar todos los Presupuestos seleccionados.");
     this.name = "ErrorAsociacionCondicionadaPresupuestos";
+  }
+}
+
+class ErrorActualizacionCondicionadaOrdenTrabajo extends Error {
+  constructor() {
+    super("La Orden de Trabajo dejó de estar en estado BORRADOR.");
+    this.name = "ErrorActualizacionCondicionadaOrdenTrabajo";
   }
 }
 
@@ -270,6 +280,116 @@ export async function crearOrdenTrabajo(datos: DatosCreacionOrdenTrabajo) {
         return {
           creada: false,
           motivo: "PRESUPUESTO_YA_ASOCIADO",
+        } as const;
+      }
+    }
+
+    throw error;
+  }
+}
+
+export async function actualizarObservacionesOrdenTrabajoPorId(
+  id: string,
+  datos: DatosActualizacionObservacionesOrdenTrabajo,
+) {
+  try {
+    return await ejecutarTransaccion(async (cliente) => {
+      const ordenTrabajoActual = await cliente.ordenDeTrabajo.findUnique({
+        where: { id },
+        select: { estado: true },
+      });
+
+      if (!ordenTrabajoActual) {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (ordenTrabajoActual.estado !== "BORRADOR") {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+        } as const;
+      }
+
+      const sectorIds = datos.sectores.map(({ sectorId }) => sectorId);
+      const sectores = await cliente.sector.findMany({
+        where: { id: { in: sectorIds } },
+        select: { id: true },
+      });
+
+      if (sectores.length !== sectorIds.length) {
+        return {
+          actualizada: false,
+          motivo: "SECTOR_NO_ENCONTRADO",
+        } as const;
+      }
+
+      const sectoresOrdenTrabajo = await cliente.ordenTrabajoSector.findMany({
+        where: {
+          ordenTrabajoId: id,
+          sectorId: { in: sectorIds },
+        },
+        select: { sectorId: true },
+      });
+
+      if (sectoresOrdenTrabajo.length !== sectorIds.length) {
+        return {
+          actualizada: false,
+          motivo: "SECTOR_NO_PERTENECE",
+        } as const;
+      }
+
+      const proteccionBorrador = await cliente.ordenDeTrabajo.updateMany({
+        where: {
+          id,
+          estado: "BORRADOR",
+        },
+        data: { estado: "BORRADOR" },
+      });
+
+      if (proteccionBorrador.count !== 1) {
+        throw new ErrorActualizacionCondicionadaOrdenTrabajo();
+      }
+
+      for (const { sectorId, observacion } of datos.sectores) {
+        await cliente.ordenTrabajoSector.update({
+          where: {
+            ordenTrabajoId_sectorId: {
+              ordenTrabajoId: id,
+              sectorId,
+            },
+          },
+          data: { observacion },
+        });
+      }
+
+      const ordenTrabajo = await cliente.ordenDeTrabajo.findUniqueOrThrow({
+        where: { id },
+        select: seleccionDetalleOrdenTrabajo,
+      });
+
+      return { actualizada: true, ordenTrabajo } as const;
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErrorActualizacionCondicionadaOrdenTrabajo) {
+      const ordenTrabajoActual = await prisma.ordenDeTrabajo.findUnique({
+        where: { id },
+        select: { estado: true },
+      });
+
+      if (!ordenTrabajoActual) {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (ordenTrabajoActual.estado !== "BORRADOR") {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
         } as const;
       }
     }

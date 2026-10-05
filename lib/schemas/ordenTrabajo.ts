@@ -38,3 +38,35 @@ export const crearOrdenTrabajoSchema = z
 export type DatosCreacionOrdenTrabajo = z.infer<
   typeof crearOrdenTrabajoSchema
 >;
+
+const observacionSectorOrdenTrabajoSchema = z
+  .object({
+    sectorId: z.string().uuid(),
+    observacion: z.string().nullable(),
+  })
+  .strict();
+
+export const actualizarObservacionesOrdenTrabajoSchema = z
+  .object({
+    sectores: z.array(observacionSectorOrdenTrabajoSchema).min(1),
+  })
+  .strict()
+  .superRefine(({ sectores }, contexto) => {
+    const idsVistos = new Set<string>();
+
+    sectores.forEach(({ sectorId }, indice) => {
+      if (idsVistos.has(sectorId)) {
+        contexto.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["sectores", indice, "sectorId"],
+          message: "El Sector no puede repetirse en la Orden de Trabajo.",
+        });
+      }
+
+      idsVistos.add(sectorId);
+    });
+  });
+
+export type DatosActualizacionObservacionesOrdenTrabajo = z.infer<
+  typeof actualizarObservacionesOrdenTrabajoSchema
+>;

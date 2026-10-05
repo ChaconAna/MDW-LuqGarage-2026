@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  actualizarObservacionesOrdenTrabajoSchema,
   crearOrdenTrabajoSchema,
   listadoOrdenesTrabajoQuerySchema,
   parametrosOrdenTrabajoSchema,
@@ -9,6 +10,8 @@ import {
 const siniestroId = "40000000-0000-4000-8000-000000000001";
 const presupuestoId1 = "40000000-0000-4000-8000-000000000002";
 const presupuestoId2 = "40000000-0000-4000-8000-000000000003";
+const sectorId1 = "40000000-0000-4000-8000-000000000004";
+const sectorId2 = "40000000-0000-4000-8000-000000000005";
 
 describe("parametrosOrdenTrabajoSchema", () => {
   it("acepta un UUID válido", () => {
@@ -143,6 +146,74 @@ describe("crearOrdenTrabajoSchema", () => {
         presupuestoIds: [presupuestoId1],
         ...campoAdicional,
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe("actualizarObservacionesOrdenTrabajoSchema", () => {
+  it.each([
+    ["un string", [{ sectorId: sectorId1, observacion: "Priorizar" }]],
+    ["null", [{ sectorId: sectorId1, observacion: null }]],
+    ["un string vacío", [{ sectorId: sectorId1, observacion: "" }]],
+    [
+      "varias observaciones",
+      [
+        { sectorId: sectorId1, observacion: "Priorizar" },
+        { sectorId: sectorId2, observacion: null },
+      ],
+    ],
+  ])("acepta %s", (_caso, sectores) => {
+    expect(
+      actualizarObservacionesOrdenTrabajoSchema.safeParse({ sectores })
+        .success,
+    ).toBe(true);
+  });
+
+  it.each([
+    ["body vacío", {}],
+    ["sectores vacío", { sectores: [] }],
+    [
+      "UUID de Sector inválido",
+      { sectores: [{ sectorId: "no-es-un-uuid", observacion: null }] },
+    ],
+    [
+      "IDs repetidos",
+      {
+        sectores: [
+          { sectorId: sectorId1, observacion: "Primera" },
+          { sectorId: sectorId1, observacion: "Segunda" },
+        ],
+      },
+    ],
+    [
+      "tipo de observación inválido",
+      { sectores: [{ sectorId: sectorId1, observacion: 123 }] },
+    ],
+    [
+      "campo desconocido",
+      {
+        sectores: [
+          { sectorId: sectorId1, observacion: null, nombre: "Chapa" },
+        ],
+      },
+    ],
+    [
+      "estado",
+      {
+        sectores: [{ sectorId: sectorId1, observacion: null }],
+        estado: "FINALIZADA",
+      },
+    ],
+    [
+      "presupuestoIds",
+      {
+        sectores: [{ sectorId: sectorId1, observacion: null }],
+        presupuestoIds: [presupuestoId1],
+      },
+    ],
+  ])("rechaza %s", (_caso, body) => {
+    expect(
+      actualizarObservacionesOrdenTrabajoSchema.safeParse(body).success,
     ).toBe(false);
   });
 });
