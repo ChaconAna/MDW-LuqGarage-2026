@@ -15,6 +15,52 @@ const seleccionOrdenTrabajo = {
   },
 } satisfies Prisma.OrdenDeTrabajoSelect;
 
+const seleccionDetalleOrdenTrabajo = {
+  ...seleccionOrdenTrabajo,
+  presupuestos: {
+    orderBy: { id: "asc" },
+    select: {
+      id: true,
+      numeroPresupuesto: true,
+      estado: true,
+      reparaciones: {
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          reparacion: {
+            select: {
+              id: true,
+              nombre: true,
+              sector: {
+                select: {
+                  id: true,
+                  nombre: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+  sectores: {
+    orderBy: { sectorId: "asc" },
+    select: {
+      observacion: true,
+      sector: {
+        select: {
+          id: true,
+          nombre: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.OrdenDeTrabajoSelect;
+
+export type DetalleOrdenTrabajo = Prisma.OrdenDeTrabajoGetPayload<{
+  select: typeof seleccionDetalleOrdenTrabajo;
+}>;
+
 type DatosOrdenTrabajo = {
   id: string;
   estado: EstadoOrdenTrabajo;
@@ -44,4 +90,11 @@ export async function listarOrdenesTrabajo(page: number, limit: number) {
   ]);
 
   return { ordenesTrabajo, total };
+}
+
+export function obtenerOrdenTrabajoPorId(id: string) {
+  return prisma.ordenDeTrabajo.findUnique({
+    where: { id },
+    select: seleccionDetalleOrdenTrabajo,
+  });
 }

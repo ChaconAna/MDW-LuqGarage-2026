@@ -621,11 +621,55 @@ La representación resumida no incluye Presupuestos, Sectores, Reparaciones,
 observaciones, cantidades calculadas ni otros datos del Siniestro. El modelo
 actual tampoco contiene un número propio ni fechas para la Orden de Trabajo.
 
+### Representación del detalle
+
+El detalle contiene los campos de la representación del listado y agrega los
+Presupuestos asociados y las tareas organizadas por Sector:
+
+```json
+{
+  "presupuestos": [
+    {
+      "id": "uuid-presupuesto",
+      "numeroPresupuesto": "PRES-SEED-001",
+      "estado": "APROBADO"
+    }
+  ],
+  "sectores": [
+    {
+      "id": "uuid-sector",
+      "nombre": "Reparación",
+      "observacion": "Observación ficticia del seed",
+      "reparaciones": [
+        {
+          "detalleReparacionId": "uuid-detalle",
+          "presupuestoId": "uuid-presupuesto",
+          "reparacion": {
+            "id": "uuid-reparacion",
+            "nombre": "Reparación Demo de Chapa"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+Cada `DetalleReparacion` produce una tarea independiente y conserva el
+`presupuestoId` de origen. Las tareas se agrupan únicamente por Sector y no se
+deduplican por `reparacionId`; dos detalles que referencien la misma Reparación
+aparecen como dos ocurrencias. La observación corresponde a la relación
+`OrdenTrabajoSector` del Sector.
+
+El detalle no incluye costos, Repuestos, total, número de Orden de Trabajo,
+fechas ni datos adicionales del Siniestro o de los Presupuestos.
+
 ### Operaciones
 
 | Método y ruta | Propósito | Éxito actual | Errores actuales |
 |---|---|---|---|
 | `GET /api/ordenes-trabajo` | Lista Órdenes de Trabajo con paginación y resumen del Siniestro | `200` | `400` query inválida, `500` error inesperado |
+| `GET /api/ordenes-trabajo/[id]` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente, `500` error inesperado |
 
 El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
 `1` y `100` con default `10`. Ordena establemente por `id` ascendente y devuelve
@@ -636,5 +680,10 @@ Una query de paginación inválida devuelve `400` con
 `{ "error": "Los parámetros de paginación son inválidos." }`. Una excepción
 inesperada devuelve `500` con `{ "error": "Error interno." }`.
 
-No están implementados el detalle, la creación, la modificación, la
-finalización ni la eliminación de Órdenes de Trabajo.
+Un UUID inválido devuelve `400` con
+`{ "error": "El id debe ser un UUID válido." }`. Una Orden de Trabajo
+inexistente devuelve `404` con
+`{ "error": "Orden de Trabajo no encontrada." }`.
+
+No están implementadas la creación, la modificación, la finalización ni la
+eliminación de Órdenes de Trabajo.

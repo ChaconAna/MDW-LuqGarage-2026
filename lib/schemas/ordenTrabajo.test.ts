@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { listadoOrdenesTrabajoQuerySchema } from "./ordenTrabajo";
+import {
+  listadoOrdenesTrabajoQuerySchema,
+  parametrosOrdenTrabajoSchema,
+} from "./ordenTrabajo";
+
+describe("parametrosOrdenTrabajoSchema", () => {
+  it("acepta un UUID válido", () => {
+    expect(
+      parametrosOrdenTrabajoSchema.safeParse({
+        id: "40000000-0000-4000-8000-000000000001",
+      }).success,
+    ).toBe(true);
+  });
+
+  it.each(["no-es-un-uuid", "", "123"])("rechaza el id %j", (id) => {
+    expect(parametrosOrdenTrabajoSchema.safeParse({ id }).success).toBe(false);
+  });
+});
 
 describe("listadoOrdenesTrabajoQuerySchema", () => {
   it("aplica los valores por defecto a una query vacía", () => {
