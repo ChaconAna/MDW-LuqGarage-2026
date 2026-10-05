@@ -7,6 +7,7 @@ import type {
 } from "../schemas/presupuesto";
 import type { ClienteTransaccion } from "./transaccion";
 
+import { puedeEditarPresupuesto } from "../services/presupuesto";
 import { prisma } from "./client";
 import { ejecutarTransaccion } from "./transaccion";
 
@@ -194,7 +195,7 @@ export async function actualizarPresupuestoPorId(
         } as const;
       }
 
-      if (presupuestoActual.estado !== "BORRADOR") {
+      if (!puedeEditarPresupuesto(presupuestoActual.estado)) {
         return {
           actualizado: false,
           motivo: "PRESUPUESTO_NO_EDITABLE",
@@ -292,7 +293,7 @@ export async function actualizarPresupuestoPorId(
         } as const;
       }
 
-      if (presupuestoActual.estado !== "BORRADOR") {
+      if (!puedeEditarPresupuesto(presupuestoActual.estado)) {
         return {
           actualizado: false,
           motivo: "PRESUPUESTO_NO_EDITABLE",

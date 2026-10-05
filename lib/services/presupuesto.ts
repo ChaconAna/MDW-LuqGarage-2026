@@ -1,6 +1,10 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type EstadoPresupuesto } from "@prisma/client";
 
 import type { DetallePresupuesto } from "../db/presupuesto";
+
+export function puedeEditarPresupuesto(estado: EstadoPresupuesto): boolean {
+  return estado === "BORRADOR";
+}
 
 export function calcularTotalPresupuesto(
   costos: readonly Prisma.Decimal[],

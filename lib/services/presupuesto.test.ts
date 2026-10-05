@@ -1,7 +1,30 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, type EstadoPresupuesto } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 
-import { calcularTotalPresupuesto } from "./presupuesto";
+import {
+  calcularTotalPresupuesto,
+  puedeEditarPresupuesto,
+} from "./presupuesto";
+
+describe("puedeEditarPresupuesto", () => {
+  it("permite editar un Presupuesto en estado BORRADOR", () => {
+    expect(puedeEditarPresupuesto("BORRADOR")).toBe(true);
+  });
+
+  it("no permite editar un Presupuesto en estado ENVIADO", () => {
+    expect(puedeEditarPresupuesto("ENVIADO")).toBe(false);
+  });
+
+  it.each([
+    "APROBADO",
+    "RECHAZADO",
+  ] satisfies EstadoPresupuesto[])(
+    "no permite editar un Presupuesto en estado %s",
+    (estado) => {
+      expect(puedeEditarPresupuesto(estado)).toBe(false);
+    },
+  );
+});
 
 describe("calcularTotalPresupuesto", () => {
   it("devuelve cero con dos decimales cuando no hay reparaciones", () => {
