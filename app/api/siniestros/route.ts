@@ -5,6 +5,7 @@ import {
   crearSiniestroSchema,
   listadoSiniestrosQuerySchema,
 } from "@/lib/schemas/siniestro";
+import { esFechaSiniestroValida } from "@/lib/services/siniestro";
 
 export async function GET(request: Request) {
   try {
@@ -64,7 +65,9 @@ export async function POST(request: Request) {
 
   const fechaRegistro = new Date();
 
-  if (resultadoBody.data.fechaSiniestro > fechaRegistro) {
+  if (
+    !esFechaSiniestroValida(resultadoBody.data.fechaSiniestro, fechaRegistro)
+  ) {
     return NextResponse.json(
       {
         error:
