@@ -4,8 +4,11 @@
 #   1. Ejecutar `npm run db:seed` sobre la base de desarrollo.
 #   2. Levantar la aplicación con `npm run dev`.
 #   3. Iniciar sesión normalmente mediante Auth.js y Google en el entorno donde
-#      se ejecutarán los requests, con un Usuario local activo y preautorizado.
-#      El cliente HTTP debe conservar esa sesión válida.
+#      se ejecutarán los requests. Un Usuario local activo con vínculo compatible
+#      puede iniciar sesión; si el email Google válido no existe, se crea un
+#      Usuario activo con rol MECANICO. Un Usuario preparado con otro rol lo
+#      conserva al vincularse; los Usuarios inactivos son rechazados. El cliente
+#      HTTP debe conservar esa sesión válida.
 #   4. Ejecutar primero el listado de cada sección. Los requests siguientes
 #      reutilizan IDs obtenidos de esas respuestas; no hay UUID de catálogos
 #      inventados ni copiados de otro entorno.
