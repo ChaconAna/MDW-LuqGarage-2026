@@ -1,9 +1,9 @@
 # Contrato HTTP actual — LuqGarage
 
 Este documento describe exclusivamente la API implementada actualmente para
-Cliente, Aseguradora, Vehículo, Siniestro y la consulta de Presupuesto. No
-documenta operaciones futuras de alta, modificación o transición de
-Presupuesto, ni endpoints de Orden de Trabajo o catálogos.
+Cliente, Aseguradora, Vehículo, Siniestro, Presupuesto y el listado de Orden de
+Trabajo. No documenta operaciones futuras de transición de Presupuesto, otros
+endpoints de Orden de Trabajo ni endpoints de catálogos.
 
 ## Estado de la autorización
 
@@ -594,3 +594,47 @@ pero no permanece en `BORRADOR`, devuelve `409`; la misma respuesta se utiliza
 si pierde esa condición concurrentemente antes de la escritura.
 
 No están implementados el envío ni las transiciones de estado de Presupuesto.
+
+## Orden de Trabajo
+
+Rol futuro: **Encargado del Taller** para la gestión y **Mecánico** para la
+consulta de Órdenes de Trabajo finalizadas. Actualmente no se controla sesión
+ni rol porque la autenticación y la autorización se implementarán en Clase 6.
+
+El listado incluye Órdenes de Trabajo en ambos estados existentes: `BORRADOR`
+y `FINALIZADA`.
+
+### Representación del listado
+
+```json
+{
+  "id": "uuid",
+  "estado": "FINALIZADA",
+  "siniestro": {
+    "id": "uuid",
+    "numeroSiniestro": "SIN-SEED-VALIDO-001"
+  }
+}
+```
+
+La representación resumida no incluye Presupuestos, Sectores, Reparaciones,
+observaciones, cantidades calculadas ni otros datos del Siniestro. El modelo
+actual tampoco contiene un número propio ni fechas para la Orden de Trabajo.
+
+### Operaciones
+
+| Método y ruta | Propósito | Éxito actual | Errores actuales |
+|---|---|---|---|
+| `GET /api/ordenes-trabajo` | Lista Órdenes de Trabajo con paginación y resumen del Siniestro | `200` | `400` query inválida, `500` error inesperado |
+
+El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
+`1` y `100` con default `10`. Ordena establemente por `id` ascendente y devuelve
+`200 OK` con `data: []`, `total: 0` y `totalPages: 0` cuando no existen
+resultados.
+
+Una query de paginación inválida devuelve `400` con
+`{ "error": "Los parámetros de paginación son inválidos." }`. Una excepción
+inesperada devuelve `500` con `{ "error": "Error interno." }`.
+
+No están implementados el detalle, la creación, la modificación, la
+finalización ni la eliminación de Órdenes de Trabajo.

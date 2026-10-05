@@ -1003,3 +1003,23 @@ Content-Type: application/json
 {
   "repuestos": []
 }
+
+
+###############################################################################
+# ÓRDENES DE TRABAJO
+###############################################################################
+
+### Listar Órdenes de Trabajo con paginación por defecto → 200
+GET {{baseUrl}}/api/ordenes-trabajo
+
+
+### Listar Órdenes de Trabajo con paginación explícita → 200
+GET {{baseUrl}}/api/ordenes-trabajo?page=1&limit=5
+
+
+### Page inválido → 400
+GET {{baseUrl}}/api/ordenes-trabajo?page=0
+
+
+### Limit inválido → 400
+GET {{baseUrl}}/api/ordenes-trabajo?limit=101
