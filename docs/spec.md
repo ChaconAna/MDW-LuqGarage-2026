@@ -654,13 +654,15 @@ Un mismo Siniestro puede dar lugar a múltiples Órdenes de Trabajo a lo largo d
 
 # 18. Tareas de la Orden de Trabajo
 
-Las tareas de la Orden de Trabajo provienen de las reparaciones existentes en los presupuestos seleccionados.
+Las tareas de la Orden de Trabajo provienen de los `DetalleReparacion` existentes en los Presupuestos seleccionados.
 
-Cada reparación del presupuesto equivale a una tarea de la Orden de Trabajo.
+Cada `DetalleReparacion` equivale a una tarea u ocurrencia independiente dentro de la Orden de Trabajo y conserva su procedencia en el Presupuesto correspondiente.
+
+Si dos Presupuestos distintos contienen detalles que referencian la misma `Reparacion`, ambos detalles originan tareas distintas. Estas ocurrencias no se consolidan ni se deduplican por `reparacionId` y se organizan bajo el Sector correspondiente a la `Reparacion`.
 
 No pueden agregarse tareas nuevas directamente desde la Orden de Trabajo.
 
-Las reparaciones no se duplican en la Orden de Trabajo: se obtienen a través de los detalles de reparación de sus Presupuestos asociados.
+Las tareas no se persisten nuevamente ni se copian en una estructura propia de la Orden de Trabajo: continúan derivándose de los `DetalleReparacion` de sus Presupuestos asociados.
 
 
 
@@ -809,7 +811,9 @@ Un presupuesto puede pertenecer como máximo a una Orden de Trabajo.
 
 ### RN18 — Tareas de la Orden de Trabajo
 
-Las tareas provienen exclusivamente de las reparaciones incluidas en los presupuestos asociados.
+Cada `DetalleReparacion` de un Presupuesto asociado origina una tarea independiente en la Orden de Trabajo y conserva su procedencia en ese Presupuesto. Dos detalles de Presupuestos distintos que referencien la misma `Reparacion` representan tareas distintas y no se consolidan ni se deduplican por `reparacionId`.
+
+Las tareas se organizan según el Sector de la `Reparacion`, se derivan de los `DetalleReparacion` asociados y no se persisten nuevamente en una estructura propia de la Orden de Trabajo.
 
 No pueden agregarse nuevas tareas desde la Orden de Trabajo.
 
