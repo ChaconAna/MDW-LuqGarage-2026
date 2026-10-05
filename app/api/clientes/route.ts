@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import { crearCliente, listarClientes } from "@/lib/db/cliente";
+import { responderError } from "@/lib/http";
 import {
   crearClienteSchema,
   listadoClientesQuerySchema,
@@ -8,35 +10,35 @@ import {
 
 export async function GET(request: Request) {
   try {
-  const { searchParams } = new URL(request.url);
-  const resultadoQuery = listadoClientesQuerySchema.safeParse({
-    page: searchParams.get("page") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoQuery.success) {
-    return NextResponse.json(
-      { error: "Los parámetros de paginación son inválidos." },
-      { status: 400 },
-    );
-  }
+    const { searchParams } = new URL(request.url);
+    const resultadoQuery = listadoClientesQuerySchema.safeParse({
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
 
-  const { page, limit } = resultadoQuery.data;
-  const { clientes, total } = await listarClientes(page, limit);
+    if (!resultadoQuery.success) {
+      return NextResponse.json(
+        { error: "Los parámetros de paginación son inválidos." },
+        { status: 400 },
+      );
+    }
 
-  return NextResponse.json({
-    data: clientes,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
+    const { page, limit } = resultadoQuery.data;
+    const { clientes, total } = await listarClientes(page, limit);
+
+    return NextResponse.json({
+      data: clientes,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/clientes", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/clientes", error);
   }
 }
 
