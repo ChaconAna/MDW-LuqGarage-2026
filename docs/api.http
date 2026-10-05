@@ -1008,6 +1008,12 @@ Content-Type: application/json
 ###############################################################################
 # ÓRDENES DE TRABAJO
 ###############################################################################
+# El seed actual deja una única OT FINALIZADA y su único Presupuesto APROBADO
+# ya asociado. Los ejemplos que dependen de crear una OT BORRADOR no pueden
+# encadenarse sólo con este archivo: POST /api/presupuestos crea BORRADORES y
+# la API actual no expone la transición a APROBADO. Los placeholders se
+# conservan de forma explícita para no presentar UUID ficticios como ejemplos
+# reproducibles.
 
 ### Listar Órdenes de Trabajo con paginación por defecto → 200
 # @name listarOrdenesTrabajo
@@ -1043,7 +1049,8 @@ GET {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
 # Requiere reemplazar ambos valores por IDs reales de un Siniestro y de un
 # Presupuesto APROBADO de ese Siniestro que todavía no pertenezca a otra OT.
 # El seed no deja un Presupuesto con ese estado disponible: el APROBADO sembrado
-# ya forma parte de la OT histórica FINALIZADA.
+# ya forma parte de la OT histórica FINALIZADA, y los endpoints actuales no
+# permiten aprobar el Presupuesto BORRADOR que puede crearse en este archivo.
 # @name crearOrdenTrabajoBorrador
 POST {{baseUrl}}/api/ordenes-trabajo
 Content-Type: application/json
@@ -1197,7 +1204,8 @@ Content-Type: application/json
 
 ### PATCH con Sector existente ajeno a la OT → 409
 # Requiere reemplazar sectorId por un Sector existente que no pertenezca a la
-# OT BORRADOR utilizada.
+# OT BORRADOR utilizada. No existe un endpoint público de catálogo de Sectores
+# y el seed no garantiza un segundo Sector ajeno al conjunto de la OT creada.
 PATCH {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}
 Content-Type: application/json
 
@@ -1213,7 +1221,8 @@ Content-Type: application/json
 
 ### Agregar un Presupuesto aprobado disponible a una OT BORRADOR → 200
 # Requiere reemplazar el valor por un Presupuesto APROBADO del mismo Siniestro
-# que todavía no pertenezca a ninguna OT.
+# que todavía no pertenezca a ninguna OT. El seed no contiene uno y la API
+# actual no permite llevar a APROBADO un Presupuesto creado como BORRADOR.
 POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
 Content-Type: application/json
 

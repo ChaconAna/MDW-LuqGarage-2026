@@ -38,7 +38,7 @@ devuelven `401 Unauthorized` ni `403 Forbidden`.
 
 ### Paginación
 
-Los cinco endpoints de listado aceptan:
+Los seis endpoints de listado aceptan:
 
 | Query param | Tipo | Default | Restricción |
 |---|---:|---:|---|
@@ -804,3 +804,145 @@ con su Sector en la OT, devuelve respectivamente `409` con
 o `{ "error": "La Orden de Trabajo tiene Reparaciones sin sectorizar." }`.
 
 No está implementada la eliminación de Órdenes de Trabajo.
+
+## Catálogo de errores
+
+Las tablas siguientes reflejan los errores controlados por cada operación. En
+todos los casos, el body tiene la forma `{ "error": "mensaje" }`. Además,
+**cualquiera de las operaciones documentadas** puede responder `500` ante una
+excepción inesperada, con el mensaje exacto `Error interno.`.
+
+### Cliente
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| `GET /api/clientes` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
+| `POST /api/clientes` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/clientes` | Body inválido | `400` | `Los datos del Cliente son inválidos.` |
+| `POST /api/clientes` | Localidad inexistente | `404` | `Localidad no encontrada.` |
+| `POST /api/clientes` | DNI duplicado | `409` | `Ya existe un Cliente con el DNI indicado.` |
+| `GET /api/clientes/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `GET /api/clientes/[id]` | Cliente inexistente | `404` | `Cliente no encontrado.` |
+| `PATCH /api/clientes/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `PATCH /api/clientes/[id]` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `PATCH /api/clientes/[id]` | Body inválido | `400` | `Los datos del Cliente son inválidos.` |
+| `PATCH /api/clientes/[id]` | Cliente inexistente | `404` | `Cliente no encontrado.` |
+| `PATCH /api/clientes/[id]` | Localidad inexistente | `404` | `Localidad no encontrada.` |
+| `PATCH /api/clientes/[id]` | DNI duplicado | `409` | `Ya existe un Cliente con el DNI indicado.` |
+| `DELETE /api/clientes/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `DELETE /api/clientes/[id]` | Cliente inexistente | `404` | `Cliente no encontrado.` |
+
+### Aseguradora
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| `GET /api/aseguradoras` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
+| `POST /api/aseguradoras` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/aseguradoras` | Body inválido | `400` | `Los datos de la Aseguradora son inválidos.` |
+| `POST /api/aseguradoras` | CUIT duplicado | `409` | `Ya existe una Aseguradora con el CUIT indicado.` |
+| `GET /api/aseguradoras/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `GET /api/aseguradoras/[id]` | Aseguradora inexistente | `404` | `Aseguradora no encontrada.` |
+| `PATCH /api/aseguradoras/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `PATCH /api/aseguradoras/[id]` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `PATCH /api/aseguradoras/[id]` | Body inválido | `400` | `Los datos de la Aseguradora son inválidos.` |
+| `PATCH /api/aseguradoras/[id]` | Aseguradora inexistente | `404` | `Aseguradora no encontrada.` |
+| `PATCH /api/aseguradoras/[id]` | CUIT duplicado | `409` | `Ya existe una Aseguradora con el CUIT indicado.` |
+| `DELETE /api/aseguradoras/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `DELETE /api/aseguradoras/[id]` | Aseguradora inexistente | `404` | `Aseguradora no encontrada.` |
+
+### Vehículo
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| `GET /api/vehiculos` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
+| `POST /api/vehiculos` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/vehiculos` | Body inválido | `400` | `Los datos del Vehículo son inválidos.` |
+| `POST /api/vehiculos` | Modelo o Tipo de Vehículo inexistente | `404` | `Modelo o Tipo de Vehículo no encontrado.` |
+| `POST /api/vehiculos` | Patente duplicada | `409` | `Ya existe un Vehículo con la patente indicada.` |
+| `GET /api/vehiculos/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `GET /api/vehiculos/[id]` | Vehículo inexistente | `404` | `Vehículo no encontrado.` |
+| `PATCH /api/vehiculos/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `PATCH /api/vehiculos/[id]` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `PATCH /api/vehiculos/[id]` | Body inválido | `400` | `Los datos del Vehículo son inválidos.` |
+| `PATCH /api/vehiculos/[id]` | Vehículo inexistente | `404` | `Vehículo no encontrado.` |
+| `PATCH /api/vehiculos/[id]` | Modelo o Tipo de Vehículo inexistente | `404` | `Modelo o Tipo de Vehículo no encontrado.` |
+| `PATCH /api/vehiculos/[id]` | Patente duplicada | `409` | `Ya existe un Vehículo con la patente indicada.` |
+| `DELETE /api/vehiculos/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `DELETE /api/vehiculos/[id]` | Vehículo inexistente | `404` | `Vehículo no encontrado.` |
+
+### Siniestro
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| `GET /api/siniestros` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
+| `POST /api/siniestros` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/siniestros` | Body inválido, incluida la documentación RN06 | `400` | `Los datos del Siniestro son inválidos.` |
+| `POST /api/siniestros` | Fecha del Siniestro posterior a la fecha de registro, RN02 | `400` | `La fecha del Siniestro no puede ser posterior a la fecha de registro.` |
+| `POST /api/siniestros` | Cliente inexistente | `404` | `Cliente no encontrado.` |
+| `POST /api/siniestros` | Vehículo inexistente | `404` | `Vehículo no encontrado.` |
+| `POST /api/siniestros` | Aseguradora inexistente | `404` | `Aseguradora no encontrada.` |
+| `POST /api/siniestros` | Cliente inactivo | `409` | `El Cliente indicado está inactivo.` |
+| `POST /api/siniestros` | Vehículo inactivo | `409` | `El Vehículo indicado está inactivo.` |
+| `POST /api/siniestros` | Aseguradora inactiva | `409` | `La Aseguradora indicada está inactiva.` |
+| `POST /api/siniestros` | Número de Siniestro duplicado | `409` | `Ya existe un Siniestro con el número indicado.` |
+| `GET /api/siniestros/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `GET /api/siniestros/[id]` | Siniestro inexistente | `404` | `Siniestro no encontrado.` |
+
+### Presupuesto
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| `GET /api/presupuestos` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
+| `POST /api/presupuestos` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/presupuestos` | Body inválido | `400` | `Los datos del Presupuesto son inválidos.` |
+| `POST /api/presupuestos` | Siniestro inexistente | `404` | `Siniestro no encontrado.` |
+| `POST /api/presupuestos` | Una o más Reparaciones inexistentes | `404` | `Una o más Reparaciones no fueron encontradas.` |
+| `POST /api/presupuestos` | Uno o más Repuestos inexistentes | `404` | `Uno o más Repuestos no fueron encontrados.` |
+| `POST /api/presupuestos` | Número de Presupuesto duplicado | `409` | `Ya existe un Presupuesto con el número indicado.` |
+| `GET /api/presupuestos/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `GET /api/presupuestos/[id]` | Presupuesto inexistente | `404` | `Presupuesto no encontrado.` |
+| `PATCH /api/presupuestos/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `PATCH /api/presupuestos/[id]` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `PATCH /api/presupuestos/[id]` | Body inválido | `400` | `Los datos del Presupuesto son inválidos.` |
+| `PATCH /api/presupuestos/[id]` | Presupuesto inexistente | `404` | `Presupuesto no encontrado.` |
+| `PATCH /api/presupuestos/[id]` | Una o más Reparaciones inexistentes | `404` | `Una o más Reparaciones no fueron encontradas.` |
+| `PATCH /api/presupuestos/[id]` | Uno o más Repuestos inexistentes | `404` | `Uno o más Repuestos no fueron encontrados.` |
+| `PATCH /api/presupuestos/[id]` | Presupuesto fuera de `BORRADOR` o cambio concurrente de estado | `409` | `El Presupuesto sólo puede modificarse en estado BORRADOR.` |
+
+### Orden de Trabajo
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| `GET /api/ordenes-trabajo` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
+| `POST /api/ordenes-trabajo` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/ordenes-trabajo` | Body inválido | `400` | `Los datos de la Orden de Trabajo son inválidos.` |
+| `POST /api/ordenes-trabajo` | Siniestro inexistente | `404` | `Siniestro no encontrado.` |
+| `POST /api/ordenes-trabajo` | Uno o más Presupuestos inexistentes | `404` | `Uno o más Presupuestos no fueron encontrados.` |
+| `POST /api/ordenes-trabajo` | Uno o más Presupuestos no aprobados | `409` | `Uno o más Presupuestos no están aprobados.` |
+| `POST /api/ordenes-trabajo` | Uno o más Presupuestos pertenecen a otro Siniestro | `409` | `Uno o más Presupuestos no pertenecen al Siniestro indicado.` |
+| `POST /api/ordenes-trabajo` | Uno o más Presupuestos ya están asociados | `409` | `Uno o más Presupuestos ya están asociados a otra Orden de Trabajo.` |
+| `GET /api/ordenes-trabajo/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `GET /api/ordenes-trabajo/[id]` | Orden de Trabajo inexistente | `404` | `Orden de Trabajo no encontrada.` |
+| `PATCH /api/ordenes-trabajo/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `PATCH /api/ordenes-trabajo/[id]` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `PATCH /api/ordenes-trabajo/[id]` | Body inválido | `400` | `Los datos de la Orden de Trabajo son inválidos.` |
+| `PATCH /api/ordenes-trabajo/[id]` | Orden de Trabajo inexistente | `404` | `Orden de Trabajo no encontrada.` |
+| `PATCH /api/ordenes-trabajo/[id]` | Uno o más Sectores inexistentes | `404` | `Uno o más Sectores no fueron encontrados.` |
+| `PATCH /api/ordenes-trabajo/[id]` | Orden de Trabajo fuera de `BORRADOR` | `409` | `La Orden de Trabajo no está en estado BORRADOR.` |
+| `PATCH /api/ordenes-trabajo/[id]` | Uno o más Sectores no pertenecen a la Orden | `409` | `Uno o más Sectores no pertenecen a la Orden de Trabajo.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Body inválido | `400` | `Los datos para agregar Presupuestos son inválidos.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Orden de Trabajo inexistente | `404` | `Orden de Trabajo no encontrada.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Uno o más Presupuestos inexistentes | `404` | `Uno o más Presupuestos no fueron encontrados.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Orden de Trabajo fuera de `BORRADOR` | `409` | `La Orden de Trabajo no está en estado BORRADOR.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Uno o más Presupuestos no aprobados | `409` | `Uno o más Presupuestos no están aprobados.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Uno o más Presupuestos pertenecen a otro Siniestro | `409` | `Uno o más Presupuestos no pertenecen al Siniestro de la Orden de Trabajo.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Uno o más Presupuestos ya pertenecen a esta Orden | `409` | `Uno o más Presupuestos ya pertenecen a esta Orden de Trabajo.` |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Uno o más Presupuestos están asociados a otra Orden | `409` | `Uno o más Presupuestos ya están asociados a otra Orden de Trabajo.` |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | Orden de Trabajo inexistente | `404` | `Orden de Trabajo no encontrada.` |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | Orden de Trabajo fuera de `BORRADOR` | `409` | `La Orden de Trabajo no está en estado BORRADOR.` |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | Orden de Trabajo sin Presupuestos | `409` | `La Orden de Trabajo debe tener al menos un Presupuesto aprobado.` |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | Uno o más Presupuestos asociados no están aprobados | `409` | `Uno o más Presupuestos de la Orden de Trabajo no están aprobados.` |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | Una o más Reparaciones no tienen Sector asociado | `409` | `La Orden de Trabajo tiene Reparaciones sin sectorizar.` |
