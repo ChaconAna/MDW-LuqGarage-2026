@@ -684,6 +684,7 @@ GET {{baseUrl}}/api/presupuestos/{{uuidInexistente}}
 
 ### Crear un Presupuesto sin repuestos → 201
 # Cambiar numeroPresupuesto si esta creación ya fue ejecutada.
+# @name crearPresupuestoBorrador
 POST {{baseUrl}}/api/presupuestos
 Content-Type: application/json
 
@@ -884,4 +885,121 @@ Content-Type: application/json
       "costo": "100000.00"
     }
   ]
+}
+
+
+### Modificar sólo Reparaciones del Presupuesto en BORRADOR → 200
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "275000.00"
+    }
+  ]
+}
+
+
+### Modificar sólo Repuestos del Presupuesto en BORRADOR → 200
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 3
+    }
+  ]
+}
+
+
+### Eliminar todos los Repuestos del Presupuesto en BORRADOR → 200
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": []
+}
+
+
+### PATCH de Presupuesto con body vacío → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{}
+
+
+### PATCH de Presupuesto con Reparaciones vacías → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "reparaciones": []
+}
+
+
+### Intentar modificar numeroPresupuesto → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-PATCH-NO-PERMITIDO"
+}
+
+
+### Intentar modificar siniestroId → 400
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}"
+}
+
+
+### PATCH con Reparación inexistente → 404
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "reparaciones": [
+    {
+      "reparacionId": "{{uuidInexistente}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### PATCH con Repuesto inexistente → 404
+PATCH {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": [
+    {
+      "repuestoId": "{{uuidInexistente}}",
+      "cantidad": 1
+    }
+  ]
+}
+
+
+### PATCH de Presupuesto inexistente → 404
+PATCH {{baseUrl}}/api/presupuestos/{{uuidInexistente}}
+Content-Type: application/json
+
+{
+  "repuestos": []
+}
+
+
+### PATCH del Presupuesto sembrado APROBADO → 409
+PATCH {{baseUrl}}/api/presupuestos/{{obtenerPresupuestoSembrado.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "repuestos": []
 }

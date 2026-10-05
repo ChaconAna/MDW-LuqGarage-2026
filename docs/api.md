@@ -505,6 +505,7 @@ Siniestro.
 | `GET /api/presupuestos` | Lista Presupuestos con paginación y resumen del Siniestro | `200` | `400` query inválida |
 | `POST /api/presupuestos` | Crea un Presupuesto en estado `BORRADOR` con sus detalles | `201` | `400` body inválido, `404` referencia inexistente, `409` número duplicado |
 | `GET /api/presupuestos/[id]` | Obtiene un Presupuesto con reparaciones, repuestos y total derivado | `200` | `400` UUID inválido, `404` inexistente |
+| `PATCH /api/presupuestos/[id]` | Reemplaza Reparaciones y/o Repuestos de un Presupuesto en `BORRADOR` | `200` | `400` UUID/body inválido, `404` Presupuesto o referencia inexistente, `409` estado no editable |
 
 El endpoint acepta `page` y `limit` según las convenciones generales de
 paginación, ordena establemente por `id` ascendente y devuelve `200 OK` con
@@ -551,5 +552,45 @@ Un JSON malformado o un body inválido devuelve `400`. Devuelve `404` si no
 existe el Siniestro o alguna Reparación o Repuesto solicitado. Un
 `numeroPresupuesto` ya utilizado devuelve `409`.
 
-No están implementados la modificación, el envío ni las transiciones de estado
-de Presupuesto.
+### PATCH `/api/presupuestos/[id]`
+
+Permite reemplazar las Reparaciones y/o los Repuestos de un Presupuesto que
+permanezca en estado `BORRADOR`. El body acepta cualquier subconjunto no vacío
+de estas dos colecciones:
+
+```json
+{
+  "reparaciones": [
+    {
+      "reparacionId": "uuid",
+      "costo": "175000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "uuid",
+      "cantidad": 1
+    }
+  ]
+}
+```
+
+Una colección presente reemplaza completamente la colección existente. Una
+colección omitida se conserva sin cambios. `reparaciones` debe contener al
+menos un elemento cuando se informa; `repuestos: []` es válido y elimina todos
+los Repuestos. El body `{}` es inválido.
+
+El body es estricto. `numeroPresupuesto` y `siniestroId` se establecen en la
+creación y son inmutables. Tampoco se aceptan `id`, `estado`,
+`ordenTrabajoId`, `total`, IDs de detalles ni otros campos adicionales.
+
+La respuesta `200` reutiliza la representación del detalle y recalcula el
+total a partir de las Reparaciones resultantes. El reemplazo se realiza de
+forma atómica y no persiste el total.
+
+Un UUID, JSON o body inválido devuelve `400`. Devuelve `404` si no existe el
+Presupuesto o alguna Reparación o Repuesto informado. Si el Presupuesto existe
+pero no permanece en `BORRADOR`, devuelve `409`; la misma respuesta se utiliza
+si pierde esa condición concurrentemente antes de la escritura.
+
+No están implementados el envío ni las transiciones de estado de Presupuesto.

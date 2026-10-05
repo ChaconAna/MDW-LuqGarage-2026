@@ -1,7 +1,10 @@
 import { Prisma } from "@prisma/client";
 import type { EstadoPresupuesto } from "@prisma/client";
 
-import type { DatosCreacionPresupuesto } from "../schemas/presupuesto";
+import type {
+  DatosActualizacionPresupuesto,
+  DatosCreacionPresupuesto,
+} from "../schemas/presupuesto";
 import type { ClienteTransaccion } from "./transaccion";
 
 import { prisma } from "./client";
@@ -59,6 +62,15 @@ type DatosPresupuesto = {
   siniestroId: string;
   ordenTrabajoId: string | null;
 };
+
+class ErrorActualizacionCondicionadaPresupuesto extends Error {
+  constructor(
+    readonly errorOriginal: Prisma.PrismaClientKnownRequestError,
+  ) {
+    super("El update condicionado del Presupuesto no encontró un registro.");
+    this.name = "ErrorActualizacionCondicionadaPresupuesto";
+  }
+}
 
 export function asegurarPresupuestoPorNumero(
   cliente: ClienteTransaccion,
@@ -158,6 +170,136 @@ export async function crearPresupuesto(datos: DatosCreacionPresupuesto) {
       error.code === "P2002"
     ) {
       return { creado: false, motivo: "NUMERO_DUPLICADO" } as const;
+    }
+
+    throw error;
+  }
+}
+
+export async function actualizarPresupuestoPorId(
+  id: string,
+  datos: DatosActualizacionPresupuesto,
+) {
+  try {
+    return await ejecutarTransaccion(async (cliente) => {
+      const presupuestoActual = await cliente.presupuesto.findUnique({
+        where: { id },
+        select: { estado: true },
+      });
+
+      if (!presupuestoActual) {
+        return {
+          actualizado: false,
+          motivo: "PRESUPUESTO_NO_ENCONTRADO",
+        } as const;
+      }
+
+      if (presupuestoActual.estado !== "BORRADOR") {
+        return {
+          actualizado: false,
+          motivo: "PRESUPUESTO_NO_EDITABLE",
+        } as const;
+      }
+
+      if (datos.reparaciones !== undefined) {
+        const reparaciones = await cliente.reparacion.findMany({
+          where: {
+            id: {
+              in: datos.reparaciones.map(
+                ({ reparacionId }) => reparacionId,
+              ),
+            },
+          },
+          select: { id: true },
+        });
+
+        if (reparaciones.length !== datos.reparaciones.length) {
+          return {
+            actualizado: false,
+            motivo: "REPARACION_NO_ENCONTRADA",
+          } as const;
+        }
+      }
+
+      if (datos.repuestos !== undefined) {
+        const repuestos = await cliente.repuesto.findMany({
+          where: {
+            id: {
+              in: datos.repuestos.map(({ repuestoId }) => repuestoId),
+            },
+          },
+          select: { id: true },
+        });
+
+        if (repuestos.length !== datos.repuestos.length) {
+          return {
+            actualizado: false,
+            motivo: "REPUESTO_NO_ENCONTRADO",
+          } as const;
+        }
+      }
+
+      let presupuesto: DetallePresupuesto;
+
+      try {
+        presupuesto = await cliente.presupuesto.update({
+          where: {
+            id,
+            estado: "BORRADOR",
+          },
+          data: {
+            reparaciones:
+              datos.reparaciones === undefined
+                ? undefined
+                : {
+                    deleteMany: {},
+                    create: datos.reparaciones,
+                  },
+            repuestos:
+              datos.repuestos === undefined
+                ? undefined
+                : {
+                    deleteMany: {},
+                    create: datos.repuestos,
+                  },
+          },
+          select: seleccionDetallePresupuesto,
+        });
+      } catch (error: unknown) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2025"
+        ) {
+          throw new ErrorActualizacionCondicionadaPresupuesto(error);
+        }
+
+        throw error;
+      }
+
+      return { actualizado: true, presupuesto } as const;
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErrorActualizacionCondicionadaPresupuesto) {
+      const presupuestoActual = await prisma.presupuesto.findUnique({
+        where: { id },
+        select: { estado: true },
+      });
+
+      if (!presupuestoActual) {
+        return {
+          actualizado: false,
+          motivo: "PRESUPUESTO_NO_ENCONTRADO",
+        } as const;
+      }
+
+      if (presupuestoActual.estado !== "BORRADOR") {
+        return {
+          actualizado: false,
+          motivo: "PRESUPUESTO_NO_EDITABLE",
+        } as const;
+      }
+
+      throw error.errorOriginal;
     }
 
     throw error;

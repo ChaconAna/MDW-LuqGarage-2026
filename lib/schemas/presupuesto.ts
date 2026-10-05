@@ -18,6 +18,44 @@ const detalleRepuestoSchema = z
   })
   .strict();
 
+type ColeccionesPresupuesto = {
+  reparaciones?: Array<{ reparacionId: string }>;
+  repuestos?: Array<{ repuestoId: string }>;
+};
+
+function validarDetallesDuplicados(
+  datos: ColeccionesPresupuesto,
+  contexto: z.RefinementCtx,
+) {
+  const reparacionesVistas = new Set<string>();
+
+  datos.reparaciones?.forEach(({ reparacionId }, indice) => {
+    if (reparacionesVistas.has(reparacionId)) {
+      contexto.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["reparaciones", indice, "reparacionId"],
+        message: "La Reparación no puede repetirse en el Presupuesto.",
+      });
+    }
+
+    reparacionesVistas.add(reparacionId);
+  });
+
+  const repuestosVistos = new Set<string>();
+
+  datos.repuestos?.forEach(({ repuestoId }, indice) => {
+    if (repuestosVistos.has(repuestoId)) {
+      contexto.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["repuestos", indice, "repuestoId"],
+        message: "El Repuesto no puede repetirse en el Presupuesto.",
+      });
+    }
+
+    repuestosVistos.add(repuestoId);
+  });
+}
+
 export const parametrosPresupuestoSchema = z.object({
   id: z.string().uuid(),
 });
@@ -39,36 +77,25 @@ export const crearPresupuestoSchema = z
     repuestos: z.array(detalleRepuestoSchema).default([]),
   })
   .strict()
-  .superRefine((datos, contexto) => {
-    const reparacionesVistas = new Set<string>();
-
-    datos.reparaciones.forEach(({ reparacionId }, indice) => {
-      if (reparacionesVistas.has(reparacionId)) {
-        contexto.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["reparaciones", indice, "reparacionId"],
-          message: "La Reparación no puede repetirse en el Presupuesto.",
-        });
-      }
-
-      reparacionesVistas.add(reparacionId);
-    });
-
-    const repuestosVistos = new Set<string>();
-
-    datos.repuestos.forEach(({ repuestoId }, indice) => {
-      if (repuestosVistos.has(repuestoId)) {
-        contexto.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["repuestos", indice, "repuestoId"],
-          message: "El Repuesto no puede repetirse en el Presupuesto.",
-        });
-      }
-
-      repuestosVistos.add(repuestoId);
-    });
-  });
+  .superRefine(validarDetallesDuplicados);
 
 export type DatosCreacionPresupuesto = z.infer<
   typeof crearPresupuestoSchema
+>;
+
+export const actualizarPresupuestoSchema = z
+  .object({
+    reparaciones: z.array(detalleReparacionSchema).min(1).optional(),
+    repuestos: z.array(detalleRepuestoSchema).optional(),
+  })
+  .strict()
+  .refine(
+    ({ reparaciones, repuestos }) =>
+      reparaciones !== undefined || repuestos !== undefined,
+    { message: "Debe indicarse al menos una colección para modificar." },
+  )
+  .superRefine(validarDetallesDuplicados);
+
+export type DatosActualizacionPresupuesto = z.infer<
+  typeof actualizarPresupuestoSchema
 >;
