@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { DetalleOrdenTrabajo } from "../db/ordenTrabajo";
 import {
+  evaluarElegibilidadEdicionObservaciones,
+  evaluarElegibilidadFinalizacionOrdenTrabajo,
+  evaluarElegibilidadIncorporacionPresupuestos,
   evaluarElegibilidadPresupuestosParaCrearOrden,
   serializarDetalleOrdenTrabajo,
 } from "./ordenTrabajo";
@@ -12,6 +15,10 @@ type SectorDetalle = DetalleOrdenTrabajo["sectores"][number];
 const siniestroId = "10000000-0000-4000-8000-000000000001";
 const otroSiniestroId = "10000000-0000-4000-8000-000000000002";
 const ordenTrabajoId = "40000000-0000-4000-8000-000000000001";
+const otraOrdenTrabajoId = "40000000-0000-4000-8000-000000000002";
+const sectorId1 = "50000000-0000-4000-8000-000000000001";
+const sectorId2 = "50000000-0000-4000-8000-000000000002";
+const sectorId3 = "50000000-0000-4000-8000-000000000003";
 
 describe("evaluarElegibilidadPresupuestosParaCrearOrden", () => {
   it("acepta Presupuestos aprobados, del Siniestro indicado y sin OT", () => {
@@ -90,6 +97,246 @@ describe("evaluarElegibilidadPresupuestosParaCrearOrden", () => {
     );
 
     expect(resultado).toBe("PRESUPUESTO_OTRO_SINIESTRO");
+  });
+});
+
+describe("evaluarElegibilidadEdicionObservaciones", () => {
+  it("acepta una OT BORRADOR cuando todos los Sectores pertenecen", () => {
+    const resultado = evaluarElegibilidadEdicionObservaciones("BORRADOR", {
+      sectorIdsSolicitados: [sectorId1, sectorId2],
+      sectorIdsOrdenTrabajo: [sectorId1, sectorId2, sectorId3],
+    });
+
+    expect(resultado).toBeNull();
+  });
+
+  it("rechaza una OT FINALIZADA", () => {
+    const resultado = evaluarElegibilidadEdicionObservaciones("FINALIZADA", {
+      sectorIdsSolicitados: [sectorId1],
+      sectorIdsOrdenTrabajo: [sectorId1],
+    });
+
+    expect(resultado).toBe("ORDEN_TRABAJO_NO_EDITABLE");
+  });
+
+  it("rechaza cuando exactamente un Sector solicitado no pertenece", () => {
+    const resultado = evaluarElegibilidadEdicionObservaciones("BORRADOR", {
+      sectorIdsSolicitados: [sectorId1, sectorId2],
+      sectorIdsOrdenTrabajo: [sectorId1],
+    });
+
+    expect(resultado).toBe("SECTOR_NO_PERTENECE");
+  });
+
+  it("prioriza la OT no editable sobre un Sector ajeno", () => {
+    const resultado = evaluarElegibilidadEdicionObservaciones("FINALIZADA", {
+      sectorIdsSolicitados: [sectorId2],
+      sectorIdsOrdenTrabajo: [sectorId1],
+    });
+
+    expect(resultado).toBe("ORDEN_TRABAJO_NO_EDITABLE");
+  });
+});
+
+describe("evaluarElegibilidadIncorporacionPresupuestos", () => {
+  const ordenTrabajo = {
+    id: ordenTrabajoId,
+    estado: "BORRADOR" as const,
+    siniestroId,
+  };
+
+  it("acepta Presupuestos aprobados, del mismo Siniestro y libres", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [
+        { estado: "APROBADO", siniestroId, ordenTrabajoId: null },
+        { estado: "APROBADO", siniestroId, ordenTrabajoId: null },
+      ],
+    );
+
+    expect(resultado).toBeNull();
+  });
+
+  it("rechaza un Presupuesto no aprobado", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [{ estado: "ENVIADO", siniestroId, ordenTrabajoId: null }],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_NO_APROBADO");
+  });
+
+  it("distingue un Presupuesto que ya pertenece a esta OT", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [{ estado: "APROBADO", siniestroId, ordenTrabajoId }],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_YA_PERTENECE");
+  });
+
+  it("distingue un Presupuesto asociado a otra OT", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [{ estado: "APROBADO", siniestroId, ordenTrabajoId: otraOrdenTrabajoId }],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_YA_ASOCIADO");
+  });
+
+  it("distingue un Presupuesto perteneciente a otro Siniestro", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [
+        {
+          estado: "APROBADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId: null,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_OTRO_SINIESTRO");
+  });
+
+  it("prioriza la OT no editable sobre los conflictos de Presupuesto", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      { ...ordenTrabajo, estado: "FINALIZADA" },
+      [
+        {
+          estado: "ENVIADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("ORDEN_TRABAJO_NO_EDITABLE");
+  });
+
+  it("prioriza el estado no aprobado sobre los demas conflictos", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [
+        {
+          estado: "ENVIADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_NO_APROBADO");
+  });
+
+  it("prioriza otro Siniestro sobre una asociacion previa", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [
+        {
+          estado: "APROBADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_OTRO_SINIESTRO");
+  });
+
+  it("prioriza la pertenencia a esta OT sobre la asociacion a otra", () => {
+    const resultado = evaluarElegibilidadIncorporacionPresupuestos(
+      ordenTrabajo,
+      [
+        { estado: "APROBADO", siniestroId, ordenTrabajoId },
+        {
+          estado: "APROBADO",
+          siniestroId,
+          ordenTrabajoId: otraOrdenTrabajoId,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_YA_PERTENECE");
+  });
+});
+
+describe("evaluarElegibilidadFinalizacionOrdenTrabajo", () => {
+  it("acepta una OT BORRADOR con Presupuesto aprobado y cobertura completa", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo("BORRADOR", {
+      presupuestos: [
+        {
+          estado: "APROBADO",
+          sectorIdsRequeridos: [sectorId1, sectorId2],
+        },
+      ],
+      sectorIdsOrdenTrabajo: [sectorId1, sectorId2],
+    });
+
+    expect(resultado).toBeNull();
+  });
+
+  it("rechaza una OT que no esta en BORRADOR", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo(
+      "FINALIZADA",
+      null,
+    );
+
+    expect(resultado).toBe("ORDEN_TRABAJO_NO_EDITABLE");
+  });
+
+  it("rechaza una OT sin Presupuestos", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo("BORRADOR", {
+      presupuestos: [],
+      sectorIdsOrdenTrabajo: [],
+    });
+
+    expect(resultado).toBe("ORDEN_TRABAJO_SIN_PRESUPUESTOS");
+  });
+
+  it("rechaza una OT con un Presupuesto no aprobado", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo("BORRADOR", {
+      presupuestos: [{ estado: "ENVIADO", sectorIdsRequeridos: [] }],
+      sectorIdsOrdenTrabajo: [],
+    });
+
+    expect(resultado).toBe("PRESUPUESTO_NO_APROBADO");
+  });
+
+  it("rechaza cuando falta exactamente un Sector requerido", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo("BORRADOR", {
+      presupuestos: [
+        {
+          estado: "APROBADO",
+          sectorIdsRequeridos: [sectorId1, sectorId2],
+        },
+      ],
+      sectorIdsOrdenTrabajo: [sectorId1],
+    });
+
+    expect(resultado).toBe("REPARACIONES_SIN_SECTORIZAR");
+  });
+
+  it("acepta Sectores asociados adicionales", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo("BORRADOR", {
+      presupuestos: [
+        { estado: "APROBADO", sectorIdsRequeridos: [sectorId1] },
+      ],
+      sectorIdsOrdenTrabajo: [sectorId1, sectorId2],
+    });
+
+    expect(resultado).toBeNull();
+  });
+
+  it("prioriza un Presupuesto no aprobado sobre la falta de Sectores", () => {
+    const resultado = evaluarElegibilidadFinalizacionOrdenTrabajo("BORRADOR", {
+      presupuestos: [
+        { estado: "ENVIADO", sectorIdsRequeridos: [sectorId2] },
+      ],
+      sectorIdsOrdenTrabajo: [sectorId1],
+    });
+
+    expect(resultado).toBe("PRESUPUESTO_NO_APROBADO");
   });
 });
 

@@ -7,7 +7,12 @@ import type {
 } from "../schemas/ordenTrabajo";
 import type { ClienteTransaccion } from "./transaccion";
 
-import { evaluarElegibilidadPresupuestosParaCrearOrden } from "../services/ordenTrabajo";
+import {
+  evaluarElegibilidadEdicionObservaciones,
+  evaluarElegibilidadFinalizacionOrdenTrabajo,
+  evaluarElegibilidadIncorporacionPresupuestos,
+  evaluarElegibilidadPresupuestosParaCrearOrden,
+} from "../services/ordenTrabajo";
 import { prisma } from "./client";
 import { ejecutarTransaccion } from "./transaccion";
 
@@ -280,10 +285,15 @@ export async function actualizarObservacionesOrdenTrabajoPorId(
         } as const;
       }
 
-      if (ordenTrabajoActual.estado !== "BORRADOR") {
+      const motivoEstadoNoEditable = evaluarElegibilidadEdicionObservaciones(
+        ordenTrabajoActual.estado,
+        null,
+      );
+
+      if (motivoEstadoNoEditable) {
         return {
           actualizada: false,
-          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+          motivo: motivoEstadoNoEditable,
         } as const;
       }
 
@@ -308,10 +318,20 @@ export async function actualizarObservacionesOrdenTrabajoPorId(
         select: { sectorId: true },
       });
 
-      if (sectoresOrdenTrabajo.length !== sectorIds.length) {
+      const motivoEdicionNoElegible = evaluarElegibilidadEdicionObservaciones(
+        ordenTrabajoActual.estado,
+        {
+          sectorIdsSolicitados: sectorIds,
+          sectorIdsOrdenTrabajo: sectoresOrdenTrabajo.map(
+            ({ sectorId }) => sectorId,
+          ),
+        },
+      );
+
+      if (motivoEdicionNoElegible) {
         return {
           actualizada: false,
-          motivo: "SECTOR_NO_PERTENECE",
+          motivo: motivoEdicionNoElegible,
         } as const;
       }
 
@@ -360,10 +380,15 @@ export async function actualizarObservacionesOrdenTrabajoPorId(
         } as const;
       }
 
-      if (ordenTrabajoActual.estado !== "BORRADOR") {
+      const motivoEstadoNoEditable = evaluarElegibilidadEdicionObservaciones(
+        ordenTrabajoActual.estado,
+        null,
+      );
+
+      if (motivoEstadoNoEditable) {
         return {
           actualizada: false,
-          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+          motivo: motivoEstadoNoEditable,
         } as const;
       }
     }
@@ -393,10 +418,16 @@ export async function agregarPresupuestosOrdenTrabajoPorId(
         } as const;
       }
 
-      if (ordenTrabajoActual.estado !== "BORRADOR") {
+      const motivoEstadoNoEditable =
+        evaluarElegibilidadIncorporacionPresupuestos(
+          { id, ...ordenTrabajoActual },
+          null,
+        );
+
+      if (motivoEstadoNoEditable) {
         return {
           actualizada: false,
-          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+          motivo: motivoEstadoNoEditable,
         } as const;
       }
 
@@ -423,39 +454,16 @@ export async function agregarPresupuestosOrdenTrabajoPorId(
         } as const;
       }
 
-      if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
-        return {
-          actualizada: false,
-          motivo: "PRESUPUESTO_NO_APROBADO",
-        } as const;
-      }
+      const motivoIncorporacionNoElegible =
+        evaluarElegibilidadIncorporacionPresupuestos(
+          { id, ...ordenTrabajoActual },
+          presupuestos,
+        );
 
-      if (
-        presupuestos.some(
-          ({ siniestroId }) => siniestroId !== ordenTrabajoActual.siniestroId,
-        )
-      ) {
+      if (motivoIncorporacionNoElegible) {
         return {
           actualizada: false,
-          motivo: "PRESUPUESTO_OTRO_SINIESTRO",
-        } as const;
-      }
-
-      if (
-        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId === id)
-      ) {
-        return {
-          actualizada: false,
-          motivo: "PRESUPUESTO_YA_PERTENECE",
-        } as const;
-      }
-
-      if (
-        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)
-      ) {
-        return {
-          actualizada: false,
-          motivo: "PRESUPUESTO_YA_ASOCIADO",
+          motivo: motivoIncorporacionNoElegible,
         } as const;
       }
 
@@ -554,10 +562,16 @@ export async function agregarPresupuestosOrdenTrabajoPorId(
         } as const;
       }
 
-      if (ordenTrabajoActual.estado !== "BORRADOR") {
+      const motivoEstadoNoEditable =
+        evaluarElegibilidadIncorporacionPresupuestos(
+          { id, ...ordenTrabajoActual },
+          null,
+        );
+
+      if (motivoEstadoNoEditable) {
         return {
           actualizada: false,
-          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+          motivo: motivoEstadoNoEditable,
         } as const;
       }
 
@@ -568,39 +582,16 @@ export async function agregarPresupuestosOrdenTrabajoPorId(
         } as const;
       }
 
-      if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
-        return {
-          actualizada: false,
-          motivo: "PRESUPUESTO_NO_APROBADO",
-        } as const;
-      }
+      const motivoIncorporacionNoElegible =
+        evaluarElegibilidadIncorporacionPresupuestos(
+          { id, ...ordenTrabajoActual },
+          presupuestos,
+        );
 
-      if (
-        presupuestos.some(
-          ({ siniestroId }) => siniestroId !== ordenTrabajoActual.siniestroId,
-        )
-      ) {
+      if (motivoIncorporacionNoElegible) {
         return {
           actualizada: false,
-          motivo: "PRESUPUESTO_OTRO_SINIESTRO",
-        } as const;
-      }
-
-      if (
-        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId === id)
-      ) {
-        return {
-          actualizada: false,
-          motivo: "PRESUPUESTO_YA_PERTENECE",
-        } as const;
-      }
-
-      if (
-        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)
-      ) {
-        return {
-          actualizada: false,
-          motivo: "PRESUPUESTO_YA_ASOCIADO",
+          motivo: motivoIncorporacionNoElegible,
         } as const;
       }
     }
@@ -624,10 +615,16 @@ export async function finalizarOrdenTrabajoPorId(id: string) {
         } as const;
       }
 
-      if (ordenTrabajoActual.estado !== "BORRADOR") {
+      const motivoEstadoNoEditable =
+        evaluarElegibilidadFinalizacionOrdenTrabajo(
+          ordenTrabajoActual.estado,
+          null,
+        );
+
+      if (motivoEstadoNoEditable) {
         return {
           finalizada: false,
-          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+          motivo: motivoEstadoNoEditable,
         } as const;
       }
 
@@ -664,37 +661,28 @@ export async function finalizarOrdenTrabajoPorId(id: string) {
         },
       });
 
-      if (composicion.presupuestos.length === 0) {
+      const motivoFinalizacionNoElegible =
+        evaluarElegibilidadFinalizacionOrdenTrabajo(
+          ordenTrabajoActual.estado,
+          {
+            presupuestos: composicion.presupuestos.map(
+              ({ estado, reparaciones }) => ({
+                estado,
+                sectorIdsRequeridos: reparaciones.map(
+                  ({ reparacion }) => reparacion.sectorId,
+                ),
+              }),
+            ),
+            sectorIdsOrdenTrabajo: composicion.sectores.map(
+              ({ sectorId }) => sectorId,
+            ),
+          },
+        );
+
+      if (motivoFinalizacionNoElegible) {
         return {
           finalizada: false,
-          motivo: "ORDEN_TRABAJO_SIN_PRESUPUESTOS",
-        } as const;
-      }
-
-      if (
-        composicion.presupuestos.some(({ estado }) => estado !== "APROBADO")
-      ) {
-        return {
-          finalizada: false,
-          motivo: "PRESUPUESTO_NO_APROBADO",
-        } as const;
-      }
-
-      const sectorIdsOrdenTrabajo = new Set(
-        composicion.sectores.map(({ sectorId }) => sectorId),
-      );
-      const hayReparacionesSinSectorizar = composicion.presupuestos.some(
-        ({ reparaciones }) =>
-          reparaciones.some(
-            ({ reparacion }) =>
-              !sectorIdsOrdenTrabajo.has(reparacion.sectorId),
-          ),
-      );
-
-      if (hayReparacionesSinSectorizar) {
-        return {
-          finalizada: false,
-          motivo: "REPARACIONES_SIN_SECTORIZAR",
+          motivo: motivoFinalizacionNoElegible,
         } as const;
       }
 
@@ -731,10 +719,16 @@ export async function finalizarOrdenTrabajoPorId(id: string) {
         } as const;
       }
 
-      if (ordenTrabajoActual.estado !== "BORRADOR") {
+      const motivoEstadoNoEditable =
+        evaluarElegibilidadFinalizacionOrdenTrabajo(
+          ordenTrabajoActual.estado,
+          null,
+        );
+
+      if (motivoEstadoNoEditable) {
         return {
           finalizada: false,
-          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+          motivo: motivoEstadoNoEditable,
         } as const;
       }
     }
