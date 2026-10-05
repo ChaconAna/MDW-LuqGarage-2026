@@ -635,3 +635,137 @@ export async function agregarPresupuestosOrdenTrabajoPorId(
     throw error;
   }
 }
+
+export async function finalizarOrdenTrabajoPorId(id: string) {
+  try {
+    return await ejecutarTransaccion(async (cliente) => {
+      const ordenTrabajoActual = await cliente.ordenDeTrabajo.findUnique({
+        where: { id },
+        select: { estado: true },
+      });
+
+      if (!ordenTrabajoActual) {
+        return {
+          finalizada: false,
+          motivo: "ORDEN_TRABAJO_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (ordenTrabajoActual.estado !== "BORRADOR") {
+        return {
+          finalizada: false,
+          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+        } as const;
+      }
+
+      const proteccionBorrador = await cliente.ordenDeTrabajo.updateMany({
+        where: {
+          id,
+          estado: "BORRADOR",
+        },
+        data: { estado: "BORRADOR" },
+      });
+
+      if (proteccionBorrador.count !== 1) {
+        throw new ErrorActualizacionCondicionadaOrdenTrabajo();
+      }
+
+      const composicion = await cliente.ordenDeTrabajo.findUniqueOrThrow({
+        where: { id },
+        select: {
+          presupuestos: {
+            select: {
+              estado: true,
+              reparaciones: {
+                select: {
+                  reparacion: {
+                    select: { sectorId: true },
+                  },
+                },
+              },
+            },
+          },
+          sectores: {
+            select: { sectorId: true },
+          },
+        },
+      });
+
+      if (composicion.presupuestos.length === 0) {
+        return {
+          finalizada: false,
+          motivo: "ORDEN_TRABAJO_SIN_PRESUPUESTOS",
+        } as const;
+      }
+
+      if (
+        composicion.presupuestos.some(({ estado }) => estado !== "APROBADO")
+      ) {
+        return {
+          finalizada: false,
+          motivo: "PRESUPUESTO_NO_APROBADO",
+        } as const;
+      }
+
+      const sectorIdsOrdenTrabajo = new Set(
+        composicion.sectores.map(({ sectorId }) => sectorId),
+      );
+      const hayReparacionesSinSectorizar = composicion.presupuestos.some(
+        ({ reparaciones }) =>
+          reparaciones.some(
+            ({ reparacion }) =>
+              !sectorIdsOrdenTrabajo.has(reparacion.sectorId),
+          ),
+      );
+
+      if (hayReparacionesSinSectorizar) {
+        return {
+          finalizada: false,
+          motivo: "REPARACIONES_SIN_SECTORIZAR",
+        } as const;
+      }
+
+      const transicion = await cliente.ordenDeTrabajo.updateMany({
+        where: {
+          id,
+          estado: "BORRADOR",
+        },
+        data: { estado: "FINALIZADA" },
+      });
+
+      if (transicion.count !== 1) {
+        throw new ErrorActualizacionCondicionadaOrdenTrabajo();
+      }
+
+      const ordenTrabajo = await cliente.ordenDeTrabajo.findUniqueOrThrow({
+        where: { id },
+        select: seleccionDetalleOrdenTrabajo,
+      });
+
+      return { finalizada: true, ordenTrabajo } as const;
+    });
+  } catch (error: unknown) {
+    if (error instanceof ErrorActualizacionCondicionadaOrdenTrabajo) {
+      const ordenTrabajoActual = await prisma.ordenDeTrabajo.findUnique({
+        where: { id },
+        select: { estado: true },
+      });
+
+      if (!ordenTrabajoActual) {
+        return {
+          finalizada: false,
+          motivo: "ORDEN_TRABAJO_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (ordenTrabajoActual.estado !== "BORRADOR") {
+        return {
+          finalizada: false,
+          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+        } as const;
+      }
+    }
+
+    throw error;
+  }
+}

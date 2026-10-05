@@ -2,8 +2,8 @@
 
 Este documento describe exclusivamente la API implementada actualmente para
 Cliente, Aseguradora, Vehículo, Siniestro, Presupuesto y Orden de Trabajo. No
-documenta operaciones futuras de transición de Presupuesto, modificación o
-finalización de Orden de Trabajo ni endpoints de catálogos.
+documenta operaciones futuras de transición de Presupuesto ni endpoints de
+catálogos.
 
 ## Estado de la autorización
 
@@ -673,6 +673,7 @@ fechas ni datos adicionales del Siniestro o de los Presupuestos.
 | `GET /api/ordenes-trabajo/[id]` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente, `500` error inesperado |
 | `PATCH /api/ordenes-trabajo/[id]` | Modifica observaciones de Sectores de una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
 | `POST /api/ordenes-trabajo/[id]/presupuestos` | Agrega Presupuestos a una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | Finaliza una Orden de Trabajo en `BORRADOR` | `200` | `400` UUID inválido, `404` inexistente, `409` regla de negocio, `500` error inesperado |
 
 El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
 `1` y `100` con default `10`. Ordena establemente por `id` ascendente y devuelve
@@ -783,4 +784,23 @@ Un UUID inválido devuelve `400` con
 inexistente devuelve `404` con
 `{ "error": "Orden de Trabajo no encontrada." }`.
 
-No están implementadas la finalización ni la eliminación de Órdenes de Trabajo.
+La finalización no recibe body. La Orden de Trabajo debe existir, permanecer en
+`BORRADOR`, tener al menos un Presupuesto, conservar todos sus Presupuestos en
+`APROBADO` y contener una relación `OrdenTrabajoSector` para el Sector de cada
+Reparación derivada. Las observaciones nulas o vacías no impiden finalizar.
+
+La operación cambia exclusivamente el estado de la Orden de Trabajo a
+`FINALIZADA` y responde `200` con la misma representación que el GET detalle.
+No modifica el Siniestro, los estados o asociaciones de los Presupuestos, las
+relaciones con Sectores, sus observaciones ni los detalles derivados.
+
+Una Orden de Trabajo que no está en `BORRADOR` devuelve `409` con
+`{ "error": "La Orden de Trabajo no está en estado BORRADOR." }`. La ausencia
+de Presupuestos devuelve `409` con
+`{ "error": "La Orden de Trabajo debe tener al menos un Presupuesto aprobado." }`.
+Si algún Presupuesto no está aprobado o alguna Reparación carece de la relación
+con su Sector en la OT, devuelve respectivamente `409` con
+`{ "error": "Uno o más Presupuestos de la Orden de Trabajo no están aprobados." }`
+o `{ "error": "La Orden de Trabajo tiene Reparaciones sin sectorizar." }`.
+
+No está implementada la eliminación de Órdenes de Trabajo.

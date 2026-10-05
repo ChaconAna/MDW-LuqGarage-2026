@@ -1296,3 +1296,28 @@ Content-Type: application/json
     "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
   ]
 }
+
+
+### Finalizar una Orden de Trabajo BORRADOR válida → 200
+# Ejecutar después de los ejemplos que modifican la OT creada: al finalizarla
+# ya no admitirá Presupuestos ni cambios de observaciones.
+# @name finalizarOrdenTrabajoBorrador
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/finalizar
+
+
+### Finalización con UUID inválido → 400
+POST {{baseUrl}}/api/ordenes-trabajo/no-es-un-uuid/finalizar
+
+
+### Finalización de Orden de Trabajo inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}/finalizar
+
+
+### Finalización de Orden de Trabajo ya FINALIZADA → 409
+POST {{baseUrl}}/api/ordenes-trabajo/{{obtenerOrdenTrabajoSembrada.response.body.$.id}}/finalizar
+
+
+# Los conflictos por OT sin Presupuestos, Presupuestos no aprobados o
+# Reparaciones sin sectorizar requieren fixtures de integración inconsistentes
+# con las operaciones públicas actuales. Sus respuestas 409 están documentadas
+# en docs/api.md; este archivo no inventa UUID ni altera la base para producirlos.
