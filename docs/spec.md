@@ -640,6 +640,10 @@ El Encargado podrá seleccionar:
 
 Todos deberán pertenecer al mismo siniestro.
 
+Mientras la Orden de Trabajo permanezca en estado `BORRADOR`, podrán incorporarse uno o más Presupuestos adicionales. Todo Presupuesto incorporado posteriormente deberá existir, estar en estado `APROBADO`, pertenecer al mismo Siniestro de la Orden de Trabajo y no estar asociado previamente a ninguna Orden de Trabajo.
+
+La incorporación de Presupuestos es exclusivamente aditiva: los Presupuestos ya asociados no pueden quitarse ni reemplazarse por otro conjunto. Tampoco pueden reasignarse a otra Orden de Trabajo. Intentar incorporar nuevamente un Presupuesto que ya pertenece a la misma Orden de Trabajo es inválido.
+
 Una Orden de Trabajo puede contener múltiples presupuestos.
 
 Un presupuesto puede pertenecer como máximo a una Orden de Trabajo.
@@ -664,6 +668,8 @@ No pueden agregarse tareas nuevas directamente desde la Orden de Trabajo.
 
 Las tareas no se persisten nuevamente ni se copian en una estructura propia de la Orden de Trabajo: continúan derivándose de los `DetalleReparacion` de sus Presupuestos asociados.
 
+Cuando se incorpora un Presupuesto adicional a una Orden de Trabajo en estado `BORRADOR`, cada uno de sus `DetalleReparacion` pasa a formar parte de la Orden de Trabajo como una nueva tarea u ocurrencia derivada, bajo las mismas reglas anteriores.
+
 
 
 # 19. Sectores
@@ -683,6 +689,8 @@ Un sector puede contener múltiples reparaciones.
 
 Al generar la Orden de Trabajo, las reparaciones provenientes de los presupuestos deberán organizarse de acuerdo con su sector.
 
+Cuando se incorpora un Presupuesto adicional, cada Sector derivado que todavía no pertenezca a la Orden de Trabajo se incorpora una sola vez. Si el Sector ya pertenece a la Orden de Trabajo, se conserva la relación existente.
+
 El Sector de cada reparación se obtiene de la relación existente entre Reparacion y Sector y no se persiste de forma redundante en la tarea.
 
 
@@ -692,6 +700,8 @@ El Sector de cada reparación se obtiene de la relación existente entre Reparac
 Cada sector incluido en una Orden de Trabajo podrá tener una observación opcional.
 
 La relación entre una Orden de Trabajo y cada Sector incluido se registra una sola vez mediante OrdenTrabajoSector, que conserva la observación opcional.
+
+Cada nuevo `OrdenTrabajoSector` comienza sin observación. Si al incorporar un Presupuesto adicional uno de sus Sectores ya pertenece a la Orden de Trabajo, se conserva la observación existente.
 
 La observación:
 
@@ -715,6 +725,8 @@ No se incluye un estado `EN_PROCESO`, debido a que la ejecución de las reparaci
 
 La Orden de Trabajo puede guardarse en `BORRADOR` y continuar confeccionándose y organizándose posteriormente.
 
+Mientras permanezca en este estado, pueden incorporarse Presupuestos adicionales de forma exclusivamente aditiva y pueden modificarse las observaciones de sus Sectores. Los Presupuestos ya asociados no pueden quitarse, reemplazarse ni reasignarse.
+
 ## 21.2. Finalización
 
 Una Orden de Trabajo puede pasar a `FINALIZADA` cuando:
@@ -728,6 +740,8 @@ Las fechas reales de inicio y finalización de la reparación del vehículo no f
 
 Una Orden de Trabajo `FINALIZADA` no se reabre para incorporar reparaciones descubiertas posteriormente y permanece como parte del historial.
 
+Una Orden de Trabajo `FINALIZADA` no admite la incorporación de nuevos Presupuestos ni la modificación de las observaciones de sus Sectores.
+
 ## 21.3. Reparaciones adicionales posteriores
 
 Si aparecen nuevas reparaciones para el mismo Siniestro después de finalizar una Orden de Trabajo:
@@ -737,6 +751,8 @@ Si aparecen nuevas reparaciones para el mismo Siniestro después de finalizar un
 3. una vez aprobado, puede utilizarse para generar una nueva Orden de Trabajo;
 4. la Orden de Trabajo anterior permanece `FINALIZADA` e histórica;
 5. el Siniestro permanece en estado `PRESUPUESTADO`.
+
+El trabajo adicional que no corresponda incorporar a una Orden de Trabajo que todavía se encuentre en `BORRADOR` sigue el flujo normal mediante un nuevo Presupuesto y, una vez aprobado, puede dar lugar a otra Orden de Trabajo del mismo Siniestro.
 
 
 # 22. Reglas de negocio
@@ -799,15 +815,15 @@ Si después de un rechazo se necesita presentar otra propuesta, debe crearse un 
 
 ### RN15 — Generación de Orden de Trabajo
 
-Solo pueden incorporarse a una Orden de Trabajo presupuestos en estado `APROBADO`.
+Solo pueden incorporarse a una Orden de Trabajo, tanto al crearla como posteriormente mientras permanezca en `BORRADOR`, Presupuestos existentes en estado `APROBADO` que todavía no estén asociados a ninguna Orden de Trabajo.
 
 ### RN16 — Mismo siniestro
 
-Todos los presupuestos de una Orden de Trabajo deben pertenecer al mismo siniestro.
+Todos los Presupuestos de una Orden de Trabajo, incluidos los que se incorporen posteriormente mientras permanezca en `BORRADOR`, deben pertenecer al mismo Siniestro de la Orden de Trabajo.
 
 ### RN17 — Uso único de presupuesto
 
-Un presupuesto puede pertenecer como máximo a una Orden de Trabajo.
+Un Presupuesto puede pertenecer como máximo a una Orden de Trabajo. Su asociación es permanente dentro del alcance del MVP: no puede quitarse, reemplazarse ni reasignarse. La incorporación posterior es exclusivamente aditiva y un Presupuesto que ya pertenece a la misma Orden de Trabajo no puede agregarse nuevamente.
 
 ### RN18 — Tareas de la Orden de Trabajo
 
@@ -817,15 +833,19 @@ Las tareas se organizan según el Sector de la `Reparacion`, se derivan de los `
 
 No pueden agregarse nuevas tareas desde la Orden de Trabajo.
 
+Cuando se incorpora un Presupuesto adicional a una Orden de Trabajo en estado `BORRADOR`, sus `DetalleReparacion` se incorporan como nuevas tareas u ocurrencias derivadas conforme a estas mismas reglas.
+
 ### RN19 — Sector de reparación
 
 Cada reparación pertenece a un único sector.
 
 Un sector puede contener múltiples reparaciones.
 
+Al incorporar Presupuestos adicionales, cada Sector derivado se relaciona una sola vez con la Orden de Trabajo. Los Sectores nuevos comienzan sin observación; los Sectores que ya pertenecen a la Orden de Trabajo conservan su relación y su observación existente.
+
 ### RN20 — Finalización de la Orden de Trabajo
 
-La confección de la Orden de Trabajo solo puede finalizar cuando todas las reparaciones se encuentren correctamente sectorizadas. Al pasar a `FINALIZADA`, queda disponible para consulta del Mecánico y no puede reabrirse. Esta finalización no representa que las reparaciones físicas hayan terminado.
+La confección de la Orden de Trabajo solo puede finalizar cuando todas las reparaciones se encuentren correctamente sectorizadas. Al pasar a `FINALIZADA`, queda disponible para consulta del Mecánico y no puede reabrirse, incorporar nuevos Presupuestos ni modificar las observaciones de sus Sectores. Esta finalización no representa que las reparaciones físicas hayan terminado.
 
 ### RN21 — Estado del siniestro
 
