@@ -168,7 +168,7 @@ async function main() {
     const siniestroValido = await asegurarSiniestroPorNumero(cliente, {
       ...datosDesarrollo.flujoValido.siniestro,
       gradoDano: "MODERADO",
-      estado: "PENDIENTE_DE_FACTURACION",
+      estado: "PRESUPUESTADO",
       clienteId: clienteCreado.id,
       vehiculoId: vehiculo.id,
       aseguradoraId: aseguradora.id,

@@ -300,7 +300,7 @@ incluye Presupuestos ni Órdenes de Trabajo.
   "fechaRegistro": "2026-03-02T12:00:00.000Z",
   "gradoDano": "MODERADO",
   "numeroPoliza": "POL-SEED-001",
-  "estado": "PENDIENTE_DE_FACTURACION",
+  "estado": "PRESUPUESTADO",
   "cliente": {
     "id": "uuid",
     "nombre": "Cliente",
