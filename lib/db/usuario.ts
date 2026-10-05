@@ -23,6 +23,8 @@ export async function autorizarInicioSesionGoogle({
   googleSub,
   email,
 }: DatosInicioSesionGoogle) {
+  const emailNormalizado = email.toLowerCase();
+
   const usuarioVinculado = await prisma.usuario.findUnique({
     where: { googleSub },
     select: seleccionUsuarioParaAutenticacion,
@@ -33,15 +35,24 @@ export async function autorizarInicioSesionGoogle({
   }
 
   const usuarioPreautorizado = await prisma.usuario.findUnique({
-    where: { email },
+    where: { email: emailNormalizado },
     select: seleccionUsuarioParaAutenticacion,
   });
 
-  if (
-    !usuarioPreautorizado ||
-    !usuarioPreautorizado.activo ||
-    usuarioPreautorizado.googleSub !== null
-  ) {
+  if (!usuarioPreautorizado) {
+    await prisma.usuario.create({
+      data: {
+        email: emailNormalizado,
+        googleSub,
+        rol: "MECANICO",
+        activo: true,
+      },
+    });
+
+    return true;
+  }
+
+  if (!usuarioPreautorizado.activo || usuarioPreautorizado.googleSub !== null) {
     return false;
   }
 

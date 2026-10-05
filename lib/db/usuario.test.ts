@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const usuarioPrisma = vi.hoisted(() => ({
+  create: vi.fn(),
   findUnique: vi.fn(),
   updateMany: vi.fn(),
 }));
@@ -26,19 +27,27 @@ const datosGoogle = {
 function crearUsuario({
   activo = true,
   googleSub = null,
+  rol = "ENCARGADO_DEL_TALLER",
 }: {
   activo?: boolean;
   googleSub?: string | null;
+  rol?:
+    | "RECEPCIONISTA"
+    | "ENCARGADO_DEL_TALLER"
+    | "MECANICO"
+    | "ADMINISTRADOR";
 } = {}) {
   return {
     id: "10000000-0000-4000-8000-000000000001",
     activo,
     googleSub,
+    rol,
   };
 }
 
 describe("autorizarInicioSesionGoogle", () => {
   beforeEach(() => {
+    usuarioPrisma.create.mockReset();
     usuarioPrisma.findUnique.mockReset();
     usuarioPrisma.updateMany.mockReset();
   });
@@ -52,6 +61,7 @@ describe("autorizarInicioSesionGoogle", () => {
     expect(usuarioPrisma.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { googleSub: datosGoogle.googleSub } }),
     );
+    expect(usuarioPrisma.create).not.toHaveBeenCalled();
     expect(usuarioPrisma.updateMany).not.toHaveBeenCalled();
   });
 
@@ -61,18 +71,35 @@ describe("autorizarInicioSesionGoogle", () => {
     await expect(autorizarInicioSesionGoogle(datosGoogle)).resolves.toBe(false);
 
     expect(usuarioPrisma.findUnique).toHaveBeenCalledTimes(1);
+    expect(usuarioPrisma.create).not.toHaveBeenCalled();
     expect(usuarioPrisma.updateMany).not.toHaveBeenCalled();
   });
 
-  it("rechaza un email que no corresponde a un Usuario preautorizado", async () => {
+  it("crea un Usuario MECANICO activo para un email desconocido", async () => {
+    const datosGoogleConEmailMayusculas = {
+      ...datosGoogle,
+      email: "Persona@Ejemplo.Com",
+    };
     usuarioPrisma.findUnique.mockResolvedValue(null);
+    usuarioPrisma.create.mockResolvedValue(crearUsuario({ rol: "MECANICO" }));
 
-    await expect(autorizarInicioSesionGoogle(datosGoogle)).resolves.toBe(false);
+    await expect(
+      autorizarInicioSesionGoogle(datosGoogleConEmailMayusculas),
+    ).resolves.toBe(true);
 
     expect(usuarioPrisma.findUnique).toHaveBeenCalledTimes(2);
     expect(usuarioPrisma.findUnique).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: { email: datosGoogle.email } }),
+      expect.objectContaining({ where: { email: "persona@ejemplo.com" } }),
     );
+    expect(usuarioPrisma.create).toHaveBeenCalledTimes(1);
+    expect(usuarioPrisma.create).toHaveBeenCalledWith({
+      data: {
+        email: "persona@ejemplo.com",
+        googleSub: datosGoogle.googleSub,
+        rol: "MECANICO",
+        activo: true,
+      },
+    });
     expect(usuarioPrisma.updateMany).not.toHaveBeenCalled();
   });
 
@@ -83,6 +110,7 @@ describe("autorizarInicioSesionGoogle", () => {
 
     await expect(autorizarInicioSesionGoogle(datosGoogle)).resolves.toBe(false);
 
+    expect(usuarioPrisma.create).not.toHaveBeenCalled();
     expect(usuarioPrisma.updateMany).not.toHaveBeenCalled();
   });
 
@@ -93,6 +121,7 @@ describe("autorizarInicioSesionGoogle", () => {
 
     await expect(autorizarInicioSesionGoogle(datosGoogle)).resolves.toBe(false);
 
+    expect(usuarioPrisma.create).not.toHaveBeenCalled();
     expect(usuarioPrisma.updateMany).not.toHaveBeenCalled();
   });
 
@@ -113,6 +142,8 @@ describe("autorizarInicioSesionGoogle", () => {
       },
       data: { googleSub: datosGoogle.googleSub },
     });
+    expect(usuarioPrisma.create).not.toHaveBeenCalled();
+    expect(usuario.rol).toBe("ENCARGADO_DEL_TALLER");
   });
 
   it("rechaza la vinculación si la actualización condicional no afecta filas", async () => {
