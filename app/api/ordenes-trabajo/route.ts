@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import {
   crearOrdenTrabajo,
   listarOrdenesTrabajo,
 } from "@/lib/db/ordenTrabajo";
+import { responderError } from "@/lib/http";
 import {
   crearOrdenTrabajoSchema,
   listadoOrdenesTrabajoQuerySchema,
@@ -49,6 +51,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await requerirRol(["ENCARGADO_DEL_TALLER"]);
+
     let body: unknown;
 
     try {
@@ -112,11 +116,6 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: unknown) {
-    console.error(
-      "Error inesperado en POST /api/ordenes-trabajo",
-      error,
-    );
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("POST /api/ordenes-trabajo", error);
   }
 }
