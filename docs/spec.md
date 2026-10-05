@@ -779,7 +779,7 @@ Todo siniestro debe estar asociado a una aseguradora activa.
 
 ### RN06 — Documentación obligatoria
 
-Un siniestro solo puede confirmarse cuando se haya cargado toda la documentación obligatoria.
+Un siniestro solo puede confirmarse cuando toda la documentación obligatoria se haya almacenado correctamente en el servicio externo.
 
 ### RN07 — Presupuesto asociado
 
@@ -876,7 +876,7 @@ Si el sistema no puede procesar automáticamente la respuesta de la aseguradora,
 
 Se utilizará almacenamiento externo para guardar las fotografías y documentación asociadas a los siniestros.
 
-La base de datos almacenará únicamente la información necesaria para relacionar cada archivo con su siniestro.
+Supabase Storage constituye una dependencia esencial para registrar un Siniestro. La base de datos almacenará únicamente la información necesaria para relacionar cada archivo con su siniestro, incluida una referencia generada por el servidor a partir de una carga exitosa en Storage. No se aceptarán referencias arbitrarias provistas por el cliente.
 
 Las credenciales del servicio deberán utilizarse exclusivamente del lado servidor.
 
@@ -918,7 +918,18 @@ Toda integración externa debe contemplar:
 
 Las credenciales nunca deberán exponerse al cliente.
 
-## 24.1. Falla de IA
+## 24.1. Falla de almacenamiento
+
+Si falla la carga de cualquiera de los documentos obligatorios:
+
+- el Siniestro no se registra;
+- se informa al usuario que no fue posible almacenar la documentación;
+- los archivos que se hayan cargado correctamente durante ese mismo intento fallido pueden eliminarse como compensación técnica para evitar objetos huérfanos;
+- si la compensación falla, se registra técnicamente el incidente.
+
+Esta compensación se limita a los archivos cargados durante el intento fallido y no habilita la eliminación de documentación perteneciente a un Siniestro ya registrado.
+
+## 24.2. Falla de IA
 
 Si falla:
 
@@ -926,7 +937,7 @@ Si falla:
 - no se pierde la información cargada;
 - se registra el error.
 
-## 24.2. Falla de envío de email
+## 24.3. Falla de envío de email
 
 Si falla el envío:
 
@@ -935,12 +946,12 @@ Si falla el envío:
 - se informa el error;
 - puede reintentarse.
 
-## 24.3. Falla al consultar respuestas
+## 24.4. Falla al consultar respuestas
 
 Si la respuesta de la aseguradora fue recibida por un medio verificable pero el sistema no pudo procesarla automáticamente, un usuario autorizado podrá registrar manualmente el resultado.
 
 
-## 24.4. Respuesta inválida
+## 24.5. Respuesta inválida
 
 Si se recibe un email cuyo contenido no permite determinar aprobación o rechazo:
 
