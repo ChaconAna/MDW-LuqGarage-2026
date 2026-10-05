@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import {
   actualizarVehiculoPorId,
   darDeBajaVehiculoPorId,
   obtenerVehiculoPorId,
 } from "@/lib/db/vehiculo";
+import { responderError } from "@/lib/http";
 import {
   actualizarVehiculoSchema,
   parametrosVehiculoSchema,
@@ -20,29 +22,29 @@ export async function GET(
   { params }: ContextoRutaVehiculo,
 ) {
   try {
-  const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
-    );
-  }
+    const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
 
-  const vehiculo = await obtenerVehiculoPorId(resultadoParametros.data.id);
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
 
-  if (!vehiculo) {
-    return NextResponse.json(
-      { error: "Vehículo no encontrado." },
-      { status: 404 },
-    );
-  }
+    const vehiculo = await obtenerVehiculoPorId(resultadoParametros.data.id);
 
-  return NextResponse.json(vehiculo);
+    if (!vehiculo) {
+      return NextResponse.json(
+        { error: "Vehículo no encontrado." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(vehiculo);
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/vehiculos/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/vehiculos/[id]", error);
   }
 }
 
@@ -51,69 +53,69 @@ export async function PATCH(
   { params }: ContextoRutaVehiculo,
 ) {
   try {
-  const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
-    );
-  }
+    const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
 
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la solicitud no es un JSON válido." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoBody = actualizarVehiculoSchema.safeParse(body);
-
-  if (!resultadoBody.success) {
-    return NextResponse.json(
-      { error: "Los datos del Vehículo son inválidos." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoActualizacion = await actualizarVehiculoPorId(
-    resultadoParametros.data.id,
-    resultadoBody.data,
-  );
-
-  if (!resultadoActualizacion.actualizado) {
-    if (resultadoActualizacion.motivo === "VEHICULO_NO_ENCONTRADO") {
+    if (!resultadoParametros.success) {
       return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 },
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
       );
     }
 
-    if (
-      resultadoActualizacion.motivo ===
-      "MODELO_O_TIPO_VEHICULO_NO_ENCONTRADO"
-    ) {
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "Modelo o Tipo de Vehículo no encontrado." },
-        { status: 404 },
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Ya existe un Vehículo con la patente indicada." },
-      { status: 409 },
-    );
-  }
+    const resultadoBody = actualizarVehiculoSchema.safeParse(body);
 
-  return NextResponse.json(resultadoActualizacion.vehiculo);
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos del Vehículo son inválidos." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoActualizacion = await actualizarVehiculoPorId(
+      resultadoParametros.data.id,
+      resultadoBody.data,
+    );
+
+    if (!resultadoActualizacion.actualizado) {
+      if (resultadoActualizacion.motivo === "VEHICULO_NO_ENCONTRADO") {
+        return NextResponse.json(
+          { error: "Vehículo no encontrado." },
+          { status: 404 },
+        );
+      }
+
+      if (
+        resultadoActualizacion.motivo ===
+        "MODELO_O_TIPO_VEHICULO_NO_ENCONTRADO"
+      ) {
+        return NextResponse.json(
+          { error: "Modelo o Tipo de Vehículo no encontrado." },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Ya existe un Vehículo con la patente indicada." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(resultadoActualizacion.vehiculo);
   } catch (error: unknown) {
-    console.error("Error inesperado en PATCH /api/vehiculos/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("PATCH /api/vehiculos/[id]", error);
   }
 }
 
@@ -122,30 +124,30 @@ export async function DELETE(
   { params }: ContextoRutaVehiculo,
 ) {
   try {
-  const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
+    const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
+
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
+
+    const vehiculoDadoDeBaja = await darDeBajaVehiculoPorId(
+      resultadoParametros.data.id,
     );
-  }
 
-  const vehiculoDadoDeBaja = await darDeBajaVehiculoPorId(
-    resultadoParametros.data.id,
-  );
+    if (!vehiculoDadoDeBaja) {
+      return NextResponse.json(
+        { error: "Vehículo no encontrado." },
+        { status: 404 },
+      );
+    }
 
-  if (!vehiculoDadoDeBaja) {
-    return NextResponse.json(
-      { error: "Vehículo no encontrado." },
-      { status: 404 },
-    );
-  }
-
-  return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, { status: 204 });
   } catch (error: unknown) {
-    console.error("Error inesperado en DELETE /api/vehiculos/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("DELETE /api/vehiculos/[id]", error);
   }
 }
