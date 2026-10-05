@@ -8,6 +8,12 @@ const seleccionUsuarioParaAutenticacion = {
   activo: true,
 } satisfies Prisma.UsuarioSelect;
 
+const seleccionUsuarioParaSesion = {
+  id: true,
+  rol: true,
+  activo: true,
+} satisfies Prisma.UsuarioSelect;
+
 type DatosInicioSesionGoogle = {
   googleSub: string;
   email: string;
@@ -60,4 +66,11 @@ export async function autorizarInicioSesionGoogle({
 
     throw error;
   }
+}
+
+export function obtenerUsuarioParaSesionPorGoogleSub(googleSub: string) {
+  return prisma.usuario.findUnique({
+    where: { googleSub },
+    select: seleccionUsuarioParaSesion,
+  });
 }

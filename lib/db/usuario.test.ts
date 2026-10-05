@@ -12,7 +12,10 @@ vi.mock("./client", () => ({
   },
 }));
 
-import { autorizarInicioSesionGoogle } from "./usuario";
+import {
+  autorizarInicioSesionGoogle,
+  obtenerUsuarioParaSesionPorGoogleSub,
+} from "./usuario";
 
 const datosGoogle = {
   googleSub: "google-sub-123",
@@ -144,5 +147,42 @@ describe("autorizarInicioSesionGoogle", () => {
     await expect(autorizarInicioSesionGoogle(datosGoogle)).rejects.toThrow(
       error,
     );
+  });
+
+  it("obtiene los datos locales necesarios para la sesión por googleSub", async () => {
+    const usuario = {
+      id: "10000000-0000-4000-8000-000000000001",
+      rol: "MECANICO",
+      activo: true,
+    };
+    usuarioPrisma.findUnique.mockResolvedValue(usuario);
+
+    await expect(
+      obtenerUsuarioParaSesionPorGoogleSub(datosGoogle.googleSub),
+    ).resolves.toEqual(usuario);
+
+    expect(usuarioPrisma.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { googleSub: datosGoogle.googleSub } }),
+    );
+  });
+
+  it("devuelve null cuando no existe un Usuario para el googleSub", async () => {
+    usuarioPrisma.findUnique.mockResolvedValue(null);
+
+    await expect(
+      obtenerUsuarioParaSesionPorGoogleSub(datosGoogle.googleSub),
+    ).resolves.toBeNull();
+  });
+
+  it("devuelve el estado inactivo para que la sesión pueda rechazarlo", async () => {
+    usuarioPrisma.findUnique.mockResolvedValue({
+      id: "10000000-0000-4000-8000-000000000001",
+      rol: "MECANICO",
+      activo: false,
+    });
+
+    await expect(
+      obtenerUsuarioParaSesionPorGoogleSub(datosGoogle.googleSub),
+    ).resolves.toMatchObject({ activo: false });
   });
 });
