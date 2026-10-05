@@ -40,6 +40,29 @@
 @uuidInexistente = 00000000-0000-4000-8000-000000000000
 
 ###############################################################################
+# AUTORIZACIÓN — CASOS DE CLASE 6
+###############################################################################
+# Este archivo no obtiene ni reutiliza automáticamente la sesión del navegador.
+# Para los casos autenticados, iniciar sesión mediante Auth.js y Google con el
+# usuario indicado y configurar el cliente HTTP para que use la sesión real de
+# Auth.js del mismo entorno. No copiar ni versionar cookies, tokens o secretos.
+
+### Sin sesión de Auth.js: esperado 401
+# Ejecutar desde un cliente HTTP sin una sesión válida.
+GET {{baseUrl}}/api/clientes
+
+
+### Sesión real de MECANICO en una operación no permitida: esperado 403
+# Iniciar sesión como MECANICO y usar esa sesión real en el cliente HTTP.
+GET {{baseUrl}}/api/clientes
+
+
+### MECANICO consulta una OT BORRADOR no visible: esperado 404
+# Iniciar sesión como MECANICO y reemplazar el segmento por el UUID real de
+# una OT en estado BORRADOR del mismo entorno. No usar un UUID inventado.
+GET {{baseUrl}}/api/ordenes-trabajo/REEMPLAZAR-POR-UUID-DE-OT-BORRADOR
+
+###############################################################################
 # CLIENTES
 ###############################################################################
 
