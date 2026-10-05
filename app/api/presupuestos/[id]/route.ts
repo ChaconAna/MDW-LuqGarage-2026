@@ -19,6 +19,7 @@ export async function GET(
   _request: Request,
   { params }: ContextoRutaPresupuesto,
 ) {
+  try {
   const resultadoParametros = parametrosPresupuestoSchema.safeParse(
     await params,
   );
@@ -42,12 +43,18 @@ export async function GET(
   }
 
   return NextResponse.json(serializarDetallePresupuesto(presupuesto));
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/presupuestos/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function PATCH(
   request: Request,
   { params }: ContextoRutaPresupuesto,
 ) {
+  try {
   const resultadoParametros = parametrosPresupuestoSchema.safeParse(
     await params,
   );
@@ -115,4 +122,9 @@ export async function PATCH(
   return NextResponse.json(
     serializarDetallePresupuesto(resultadoActualizacion.presupuesto),
   );
+  } catch (error: unknown) {
+    console.error("Error inesperado en PATCH /api/presupuestos/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

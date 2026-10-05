@@ -19,6 +19,7 @@ export async function GET(
   _request: Request,
   { params }: ContextoRutaCliente,
 ) {
+  try {
   const resultadoParametros = parametrosClienteSchema.safeParse(await params);
 
   if (!resultadoParametros.success) {
@@ -38,12 +39,18 @@ export async function GET(
   }
 
   return NextResponse.json(cliente);
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/clientes/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function PATCH(
   request: Request,
   { params }: ContextoRutaCliente,
 ) {
+  try {
   const resultadoParametros = parametrosClienteSchema.safeParse(await params);
 
   if (!resultadoParametros.success) {
@@ -100,12 +107,18 @@ export async function PATCH(
   }
 
   return NextResponse.json(resultadoActualizacion.cliente);
+  } catch (error: unknown) {
+    console.error("Error inesperado en PATCH /api/clientes/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   _request: Request,
   { params }: ContextoRutaCliente,
 ) {
+  try {
   const resultadoParametros = parametrosClienteSchema.safeParse(await params);
 
   if (!resultadoParametros.success) {
@@ -127,4 +140,9 @@ export async function DELETE(
   }
 
   return new NextResponse(null, { status: 204 });
+  } catch (error: unknown) {
+    console.error("Error inesperado en DELETE /api/clientes/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

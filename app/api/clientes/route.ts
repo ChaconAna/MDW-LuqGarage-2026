@@ -7,6 +7,7 @@ import {
 } from "@/lib/schemas/cliente";
 
 export async function GET(request: Request) {
+  try {
   const { searchParams } = new URL(request.url);
   const resultadoQuery = listadoClientesQuerySchema.safeParse({
     page: searchParams.get("page") ?? undefined,
@@ -32,9 +33,15 @@ export async function GET(request: Request) {
       totalPages: Math.ceil(total / limit),
     },
   });
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/clientes", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
+  try {
   let body: unknown;
 
   try {
@@ -72,4 +79,9 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(resultadoCreacion.cliente, { status: 201 });
+  } catch (error: unknown) {
+    console.error("Error inesperado en POST /api/clientes", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

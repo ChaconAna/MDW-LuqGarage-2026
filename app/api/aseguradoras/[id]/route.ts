@@ -19,6 +19,7 @@ export async function GET(
   _request: Request,
   { params }: ContextoRutaAseguradora,
 ) {
+  try {
   const resultadoParametros = parametrosAseguradoraSchema.safeParse(
     await params,
   );
@@ -42,12 +43,18 @@ export async function GET(
   }
 
   return NextResponse.json(aseguradora);
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/aseguradoras/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function PATCH(
   request: Request,
   { params }: ContextoRutaAseguradora,
 ) {
+  try {
   const resultadoParametros = parametrosAseguradoraSchema.safeParse(
     await params,
   );
@@ -99,12 +106,18 @@ export async function PATCH(
   }
 
   return NextResponse.json(resultadoActualizacion.aseguradora);
+  } catch (error: unknown) {
+    console.error("Error inesperado en PATCH /api/aseguradoras/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   _request: Request,
   { params }: ContextoRutaAseguradora,
 ) {
+  try {
   const resultadoParametros = parametrosAseguradoraSchema.safeParse(
     await params,
   );
@@ -128,4 +141,9 @@ export async function DELETE(
   }
 
   return new NextResponse(null, { status: 204 });
+  } catch (error: unknown) {
+    console.error("Error inesperado en DELETE /api/aseguradoras/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

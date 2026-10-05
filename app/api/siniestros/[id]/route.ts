@@ -14,6 +14,7 @@ export async function GET(
   _request: Request,
   { params }: ContextoRutaSiniestro,
 ) {
+  try {
   const resultadoParametros = parametrosSiniestroSchema.safeParse(
     await params,
   );
@@ -35,4 +36,9 @@ export async function GET(
   }
 
   return NextResponse.json(siniestro);
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/siniestros/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

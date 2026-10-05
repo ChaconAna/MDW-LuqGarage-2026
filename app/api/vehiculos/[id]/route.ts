@@ -19,6 +19,7 @@ export async function GET(
   _request: Request,
   { params }: ContextoRutaVehiculo,
 ) {
+  try {
   const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
 
   if (!resultadoParametros.success) {
@@ -38,12 +39,18 @@ export async function GET(
   }
 
   return NextResponse.json(vehiculo);
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/vehiculos/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function PATCH(
   request: Request,
   { params }: ContextoRutaVehiculo,
 ) {
+  try {
   const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
 
   if (!resultadoParametros.success) {
@@ -103,12 +110,18 @@ export async function PATCH(
   }
 
   return NextResponse.json(resultadoActualizacion.vehiculo);
+  } catch (error: unknown) {
+    console.error("Error inesperado en PATCH /api/vehiculos/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   _request: Request,
   { params }: ContextoRutaVehiculo,
 ) {
+  try {
   const resultadoParametros = parametrosVehiculoSchema.safeParse(await params);
 
   if (!resultadoParametros.success) {
@@ -130,4 +143,9 @@ export async function DELETE(
   }
 
   return new NextResponse(null, { status: 204 });
+  } catch (error: unknown) {
+    console.error("Error inesperado en DELETE /api/vehiculos/[id]", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

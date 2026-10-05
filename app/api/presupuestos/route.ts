@@ -8,6 +8,7 @@ import {
 import { serializarDetallePresupuesto } from "@/lib/services/presupuesto";
 
 export async function GET(request: Request) {
+  try {
   const { searchParams } = new URL(request.url);
   const resultadoQuery = listadoPresupuestosQuerySchema.safeParse({
     page: searchParams.get("page") ?? undefined,
@@ -33,9 +34,15 @@ export async function GET(request: Request) {
       totalPages: Math.ceil(total / limit),
     },
   });
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/presupuestos", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
+  try {
   let body: unknown;
 
   try {
@@ -87,4 +94,9 @@ export async function POST(request: Request) {
     serializarDetallePresupuesto(resultadoCreacion.presupuesto),
     { status: 201 },
   );
+  } catch (error: unknown) {
+    console.error("Error inesperado en POST /api/presupuestos", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }

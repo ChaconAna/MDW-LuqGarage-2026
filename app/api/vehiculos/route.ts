@@ -7,6 +7,7 @@ import {
 } from "@/lib/schemas/vehiculo";
 
 export async function GET(request: Request) {
+  try {
   const { searchParams } = new URL(request.url);
   const resultadoQuery = listadoVehiculosQuerySchema.safeParse({
     page: searchParams.get("page") ?? undefined,
@@ -32,9 +33,15 @@ export async function GET(request: Request) {
       totalPages: Math.ceil(total / limit),
     },
   });
+  } catch (error: unknown) {
+    console.error("Error inesperado en GET /api/vehiculos", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
+  try {
   let body: unknown;
 
   try {
@@ -75,4 +82,9 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(resultadoCreacion.vehiculo, { status: 201 });
+  } catch (error: unknown) {
+    console.error("Error inesperado en POST /api/vehiculos", error);
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
 }
