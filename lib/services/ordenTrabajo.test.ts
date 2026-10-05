@@ -1,10 +1,97 @@
 import { describe, expect, it } from "vitest";
 
 import type { DetalleOrdenTrabajo } from "../db/ordenTrabajo";
-import { serializarDetalleOrdenTrabajo } from "./ordenTrabajo";
+import {
+  evaluarElegibilidadPresupuestosParaCrearOrden,
+  serializarDetalleOrdenTrabajo,
+} from "./ordenTrabajo";
 
 type PresupuestoDetalle = DetalleOrdenTrabajo["presupuestos"][number];
 type SectorDetalle = DetalleOrdenTrabajo["sectores"][number];
+
+const siniestroId = "10000000-0000-4000-8000-000000000001";
+const otroSiniestroId = "10000000-0000-4000-8000-000000000002";
+const ordenTrabajoId = "40000000-0000-4000-8000-000000000001";
+
+describe("evaluarElegibilidadPresupuestosParaCrearOrden", () => {
+  it("acepta Presupuestos aprobados, del Siniestro indicado y sin OT", () => {
+    const resultado = evaluarElegibilidadPresupuestosParaCrearOrden(
+      siniestroId,
+      [
+        { estado: "APROBADO", siniestroId, ordenTrabajoId: null },
+        { estado: "APROBADO", siniestroId, ordenTrabajoId: null },
+      ],
+    );
+
+    expect(resultado).toBeNull();
+  });
+
+  it("rechaza un conjunto con un Presupuesto no aprobado", () => {
+    const resultado = evaluarElegibilidadPresupuestosParaCrearOrden(
+      siniestroId,
+      [
+        { estado: "APROBADO", siniestroId, ordenTrabajoId: null },
+        { estado: "ENVIADO", siniestroId, ordenTrabajoId: null },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_NO_APROBADO");
+  });
+
+  it("distingue un Presupuesto perteneciente a otro Siniestro", () => {
+    const resultado = evaluarElegibilidadPresupuestosParaCrearOrden(
+      siniestroId,
+      [
+        {
+          estado: "APROBADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId: null,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_OTRO_SINIESTRO");
+  });
+
+  it("distingue un Presupuesto ya asociado a una OT", () => {
+    const resultado = evaluarElegibilidadPresupuestosParaCrearOrden(
+      siniestroId,
+      [{ estado: "APROBADO", siniestroId, ordenTrabajoId }],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_YA_ASOCIADO");
+  });
+
+  it("prioriza el estado no aprobado sobre los demÃ¡s conflictos", () => {
+    const resultado = evaluarElegibilidadPresupuestosParaCrearOrden(
+      siniestroId,
+      [
+        {
+          estado: "ENVIADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_NO_APROBADO");
+  });
+
+  it("prioriza otro Siniestro sobre la asociaciÃ³n previa", () => {
+    const resultado = evaluarElegibilidadPresupuestosParaCrearOrden(
+      siniestroId,
+      [
+        {
+          estado: "APROBADO",
+          siniestroId: otroSiniestroId,
+          ordenTrabajoId,
+        },
+      ],
+    );
+
+    expect(resultado).toBe("PRESUPUESTO_OTRO_SINIESTRO");
+  });
+});
 
 function crearOrdenTrabajo(
   presupuestos: PresupuestoDetalle[] = [],

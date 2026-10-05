@@ -7,6 +7,7 @@ import type {
 } from "../schemas/ordenTrabajo";
 import type { ClienteTransaccion } from "./transaccion";
 
+import { evaluarElegibilidadPresupuestosParaCrearOrden } from "../services/ordenTrabajo";
 import { prisma } from "./client";
 import { ejecutarTransaccion } from "./transaccion";
 
@@ -155,30 +156,16 @@ export async function crearOrdenTrabajo(datos: DatosCreacionOrdenTrabajo) {
         } as const;
       }
 
-      if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
-        return {
-          creada: false,
-          motivo: "PRESUPUESTO_NO_APROBADO",
-        } as const;
-      }
+      const motivoPresupuestoNoElegible =
+        evaluarElegibilidadPresupuestosParaCrearOrden(
+          datos.siniestroId,
+          presupuestos,
+        );
 
-      if (
-        presupuestos.some(
-          ({ siniestroId }) => siniestroId !== datos.siniestroId,
-        )
-      ) {
+      if (motivoPresupuestoNoElegible) {
         return {
           creada: false,
-          motivo: "PRESUPUESTO_OTRO_SINIESTRO",
-        } as const;
-      }
-
-      if (
-        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)
-      ) {
-        return {
-          creada: false,
-          motivo: "PRESUPUESTO_YA_ASOCIADO",
+          motivo: motivoPresupuestoNoElegible,
         } as const;
       }
 
@@ -257,30 +244,16 @@ export async function crearOrdenTrabajo(datos: DatosCreacionOrdenTrabajo) {
         } as const;
       }
 
-      if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
-        return {
-          creada: false,
-          motivo: "PRESUPUESTO_NO_APROBADO",
-        } as const;
-      }
+      const motivoPresupuestoNoElegible =
+        evaluarElegibilidadPresupuestosParaCrearOrden(
+          datos.siniestroId,
+          presupuestos,
+        );
 
-      if (
-        presupuestos.some(
-          ({ siniestroId }) => siniestroId !== datos.siniestroId,
-        )
-      ) {
+      if (motivoPresupuestoNoElegible) {
         return {
           creada: false,
-          motivo: "PRESUPUESTO_OTRO_SINIESTRO",
-        } as const;
-      }
-
-      if (
-        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)
-      ) {
-        return {
-          creada: false,
-          motivo: "PRESUPUESTO_YA_ASOCIADO",
+          motivo: motivoPresupuestoNoElegible,
         } as const;
       }
     }

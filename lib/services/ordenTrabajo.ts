@@ -1,5 +1,42 @@
 import type { DetalleOrdenTrabajo } from "../db/ordenTrabajo";
 
+type EstadoPresupuestoOrdenTrabajo =
+  DetalleOrdenTrabajo["presupuestos"][number]["estado"];
+
+type PresupuestoParaCrearOrden = {
+  estado: EstadoPresupuestoOrdenTrabajo;
+  siniestroId: string;
+  ordenTrabajoId: string | null;
+};
+
+type MotivoPresupuestoNoElegible =
+  | "PRESUPUESTO_NO_APROBADO"
+  | "PRESUPUESTO_OTRO_SINIESTRO"
+  | "PRESUPUESTO_YA_ASOCIADO";
+
+export function evaluarElegibilidadPresupuestosParaCrearOrden(
+  siniestroId: string,
+  presupuestos: readonly PresupuestoParaCrearOrden[],
+): MotivoPresupuestoNoElegible | null {
+  if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
+    return "PRESUPUESTO_NO_APROBADO";
+  }
+
+  if (
+    presupuestos.some(
+      (presupuesto) => presupuesto.siniestroId !== siniestroId,
+    )
+  ) {
+    return "PRESUPUESTO_OTRO_SINIESTRO";
+  }
+
+  if (presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)) {
+    return "PRESUPUESTO_YA_ASOCIADO";
+  }
+
+  return null;
+}
+
 type ReparacionOrdenTrabajo = {
   detalleReparacionId: string;
   presupuestoId: string;
