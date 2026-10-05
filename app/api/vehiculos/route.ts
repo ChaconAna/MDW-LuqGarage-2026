@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import { crearVehiculo, listarVehiculos } from "@/lib/db/vehiculo";
+import { responderError } from "@/lib/http";
 import {
   crearVehiculoSchema,
   listadoVehiculosQuerySchema,
@@ -8,83 +10,83 @@ import {
 
 export async function GET(request: Request) {
   try {
-  const { searchParams } = new URL(request.url);
-  const resultadoQuery = listadoVehiculosQuerySchema.safeParse({
-    page: searchParams.get("page") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoQuery.success) {
-    return NextResponse.json(
-      { error: "Los parámetros de paginación son inválidos." },
-      { status: 400 },
-    );
-  }
+    const { searchParams } = new URL(request.url);
+    const resultadoQuery = listadoVehiculosQuerySchema.safeParse({
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
 
-  const { page, limit } = resultadoQuery.data;
-  const { vehiculos, total } = await listarVehiculos(page, limit);
+    if (!resultadoQuery.success) {
+      return NextResponse.json(
+        { error: "Los parámetros de paginación son inválidos." },
+        { status: 400 },
+      );
+    }
 
-  return NextResponse.json({
-    data: vehiculos,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
+    const { page, limit } = resultadoQuery.data;
+    const { vehiculos, total } = await listarVehiculos(page, limit);
+
+    return NextResponse.json({
+      data: vehiculos,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/vehiculos", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/vehiculos", error);
   }
 }
 
 export async function POST(request: Request) {
   try {
-  let body: unknown;
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la solicitud no es un JSON válido." },
-      { status: 400 },
-    );
-  }
+    let body: unknown;
 
-  const resultadoBody = crearVehiculoSchema.safeParse(body);
-
-  if (!resultadoBody.success) {
-    return NextResponse.json(
-      { error: "Los datos del Vehículo son inválidos." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoCreacion = await crearVehiculo(resultadoBody.data);
-
-  if (!resultadoCreacion.creado) {
-    if (
-      resultadoCreacion.motivo ===
-      "MODELO_O_TIPO_VEHICULO_NO_ENCONTRADO"
-    ) {
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "Modelo o Tipo de Vehículo no encontrado." },
-        { status: 404 },
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Ya existe un Vehículo con la patente indicada." },
-      { status: 409 },
-    );
-  }
+    const resultadoBody = crearVehiculoSchema.safeParse(body);
 
-  return NextResponse.json(resultadoCreacion.vehiculo, { status: 201 });
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos del Vehículo son inválidos." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoCreacion = await crearVehiculo(resultadoBody.data);
+
+    if (!resultadoCreacion.creado) {
+      if (
+        resultadoCreacion.motivo ===
+        "MODELO_O_TIPO_VEHICULO_NO_ENCONTRADO"
+      ) {
+        return NextResponse.json(
+          { error: "Modelo o Tipo de Vehículo no encontrado." },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Ya existe un Vehículo con la patente indicada." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(resultadoCreacion.vehiculo, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error inesperado en POST /api/vehiculos", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("POST /api/vehiculos", error);
   }
 }

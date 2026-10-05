@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import {
   actualizarClientePorId,
   darDeBajaClientePorId,
   obtenerClientePorId,
 } from "@/lib/db/cliente";
+import { responderError } from "@/lib/http";
 import {
   actualizarClienteSchema,
   parametrosClienteSchema,
@@ -20,29 +22,29 @@ export async function GET(
   { params }: ContextoRutaCliente,
 ) {
   try {
-  const resultadoParametros = parametrosClienteSchema.safeParse(await params);
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
-    );
-  }
+    const resultadoParametros = parametrosClienteSchema.safeParse(await params);
 
-  const cliente = await obtenerClientePorId(resultadoParametros.data.id);
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
 
-  if (!cliente) {
-    return NextResponse.json(
-      { error: "Cliente no encontrado." },
-      { status: 404 },
-    );
-  }
+    const cliente = await obtenerClientePorId(resultadoParametros.data.id);
 
-  return NextResponse.json(cliente);
+    if (!cliente) {
+      return NextResponse.json(
+        { error: "Cliente no encontrado." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(cliente);
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/clientes/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/clientes/[id]", error);
   }
 }
 
@@ -51,66 +53,66 @@ export async function PATCH(
   { params }: ContextoRutaCliente,
 ) {
   try {
-  const resultadoParametros = parametrosClienteSchema.safeParse(await params);
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
-    );
-  }
+    const resultadoParametros = parametrosClienteSchema.safeParse(await params);
 
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la solicitud no es un JSON válido." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoBody = actualizarClienteSchema.safeParse(body);
-
-  if (!resultadoBody.success) {
-    return NextResponse.json(
-      { error: "Los datos del Cliente son inválidos." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoActualizacion = await actualizarClientePorId(
-    resultadoParametros.data.id,
-    resultadoBody.data,
-  );
-
-  if (!resultadoActualizacion.actualizado) {
-    if (resultadoActualizacion.motivo === "CLIENTE_NO_ENCONTRADO") {
+    if (!resultadoParametros.success) {
       return NextResponse.json(
-        { error: "Cliente no encontrado." },
-        { status: 404 },
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
       );
     }
 
-    if (resultadoActualizacion.motivo === "LOCALIDAD_NO_ENCONTRADA") {
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "Localidad no encontrada." },
-        { status: 404 },
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Ya existe un Cliente con el DNI indicado." },
-      { status: 409 },
-    );
-  }
+    const resultadoBody = actualizarClienteSchema.safeParse(body);
 
-  return NextResponse.json(resultadoActualizacion.cliente);
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos del Cliente son inválidos." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoActualizacion = await actualizarClientePorId(
+      resultadoParametros.data.id,
+      resultadoBody.data,
+    );
+
+    if (!resultadoActualizacion.actualizado) {
+      if (resultadoActualizacion.motivo === "CLIENTE_NO_ENCONTRADO") {
+        return NextResponse.json(
+          { error: "Cliente no encontrado." },
+          { status: 404 },
+        );
+      }
+
+      if (resultadoActualizacion.motivo === "LOCALIDAD_NO_ENCONTRADA") {
+        return NextResponse.json(
+          { error: "Localidad no encontrada." },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Ya existe un Cliente con el DNI indicado." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(resultadoActualizacion.cliente);
   } catch (error: unknown) {
-    console.error("Error inesperado en PATCH /api/clientes/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("PATCH /api/clientes/[id]", error);
   }
 }
 
@@ -119,30 +121,30 @@ export async function DELETE(
   { params }: ContextoRutaCliente,
 ) {
   try {
-  const resultadoParametros = parametrosClienteSchema.safeParse(await params);
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
+    const resultadoParametros = parametrosClienteSchema.safeParse(await params);
+
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
+
+    const clienteDadoDeBaja = await darDeBajaClientePorId(
+      resultadoParametros.data.id,
     );
-  }
 
-  const clienteDadoDeBaja = await darDeBajaClientePorId(
-    resultadoParametros.data.id,
-  );
+    if (!clienteDadoDeBaja) {
+      return NextResponse.json(
+        { error: "Cliente no encontrado." },
+        { status: 404 },
+      );
+    }
 
-  if (!clienteDadoDeBaja) {
-    return NextResponse.json(
-      { error: "Cliente no encontrado." },
-      { status: 404 },
-    );
-  }
-
-  return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, { status: 204 });
   } catch (error: unknown) {
-    console.error("Error inesperado en DELETE /api/clientes/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("DELETE /api/clientes/[id]", error);
   }
 }

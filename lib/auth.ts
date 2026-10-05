@@ -1,49 +1,54 @@
-/**
- * Configuración de autenticación y autorización.
- *
- * Se completa en la CLASE 6. Hasta entonces, este archivo documenta el
- * contrato que va a tener el resto del proyecto.
- *
- * Las dos funciones de abajo son las únicas formas válidas de saber quién
- * está haciendo un request. Ningún componente ni endpoint debe leer el
- * usuario de otro lado: si el `userId` o el `rol` vienen del cliente,
- * cualquiera puede mentir.
- */
+import type { RolUsuario } from "@prisma/client";
 
-export type Rol = "ADMIN" | "USUARIO";
+import { auth } from "@/auth";
+import { obtenerUsuarioParaAutorizacionPorId } from "@/lib/db/usuario";
 
-export type UsuarioSesion = {
-  id: string;
-  email: string;
-  nombre: string;
-  rol: Rol;
-};
-
-/**
- * Devuelve el usuario de la sesión, o null si no hay sesión.
- * Se usa cuando la página funciona con y sin usuario logueado.
- */
-export async function obtenerUsuario(): Promise<UsuarioSesion | null> {
-  // TODO (clase 6): leer la sesión real de Auth.js.
-  return null;
+export class ErrorAutenticacion extends Error {
+  constructor() {
+    super("Autenticación requerida.");
+    this.name = "ErrorAutenticacion";
+  }
 }
 
-/**
- * Devuelve el usuario de la sesión o corta el request.
- * Se usa en todo lo que requiere estar logueado.
- *
- * Si además hay que verificar un rol, se compara acá y no en la UI:
- * esconder un botón no impide que alguien llame al endpoint con Postman.
- */
-export async function requerirUsuario(rol?: Rol): Promise<UsuarioSesion> {
-  const usuario = await obtenerUsuario();
+export class ErrorAutorizacion extends Error {
+  constructor() {
+    super("No autorizado.");
+    this.name = "ErrorAutorizacion";
+  }
+}
 
-  if (!usuario) {
-    throw new Error("No autenticado"); // → 401
+export type UsuarioAutenticado = {
+  id: string;
+  rol: RolUsuario;
+};
+
+export async function requerirUsuario(): Promise<UsuarioAutenticado> {
+  const sesion = await auth();
+  const usuarioId = sesion?.user?.usuarioId;
+
+  if (typeof usuarioId !== "string" || usuarioId.length === 0) {
+    throw new ErrorAutenticacion();
   }
 
-  if (rol && usuario.rol !== rol) {
-    throw new Error("No autorizado"); // → 403
+  const usuario = await obtenerUsuarioParaAutorizacionPorId(usuarioId);
+
+  if (!usuario || !usuario.activo) {
+    throw new ErrorAutenticacion();
+  }
+
+  return {
+    id: usuario.id,
+    rol: usuario.rol,
+  };
+}
+
+export async function requerirRol(
+  rolesPermitidos: readonly RolUsuario[],
+): Promise<UsuarioAutenticado> {
+  const usuario = await requerirUsuario();
+
+  if (!rolesPermitidos.includes(usuario.rol)) {
+    throw new ErrorAutorizacion();
   }
 
   return usuario;

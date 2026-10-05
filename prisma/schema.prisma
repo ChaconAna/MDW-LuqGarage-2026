@@ -61,6 +61,13 @@ enum EstadoOrdenTrabajo {
   FINALIZADA
 }
 
+enum RolUsuario {
+  RECEPCIONISTA
+  ENCARGADO_DEL_TALLER
+  MECANICO
+  ADMINISTRADOR
+}
+
 // ¿El equipo eligió MongoDB? Se cambia el provider a "mongodb", se usa una
 // connection string de MongoDB Atlas y se sincroniza con `prisma db push`
 // en lugar de `prisma migrate dev`. El resto del proyecto no cambia.
@@ -148,6 +155,14 @@ model Repuesto {
   id                  String            @id @default(uuid()) @db.Uuid
   nombre              String            @unique
   detallesPresupuesto DetalleRepuesto[]
+}
+
+model Usuario {
+  id        String     @id @default(uuid()) @db.Uuid
+  email     String     @unique
+  googleSub String?    @unique
+  rol       RolUsuario
+  activo    Boolean    @default(true)
 }
 
 model Aseguradora {

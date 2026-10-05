@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import { obtenerSiniestroPorId } from "@/lib/db/siniestro";
+import { responderError } from "@/lib/http";
 import {
   parametrosSiniestroSchema,
   type ParametrosSiniestro,
@@ -15,30 +17,30 @@ export async function GET(
   { params }: ContextoRutaSiniestro,
 ) {
   try {
-  const resultadoParametros = parametrosSiniestroSchema.safeParse(
-    await params,
-  );
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
+    const resultadoParametros = parametrosSiniestroSchema.safeParse(
+      await params,
     );
-  }
 
-  const siniestro = await obtenerSiniestroPorId(resultadoParametros.data.id);
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
 
-  if (!siniestro) {
-    return NextResponse.json(
-      { error: "Siniestro no encontrado." },
-      { status: 404 },
-    );
-  }
+    const siniestro = await obtenerSiniestroPorId(resultadoParametros.data.id);
 
-  return NextResponse.json(siniestro);
+    if (!siniestro) {
+      return NextResponse.json(
+        { error: "Siniestro no encontrado." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(siniestro);
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/siniestros/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/siniestros/[id]", error);
   }
 }

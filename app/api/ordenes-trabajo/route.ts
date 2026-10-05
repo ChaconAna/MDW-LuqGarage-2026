@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import {
   crearOrdenTrabajo,
   listarOrdenesTrabajo,
+  listarOrdenesTrabajoFinalizadas,
 } from "@/lib/db/ordenTrabajo";
+import { responderError } from "@/lib/http";
 import {
   crearOrdenTrabajoSchema,
   listadoOrdenesTrabajoQuerySchema,
@@ -12,6 +15,11 @@ import { serializarDetalleOrdenTrabajo } from "@/lib/services/ordenTrabajo";
 
 export async function GET(request: Request) {
   try {
+    const usuario = await requerirRol([
+      "ENCARGADO_DEL_TALLER",
+      "MECANICO",
+    ]);
+
     const { searchParams } = new URL(request.url);
     const resultadoQuery = listadoOrdenesTrabajoQuerySchema.safeParse({
       page: searchParams.get("page") ?? undefined,
@@ -26,7 +34,10 @@ export async function GET(request: Request) {
     }
 
     const { page, limit } = resultadoQuery.data;
-    const { ordenesTrabajo, total } = await listarOrdenesTrabajo(page, limit);
+    const { ordenesTrabajo, total } =
+      usuario.rol === "MECANICO"
+        ? await listarOrdenesTrabajoFinalizadas(page, limit)
+        : await listarOrdenesTrabajo(page, limit);
 
     return NextResponse.json({
       data: ordenesTrabajo,
@@ -38,17 +49,14 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    console.error(
-      "Error inesperado en GET /api/ordenes-trabajo",
-      error,
-    );
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/ordenes-trabajo", error);
   }
 }
 
 export async function POST(request: Request) {
   try {
+    await requerirRol(["ENCARGADO_DEL_TALLER"]);
+
     let body: unknown;
 
     try {
@@ -112,11 +120,6 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error: unknown) {
-    console.error(
-      "Error inesperado en POST /api/ordenes-trabajo",
-      error,
-    );
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("POST /api/ordenes-trabajo", error);
   }
 }

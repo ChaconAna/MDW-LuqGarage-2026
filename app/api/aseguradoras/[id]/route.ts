@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import {
   actualizarAseguradoraPorId,
   darDeBajaAseguradoraPorId,
   obtenerAseguradoraPorId,
 } from "@/lib/db/aseguradora";
+import { responderError } from "@/lib/http";
 import {
   actualizarAseguradoraSchema,
   parametrosAseguradoraSchema,
@@ -20,33 +22,33 @@ export async function GET(
   { params }: ContextoRutaAseguradora,
 ) {
   try {
-  const resultadoParametros = parametrosAseguradoraSchema.safeParse(
-    await params,
-  );
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
+    const resultadoParametros = parametrosAseguradoraSchema.safeParse(
+      await params,
     );
-  }
 
-  const aseguradora = await obtenerAseguradoraPorId(
-    resultadoParametros.data.id,
-  );
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
 
-  if (!aseguradora) {
-    return NextResponse.json(
-      { error: "Aseguradora no encontrada." },
-      { status: 404 },
+    const aseguradora = await obtenerAseguradoraPorId(
+      resultadoParametros.data.id,
     );
-  }
 
-  return NextResponse.json(aseguradora);
+    if (!aseguradora) {
+      return NextResponse.json(
+        { error: "Aseguradora no encontrada." },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(aseguradora);
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/aseguradoras/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/aseguradoras/[id]", error);
   }
 }
 
@@ -55,61 +57,61 @@ export async function PATCH(
   { params }: ContextoRutaAseguradora,
 ) {
   try {
-  const resultadoParametros = parametrosAseguradoraSchema.safeParse(
-    await params,
-  );
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
+    const resultadoParametros = parametrosAseguradoraSchema.safeParse(
+      await params,
     );
-  }
 
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la solicitud no es un JSON válido." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoBody = actualizarAseguradoraSchema.safeParse(body);
-
-  if (!resultadoBody.success) {
-    return NextResponse.json(
-      { error: "Los datos de la Aseguradora son inválidos." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoActualizacion = await actualizarAseguradoraPorId(
-    resultadoParametros.data.id,
-    resultadoBody.data,
-  );
-
-  if (!resultadoActualizacion.actualizada) {
-    if (resultadoActualizacion.motivo === "ASEGURADORA_NO_ENCONTRADA") {
+    if (!resultadoParametros.success) {
       return NextResponse.json(
-        { error: "Aseguradora no encontrada." },
-        { status: 404 },
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Ya existe una Aseguradora con el CUIT indicado." },
-      { status: 409 },
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoBody = actualizarAseguradoraSchema.safeParse(body);
+
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos de la Aseguradora son inválidos." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoActualizacion = await actualizarAseguradoraPorId(
+      resultadoParametros.data.id,
+      resultadoBody.data,
     );
-  }
 
-  return NextResponse.json(resultadoActualizacion.aseguradora);
+    if (!resultadoActualizacion.actualizada) {
+      if (resultadoActualizacion.motivo === "ASEGURADORA_NO_ENCONTRADA") {
+        return NextResponse.json(
+          { error: "Aseguradora no encontrada." },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Ya existe una Aseguradora con el CUIT indicado." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(resultadoActualizacion.aseguradora);
   } catch (error: unknown) {
-    console.error("Error inesperado en PATCH /api/aseguradoras/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("PATCH /api/aseguradoras/[id]", error);
   }
 }
 
@@ -118,32 +120,32 @@ export async function DELETE(
   { params }: ContextoRutaAseguradora,
 ) {
   try {
-  const resultadoParametros = parametrosAseguradoraSchema.safeParse(
-    await params,
-  );
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoParametros.success) {
-    return NextResponse.json(
-      { error: "El id debe ser un UUID válido." },
-      { status: 400 },
+    const resultadoParametros = parametrosAseguradoraSchema.safeParse(
+      await params,
     );
-  }
 
-  const aseguradoraDadaDeBaja = await darDeBajaAseguradoraPorId(
-    resultadoParametros.data.id,
-  );
+    if (!resultadoParametros.success) {
+      return NextResponse.json(
+        { error: "El id debe ser un UUID válido." },
+        { status: 400 },
+      );
+    }
 
-  if (!aseguradoraDadaDeBaja) {
-    return NextResponse.json(
-      { error: "Aseguradora no encontrada." },
-      { status: 404 },
+    const aseguradoraDadaDeBaja = await darDeBajaAseguradoraPorId(
+      resultadoParametros.data.id,
     );
-  }
 
-  return new NextResponse(null, { status: 204 });
+    if (!aseguradoraDadaDeBaja) {
+      return NextResponse.json(
+        { error: "Aseguradora no encontrada." },
+        { status: 404 },
+      );
+    }
+
+    return new NextResponse(null, { status: 204 });
   } catch (error: unknown) {
-    console.error("Error inesperado en DELETE /api/aseguradoras/[id]", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("DELETE /api/aseguradoras/[id]", error);
   }
 }

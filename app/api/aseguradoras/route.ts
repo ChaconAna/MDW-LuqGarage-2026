@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import { crearAseguradora, listarAseguradoras } from "@/lib/db/aseguradora";
+import { responderError } from "@/lib/http";
 import {
   crearAseguradoraSchema,
   listadoAseguradorasQuerySchema,
@@ -8,73 +10,73 @@ import {
 
 export async function GET(request: Request) {
   try {
-  const { searchParams } = new URL(request.url);
-  const resultadoQuery = listadoAseguradorasQuerySchema.safeParse({
-    page: searchParams.get("page") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  if (!resultadoQuery.success) {
-    return NextResponse.json(
-      { error: "Los parámetros de paginación son inválidos." },
-      { status: 400 },
-    );
-  }
+    const { searchParams } = new URL(request.url);
+    const resultadoQuery = listadoAseguradorasQuerySchema.safeParse({
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
 
-  const { page, limit } = resultadoQuery.data;
-  const { aseguradoras, total } = await listarAseguradoras(page, limit);
+    if (!resultadoQuery.success) {
+      return NextResponse.json(
+        { error: "Los parámetros de paginación son inválidos." },
+        { status: 400 },
+      );
+    }
 
-  return NextResponse.json({
-    data: aseguradoras,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  });
+    const { page, limit } = resultadoQuery.data;
+    const { aseguradoras, total } = await listarAseguradoras(page, limit);
+
+    return NextResponse.json({
+      data: aseguradoras,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error: unknown) {
-    console.error("Error inesperado en GET /api/aseguradoras", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/aseguradoras", error);
   }
 }
 
 export async function POST(request: Request) {
   try {
-  let body: unknown;
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la solicitud no es un JSON válido." },
-      { status: 400 },
-    );
-  }
+    let body: unknown;
 
-  const resultadoBody = crearAseguradoraSchema.safeParse(body);
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
+      );
+    }
 
-  if (!resultadoBody.success) {
-    return NextResponse.json(
-      { error: "Los datos de la Aseguradora son inválidos." },
-      { status: 400 },
-    );
-  }
+    const resultadoBody = crearAseguradoraSchema.safeParse(body);
 
-  const resultadoCreacion = await crearAseguradora(resultadoBody.data);
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos de la Aseguradora son inválidos." },
+        { status: 400 },
+      );
+    }
 
-  if (!resultadoCreacion.creada) {
-    return NextResponse.json(
-      { error: "Ya existe una Aseguradora con el CUIT indicado." },
-      { status: 409 },
-    );
-  }
+    const resultadoCreacion = await crearAseguradora(resultadoBody.data);
 
-  return NextResponse.json(resultadoCreacion.aseguradora, { status: 201 });
+    if (!resultadoCreacion.creada) {
+      return NextResponse.json(
+        { error: "Ya existe una Aseguradora con el CUIT indicado." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(resultadoCreacion.aseguradora, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error inesperado en POST /api/aseguradoras", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("POST /api/aseguradoras", error);
   }
 }
