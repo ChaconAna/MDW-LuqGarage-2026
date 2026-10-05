@@ -44,46 +44,46 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-  let body: unknown;
+    await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json(
-      { error: "El cuerpo de la solicitud no es un JSON válido." },
-      { status: 400 },
-    );
-  }
+    let body: unknown;
 
-  const resultadoBody = crearClienteSchema.safeParse(body);
-
-  if (!resultadoBody.success) {
-    return NextResponse.json(
-      { error: "Los datos del Cliente son inválidos." },
-      { status: 400 },
-    );
-  }
-
-  const resultadoCreacion = await crearCliente(resultadoBody.data);
-
-  if (!resultadoCreacion.creado) {
-    if (resultadoCreacion.motivo === "LOCALIDAD_NO_ENCONTRADA") {
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
-        { error: "Localidad no encontrada." },
-        { status: 404 },
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
       );
     }
 
-    return NextResponse.json(
-      { error: "Ya existe un Cliente con el DNI indicado." },
-      { status: 409 },
-    );
-  }
+    const resultadoBody = crearClienteSchema.safeParse(body);
 
-  return NextResponse.json(resultadoCreacion.cliente, { status: 201 });
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos del Cliente son inválidos." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoCreacion = await crearCliente(resultadoBody.data);
+
+    if (!resultadoCreacion.creado) {
+      if (resultadoCreacion.motivo === "LOCALIDAD_NO_ENCONTRADA") {
+        return NextResponse.json(
+          { error: "Localidad no encontrada." },
+          { status: 404 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Ya existe un Cliente con el DNI indicado." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(resultadoCreacion.cliente, { status: 201 });
   } catch (error: unknown) {
-    console.error("Error inesperado en POST /api/clientes", error);
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("POST /api/clientes", error);
   }
 }
