@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requerirRol } from "@/lib/auth";
 import {
   actualizarObservacionesOrdenTrabajoPorId,
+  obtenerOrdenTrabajoFinalizadaPorId,
   obtenerOrdenTrabajoPorId,
 } from "@/lib/db/ordenTrabajo";
 import { responderError } from "@/lib/http";
@@ -22,6 +23,11 @@ export async function GET(
   { params }: ContextoRutaOrdenTrabajo,
 ) {
   try {
+    const usuario = await requerirRol([
+      "ENCARGADO_DEL_TALLER",
+      "MECANICO",
+    ]);
+
     const resultadoParametros = parametrosOrdenTrabajoSchema.safeParse(
       await params,
     );
@@ -33,9 +39,11 @@ export async function GET(
       );
     }
 
-    const ordenTrabajo = await obtenerOrdenTrabajoPorId(
-      resultadoParametros.data.id,
-    );
+    const { id } = resultadoParametros.data;
+    const ordenTrabajo =
+      usuario.rol === "MECANICO"
+        ? await obtenerOrdenTrabajoFinalizadaPorId(id)
+        : await obtenerOrdenTrabajoPorId(id);
 
     if (!ordenTrabajo) {
       return NextResponse.json(
@@ -46,12 +54,7 @@ export async function GET(
 
     return NextResponse.json(serializarDetalleOrdenTrabajo(ordenTrabajo));
   } catch (error: unknown) {
-    console.error(
-      "Error inesperado en GET /api/ordenes-trabajo/[id]",
-      error,
-    );
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("GET /api/ordenes-trabajo/[id]", error);
   }
 }
 
