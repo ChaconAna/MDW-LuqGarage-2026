@@ -74,3 +74,10 @@ export function obtenerUsuarioParaSesionPorGoogleSub(googleSub: string) {
     select: seleccionUsuarioParaSesion,
   });
 }
+
+export function obtenerUsuarioParaAutorizacionPorId(id: string) {
+  return prisma.usuario.findUnique({
+    where: { id },
+    select: seleccionUsuarioParaSesion,
+  });
+}

@@ -14,6 +14,7 @@ vi.mock("./client", () => ({
 
 import {
   autorizarInicioSesionGoogle,
+  obtenerUsuarioParaAutorizacionPorId,
   obtenerUsuarioParaSesionPorGoogleSub,
 } from "./usuario";
 
@@ -184,5 +185,27 @@ describe("autorizarInicioSesionGoogle", () => {
     await expect(
       obtenerUsuarioParaSesionPorGoogleSub(datosGoogle.googleSub),
     ).resolves.toMatchObject({ activo: false });
+  });
+
+  it("obtiene los datos locales necesarios para autorizar por id", async () => {
+    const usuario = {
+      id: "10000000-0000-4000-8000-000000000001",
+      rol: "MECANICO",
+      activo: true,
+    };
+    usuarioPrisma.findUnique.mockResolvedValue(usuario);
+
+    await expect(
+      obtenerUsuarioParaAutorizacionPorId(usuario.id),
+    ).resolves.toEqual(usuario);
+
+    expect(usuarioPrisma.findUnique).toHaveBeenCalledWith({
+      where: { id: usuario.id },
+      select: {
+        id: true,
+        rol: true,
+        activo: true,
+      },
+    });
   });
 });
