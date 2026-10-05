@@ -5,18 +5,23 @@ Cliente, Aseguradora, Vehículo, Siniestro, Presupuesto y Orden de Trabajo. No
 documenta operaciones futuras de transición de Presupuesto ni endpoints de
 catálogos.
 
-## Estado de la autorización
+## Autenticación y autorización
 
-Según `docs/spec.md`, la **Recepcionista** puede gestionar Clientes, Vehículos
-y Aseguradoras, y el **Encargado del Taller** puede realizar todas las tareas
-administrativas de la Recepcionista.
+Todos los endpoints de dominio documentados requieren una sesión autenticada.
+La identidad se autentica mediante Google y Auth.js; cada operación verifica en
+el servidor el Usuario local activo y su rol vigente. Los roles permitidos se
+indican en la tabla de operaciones de cada recurso.
 
-Esos son los roles requeridos por el contrato futuro. La autenticación y la
-autorización pertenecen a Clase 6 y todavía no están implementadas. Por lo
-tanto, los endpoints descritos aquí actualmente no verifican sesión o rol y no
-devuelven `401 Unauthorized` ni `403 Forbidden`.
+- `401 Unauthorized`: no existe una sesión local válida o el Usuario local no
+  existe o está inactivo. El body es `{ "error": "No autenticado" }`.
+- `403 Forbidden`: existe un Usuario local activo, pero su rol no está permitido
+  para la operación. El body es
+  `{ "error": "No podés realizar esta operación" }`.
 
-## Convenciones actuales
+Los roles no se obtienen de datos enviados por el cliente. Ningún endpoint de
+dominio existente otorga acceso operativo por defecto a `ADMINISTRADOR`.
+
+## Convenciones
 
 - Todos los identificadores son UUID.
 - El parámetro de ruta `[id]` es obligatorio, identifica el recurso y debe ser
@@ -35,6 +40,8 @@ devuelven `401 Unauthorized` ni `403 Forbidden`.
   un array de las representaciones definidas para cada listado.
 - Los DELETE realizan baja lógica (`activo = false`), son idempotentes para un
   registro existente y nunca eliminan físicamente información.
+- Los errores de autenticación y autorización se resuelven antes de la lógica
+  específica de cada operación.
 
 ### Paginación
 
@@ -63,8 +70,7 @@ Una query de paginación inválida devuelve `400 Bad Request`.
 
 ## Cliente
 
-Rol futuro: **Recepcionista o Encargado del Taller**. Actualmente no se
-controla sesión ni rol.
+Todas las operaciones requieren `RECEPCIONISTA` o `ENCARGADO_DEL_TALLER`.
 
 ### Representación
 
@@ -91,13 +97,13 @@ controla sesión ni rol.
 
 ### Operaciones
 
-| Método y ruta | Propósito | Éxito actual | Errores actuales |
-|---|---|---|---|
-| `GET /api/clientes` | Lista clientes con paginación | `200` | `400` query inválida |
-| `POST /api/clientes` | Crea un cliente activo | `201` | `400` body inválido, `404` Localidad inexistente, `409` DNI duplicado |
-| `GET /api/clientes/[id]` | Obtiene un cliente activo o inactivo | `200` | `400` UUID inválido, `404` inexistente |
-| `PATCH /api/clientes/[id]` | Modifica parcialmente sus datos | `200` | `400` UUID/body inválido, `404` Cliente o Localidad inexistente, `409` DNI duplicado |
-| `DELETE /api/clientes/[id]` | Realiza su baja lógica | `204` sin body | `400` UUID inválido, `404` inexistente |
+| Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
+|---|---|---|---|---|
+| `GET /api/clientes` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Lista clientes con paginación | `200` | `400` query inválida |
+| `POST /api/clientes` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Crea un cliente activo | `201` | `400` body inválido, `404` Localidad inexistente, `409` DNI duplicado |
+| `GET /api/clientes/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene un cliente activo o inactivo | `200` | `400` UUID inválido, `404` inexistente |
+| `PATCH /api/clientes/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Modifica parcialmente sus datos | `200` | `400` UUID/body inválido, `404` Cliente o Localidad inexistente, `409` DNI duplicado |
+| `DELETE /api/clientes/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Realiza su baja lógica | `204` sin body | `400` UUID inválido, `404` inexistente |
 
 ### POST `/api/clientes`
 
@@ -140,8 +146,7 @@ No recibe body. Si el Cliente existe, esté activo o inactivo, establece
 
 ## Aseguradora
 
-Rol futuro: **Recepcionista o Encargado del Taller**. Actualmente no se
-controla sesión ni rol.
+Todas las operaciones requieren `RECEPCIONISTA` o `ENCARGADO_DEL_TALLER`.
 
 ### Representación
 
@@ -159,13 +164,13 @@ controla sesión ni rol.
 
 ### Operaciones
 
-| Método y ruta | Propósito | Éxito actual | Errores actuales |
-|---|---|---|---|
-| `GET /api/aseguradoras` | Lista aseguradoras con paginación | `200` | `400` query inválida |
-| `POST /api/aseguradoras` | Crea una aseguradora activa | `201` | `400` body inválido, `409` CUIT duplicado |
-| `GET /api/aseguradoras/[id]` | Obtiene una aseguradora activa o inactiva | `200` | `400` UUID inválido, `404` inexistente |
-| `PATCH /api/aseguradoras/[id]` | Modifica parcialmente sus datos | `200` | `400` UUID/body inválido, `404` inexistente, `409` CUIT duplicado |
-| `DELETE /api/aseguradoras/[id]` | Realiza su baja lógica | `204` sin body | `400` UUID inválido, `404` inexistente |
+| Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
+|---|---|---|---|---|
+| `GET /api/aseguradoras` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Lista aseguradoras con paginación | `200` | `400` query inválida |
+| `POST /api/aseguradoras` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Crea una aseguradora activa | `201` | `400` body inválido, `409` CUIT duplicado |
+| `GET /api/aseguradoras/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene una aseguradora activa o inactiva | `200` | `400` UUID inválido, `404` inexistente |
+| `PATCH /api/aseguradoras/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Modifica parcialmente sus datos | `200` | `400` UUID/body inválido, `404` inexistente, `409` CUIT duplicado |
+| `DELETE /api/aseguradoras/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Realiza su baja lógica | `204` sin body | `400` UUID inválido, `404` inexistente |
 
 ### POST `/api/aseguradoras`
 
@@ -205,8 +210,7 @@ No recibe body. Si la Aseguradora existe, esté activa o inactiva, establece
 
 ## Vehículo
 
-Rol futuro: **Recepcionista o Encargado del Taller**. Actualmente no se
-controla sesión ni rol.
+Todas las operaciones requieren `RECEPCIONISTA` o `ENCARGADO_DEL_TALLER`.
 
 ### Representación
 
@@ -235,13 +239,13 @@ Cliente y Vehículo.
 
 ### Operaciones
 
-| Método y ruta | Propósito | Éxito actual | Errores actuales |
-|---|---|---|---|
-| `GET /api/vehiculos` | Lista vehículos con paginación | `200` | `400` query inválida |
-| `POST /api/vehiculos` | Crea un vehículo activo | `201` | `400` body/UUID inválido, `404` Modelo o TipoVehiculo inexistente, `409` patente duplicada |
-| `GET /api/vehiculos/[id]` | Obtiene un vehículo activo o inactivo | `200` | `400` UUID inválido, `404` inexistente |
-| `PATCH /api/vehiculos/[id]` | Modifica parcialmente sus datos | `200` | `400` UUID/body inválido, `404` Vehículo, Modelo o TipoVehiculo inexistente, `409` patente duplicada |
-| `DELETE /api/vehiculos/[id]` | Realiza su baja lógica | `204` sin body | `400` UUID inválido, `404` inexistente |
+| Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
+|---|---|---|---|---|
+| `GET /api/vehiculos` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Lista vehículos con paginación | `200` | `400` query inválida |
+| `POST /api/vehiculos` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Crea un vehículo activo | `201` | `400` body/UUID inválido, `404` Modelo o TipoVehiculo inexistente, `409` patente duplicada |
+| `GET /api/vehiculos/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene un vehículo activo o inactivo | `200` | `400` UUID inválido, `404` inexistente |
+| `PATCH /api/vehiculos/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Modifica parcialmente sus datos | `200` | `400` UUID/body inválido, `404` Vehículo, Modelo o TipoVehiculo inexistente, `409` patente duplicada |
+| `DELETE /api/vehiculos/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Realiza su baja lógica | `204` sin body | `400` UUID inválido, `404` inexistente |
 
 ### POST `/api/vehiculos`
 
@@ -281,9 +285,7 @@ No recibe body. Si el Vehículo existe, esté activo o inactivo, establece
 
 ## Siniestro
 
-Rol futuro: **Recepcionista o Encargado del Taller**. Actualmente no se
-controla sesión ni rol porque la autenticación y la autorización se
-implementarán en Clase 6.
+Todas las operaciones requieren `RECEPCIONISTA` o `ENCARGADO_DEL_TALLER`.
 
 El listado incluye Siniestros de cualquier estado y devuelve una
 representación resumida sin documentos. El detalle devuelve la misma
@@ -358,11 +360,11 @@ consulta la existencia física del archivo.
 
 ### Operaciones
 
-| Método y ruta | Propósito | Éxito actual | Errores actuales |
-|---|---|---|---|
-| `GET /api/siniestros` | Lista Siniestros con paginación, sin documentos | `200` | `400` query inválida |
-| `POST /api/siniestros` | Registra un Siniestro con toda su documentación | `201` | `400` body/RN02/RN06 inválidos, `404` relación inexistente, `409` número duplicado o relación inactiva |
-| `GET /api/siniestros/[id]` | Obtiene un Siniestro con sus documentos | `200` | `400` UUID inválido, `404` inexistente |
+| Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
+|---|---|---|---|---|
+| `GET /api/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Lista Siniestros con paginación, sin documentos | `200` | `400` query inválida |
+| `POST /api/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Registra un Siniestro con toda su documentación | `201` | `400` body/RN02/RN06 inválidos, `404` relación inexistente, `409` número duplicado o relación inactiva |
+| `GET /api/siniestros/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene un Siniestro con sus documentos | `200` | `400` UUID inválido, `404` inexistente |
 
 ### POST `/api/siniestros`
 
@@ -436,8 +438,8 @@ No están implementados `PATCH` ni `DELETE` de Siniestro.
 
 ## Presupuesto
 
-Rol futuro: **Encargado del Taller**. Actualmente no se controla sesión ni rol
-porque la autenticación y la autorización se implementarán en Clase 6.
+`RECEPCIONISTA` y `ENCARGADO_DEL_TALLER` pueden consultar Presupuestos.
+Solo `ENCARGADO_DEL_TALLER` puede crearlos o modificarlos.
 
 El listado incluye Presupuestos de todos los estados: `BORRADOR`, `ENVIADO`,
 `APROBADO` y `RECHAZADO`.
@@ -500,12 +502,12 @@ Siniestro.
 
 ### Operaciones
 
-| Método y ruta | Propósito | Éxito actual | Errores actuales |
-|---|---|---|---|
-| `GET /api/presupuestos` | Lista Presupuestos con paginación y resumen del Siniestro | `200` | `400` query inválida |
-| `POST /api/presupuestos` | Crea un Presupuesto en estado `BORRADOR` con sus detalles | `201` | `400` body inválido, `404` referencia inexistente, `409` número duplicado |
-| `GET /api/presupuestos/[id]` | Obtiene un Presupuesto con reparaciones, repuestos y total derivado | `200` | `400` UUID inválido, `404` inexistente |
-| `PATCH /api/presupuestos/[id]` | Reemplaza Reparaciones y/o Repuestos de un Presupuesto en `BORRADOR` | `200` | `400` UUID/body inválido, `404` Presupuesto o referencia inexistente, `409` estado no editable |
+| Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
+|---|---|---|---|---|
+| `GET /api/presupuestos` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Lista Presupuestos con paginación y resumen del Siniestro | `200` | `400` query inválida |
+| `POST /api/presupuestos` | `ENCARGADO_DEL_TALLER` | Crea un Presupuesto en estado `BORRADOR` con sus detalles | `201` | `400` body inválido, `404` referencia inexistente, `409` número duplicado |
+| `GET /api/presupuestos/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene un Presupuesto con reparaciones, repuestos y total derivado | `200` | `400` UUID inválido, `404` inexistente |
+| `PATCH /api/presupuestos/[id]` | `ENCARGADO_DEL_TALLER` | Reemplaza Reparaciones y/o Repuestos de un Presupuesto en `BORRADOR` | `200` | `400` UUID/body inválido, `404` Presupuesto o referencia inexistente, `409` estado no editable |
 
 El endpoint acepta `page` y `limit` según las convenciones generales de
 paginación, ordena establemente por `id` ascendente y devuelve `200 OK` con
@@ -597,12 +599,14 @@ No están implementados el envío ni las transiciones de estado de Presupuesto.
 
 ## Orden de Trabajo
 
-Rol futuro: **Encargado del Taller** para la gestión y **Mecánico** para la
-consulta de Órdenes de Trabajo finalizadas. Actualmente no se controla sesión
-ni rol porque la autenticación y la autorización se implementarán en Clase 6.
+`ENCARGADO_DEL_TALLER` puede consultar y gestionar las operaciones existentes
+de Órdenes de Trabajo. `MECANICO` solo puede consultar Órdenes de Trabajo en
+estado `FINALIZADA`.
 
-El listado incluye Órdenes de Trabajo en ambos estados existentes: `BORRADOR`
-y `FINALIZADA`.
+Para `ENCARGADO_DEL_TALLER`, el listado incluye Órdenes de Trabajo en ambos
+estados: `BORRADOR` y `FINALIZADA`. Para `MECANICO`, el listado y el detalle
+solo exponen OTs `FINALIZADA`. Al consultar una OT `BORRADOR`, `MECANICO`
+recibe el mismo `404` que para una OT inexistente.
 
 ### Representación del listado
 
@@ -666,14 +670,14 @@ fechas ni datos adicionales del Siniestro o de los Presupuestos.
 
 ### Operaciones
 
-| Método y ruta | Propósito | Éxito actual | Errores actuales |
-|---|---|---|---|
-| `GET /api/ordenes-trabajo` | Lista Órdenes de Trabajo con paginación y resumen del Siniestro | `200` | `400` query inválida, `500` error inesperado |
-| `POST /api/ordenes-trabajo` | Crea una Orden de Trabajo a partir de Presupuestos aprobados | `201` | `400` JSON/body inválido, `404` referencia inexistente, `409` regla de negocio, `500` error inesperado |
-| `GET /api/ordenes-trabajo/[id]` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente, `500` error inesperado |
-| `PATCH /api/ordenes-trabajo/[id]` | Modifica observaciones de Sectores de una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
-| `POST /api/ordenes-trabajo/[id]/presupuestos` | Agrega Presupuestos a una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
-| `POST /api/ordenes-trabajo/[id]/finalizar` | Finaliza una Orden de Trabajo en `BORRADOR` | `200` | `400` UUID inválido, `404` inexistente, `409` regla de negocio, `500` error inesperado |
+| Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
+|---|---|---|---|---|
+| `GET /api/ordenes-trabajo` | `ENCARGADO_DEL_TALLER`; `MECANICO` solo `FINALIZADA` | Lista Órdenes de Trabajo con paginación y resumen del Siniestro | `200` | `400` query inválida |
+| `POST /api/ordenes-trabajo` | `ENCARGADO_DEL_TALLER` | Crea una Orden de Trabajo a partir de Presupuestos aprobados | `201` | `400` JSON/body inválido, `404` referencia inexistente, `409` regla de negocio |
+| `GET /api/ordenes-trabajo/[id]` | `ENCARGADO_DEL_TALLER`; `MECANICO` solo `FINALIZADA` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente o no visible para Mecánico |
+| `PATCH /api/ordenes-trabajo/[id]` | `ENCARGADO_DEL_TALLER` | Modifica observaciones de Sectores de una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | `ENCARGADO_DEL_TALLER` | Agrega Presupuestos a una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio |
+| `POST /api/ordenes-trabajo/[id]/finalizar` | `ENCARGADO_DEL_TALLER` | Finaliza una Orden de Trabajo en `BORRADOR` | `200` | `400` UUID inválido, `404` inexistente, `409` regla de negocio |
 
 El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
 `1` y `100` con default `10`. Ordena establemente por `id` ascendente y devuelve
@@ -682,7 +686,7 @@ resultados.
 
 Una query de paginación inválida devuelve `400` con
 `{ "error": "Los parámetros de paginación son inválidos." }`. Una excepción
-inesperada devuelve `500` con `{ "error": "Error interno." }`.
+inesperada devuelve `500` con `{ "error": "Error interno" }`.
 
 El alta recibe exclusivamente un `siniestroId` UUID y un array
 `presupuestoIds` con uno o más UUID sin repetir:
@@ -810,7 +814,14 @@ No está implementada la eliminación de Órdenes de Trabajo.
 Las tablas siguientes reflejan los errores controlados por cada operación. En
 todos los casos, el body tiene la forma `{ "error": "mensaje" }`. Además,
 **cualquiera de las operaciones documentadas** puede responder `500` ante una
-excepción inesperada, con el mensaje exacto `Error interno.`.
+excepción inesperada, con el mensaje exacto `Error interno`.
+
+### Autenticación y autorización
+
+| Operación | Situación | Status | Mensaje exacto |
+|---|---|---:|---|
+| Cualquier operación de dominio | Sin sesión local válida, Usuario inexistente o inactivo | `401` | `No autenticado` |
+| Cualquier operación de dominio | Rol local no permitido para la operación | `403` | `No podés realizar esta operación` |
 
 ### Cliente
 
