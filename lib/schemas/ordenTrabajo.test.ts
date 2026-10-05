@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   actualizarObservacionesOrdenTrabajoSchema,
+  agregarPresupuestosOrdenTrabajoSchema,
   crearOrdenTrabajoSchema,
   listadoOrdenesTrabajoQuerySchema,
   parametrosOrdenTrabajoSchema,
@@ -215,5 +216,52 @@ describe("actualizarObservacionesOrdenTrabajoSchema", () => {
     expect(
       actualizarObservacionesOrdenTrabajoSchema.safeParse(body).success,
     ).toBe(false);
+  });
+});
+
+describe("agregarPresupuestosOrdenTrabajoSchema", () => {
+  it("acepta un Presupuesto", () => {
+    expect(
+      agregarPresupuestosOrdenTrabajoSchema.safeParse({
+        presupuestoIds: [presupuestoId1],
+      }).success,
+    ).toBe(true);
+  });
+
+  it("acepta varios Presupuestos", () => {
+    expect(
+      agregarPresupuestosOrdenTrabajoSchema.safeParse({
+        presupuestoIds: [presupuestoId1, presupuestoId2],
+      }).success,
+    ).toBe(true);
+  });
+
+  it.each([
+    ["presupuestoIds ausente", {}],
+    ["presupuestoIds vacío", { presupuestoIds: [] }],
+    ["UUID inválido", { presupuestoIds: ["no-es-un-uuid"] }],
+    [
+      "IDs repetidos",
+      { presupuestoIds: [presupuestoId1, presupuestoId1] },
+    ],
+    [
+      "campo desconocido",
+      { presupuestoIds: [presupuestoId1], reemplazar: true },
+    ],
+    [
+      "estado",
+      { presupuestoIds: [presupuestoId1], estado: "BORRADOR" },
+    ],
+    [
+      "Sectores y observaciones",
+      {
+        presupuestoIds: [presupuestoId1],
+        sectores: [{ sectorId: sectorId1, observacion: null }],
+      },
+    ],
+  ])("rechaza %s", (_caso, body) => {
+    expect(agregarPresupuestosOrdenTrabajoSchema.safeParse(body).success).toBe(
+      false,
+    );
   });
 });

@@ -70,3 +70,28 @@ export const actualizarObservacionesOrdenTrabajoSchema = z
 export type DatosActualizacionObservacionesOrdenTrabajo = z.infer<
   typeof actualizarObservacionesOrdenTrabajoSchema
 >;
+
+export const agregarPresupuestosOrdenTrabajoSchema = z
+  .object({
+    presupuestoIds: z.array(z.string().uuid()).min(1),
+  })
+  .strict()
+  .superRefine(({ presupuestoIds }, contexto) => {
+    const idsVistos = new Set<string>();
+
+    presupuestoIds.forEach((presupuestoId, indice) => {
+      if (idsVistos.has(presupuestoId)) {
+        contexto.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["presupuestoIds", indice],
+          message: "El Presupuesto no puede repetirse en la Orden de Trabajo.",
+        });
+      }
+
+      idsVistos.add(presupuestoId);
+    });
+  });
+
+export type DatosIncorporacionPresupuestosOrdenTrabajo = z.infer<
+  typeof agregarPresupuestosOrdenTrabajoSchema
+>;

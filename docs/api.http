@@ -1209,3 +1209,90 @@ Content-Type: application/json
     }
   ]
 }
+
+
+### Agregar un Presupuesto aprobado disponible a una OT BORRADOR → 200
+# Requiere reemplazar el valor por un Presupuesto APROBADO del mismo Siniestro
+# que todavía no pertenezca a ninguna OT.
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "REEMPLAZAR-POR-UUID-DE-PRESUPUESTO-APROBADO-DISPONIBLE"
+  ]
+}
+
+
+### Incorporación con array vacío → 400
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": []
+}
+
+
+### Incorporación a Orden de Trabajo inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Incorporación de Presupuesto inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": ["{{uuidInexistente}}"]
+}
+
+
+### Incorporación a Orden de Trabajo FINALIZADA → 409
+POST {{baseUrl}}/api/ordenes-trabajo/{{obtenerOrdenTrabajoSembrada.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Incorporación de Presupuesto no aprobado → 409
+# Requiere haber ejecutado antes "Crear un Presupuesto sin repuestos".
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": ["{{crearPresupuestoBorrador.response.body.$.id}}"]
+}
+
+
+### Presupuesto que ya pertenece a esta Orden de Trabajo → 409
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{crearOrdenTrabajoBorrador.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Presupuesto asociado a otra Orden de Trabajo → 409
+# La OT BORRADOR de destino debe pertenecer al mismo Siniestro que el
+# Presupuesto sembrado para obtener específicamente este conflicto.
+POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
+Content-Type: application/json
+
+{
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}

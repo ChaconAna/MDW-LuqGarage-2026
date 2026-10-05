@@ -3,6 +3,7 @@ import type { EstadoOrdenTrabajo, Prisma } from "@prisma/client";
 import type {
   DatosActualizacionObservacionesOrdenTrabajo,
   DatosCreacionOrdenTrabajo,
+  DatosIncorporacionPresupuestosOrdenTrabajo,
 } from "../schemas/ordenTrabajo";
 import type { ClienteTransaccion } from "./transaccion";
 
@@ -390,6 +391,243 @@ export async function actualizarObservacionesOrdenTrabajoPorId(
         return {
           actualizada: false,
           motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+        } as const;
+      }
+    }
+
+    throw error;
+  }
+}
+
+export async function agregarPresupuestosOrdenTrabajoPorId(
+  id: string,
+  datos: DatosIncorporacionPresupuestosOrdenTrabajo,
+) {
+  try {
+    return await ejecutarTransaccion(async (cliente) => {
+      const ordenTrabajoActual = await cliente.ordenDeTrabajo.findUnique({
+        where: { id },
+        select: {
+          estado: true,
+          siniestroId: true,
+        },
+      });
+
+      if (!ordenTrabajoActual) {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (ordenTrabajoActual.estado !== "BORRADOR") {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+        } as const;
+      }
+
+      const presupuestos = await cliente.presupuesto.findMany({
+        where: { id: { in: datos.presupuestoIds } },
+        select: {
+          estado: true,
+          siniestroId: true,
+          ordenTrabajoId: true,
+          reparaciones: {
+            select: {
+              reparacion: {
+                select: { sectorId: true },
+              },
+            },
+          },
+        },
+      });
+
+      if (presupuestos.length !== datos.presupuestoIds.length) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_NO_ENCONTRADO",
+        } as const;
+      }
+
+      if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_NO_APROBADO",
+        } as const;
+      }
+
+      if (
+        presupuestos.some(
+          ({ siniestroId }) => siniestroId !== ordenTrabajoActual.siniestroId,
+        )
+      ) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_OTRO_SINIESTRO",
+        } as const;
+      }
+
+      if (
+        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId === id)
+      ) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_YA_PERTENECE",
+        } as const;
+      }
+
+      if (
+        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)
+      ) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_YA_ASOCIADO",
+        } as const;
+      }
+
+      const sectorIdsNecesarios = [
+        ...new Set(
+          presupuestos.flatMap(({ reparaciones }) =>
+            reparaciones.map(({ reparacion }) => reparacion.sectorId),
+          ),
+        ),
+      ];
+
+      const proteccionBorrador = await cliente.ordenDeTrabajo.updateMany({
+        where: {
+          id,
+          estado: "BORRADOR",
+        },
+        data: { estado: "BORRADOR" },
+      });
+
+      if (proteccionBorrador.count !== 1) {
+        throw new ErrorActualizacionCondicionadaOrdenTrabajo();
+      }
+
+      const asociacion = await cliente.presupuesto.updateMany({
+        where: {
+          id: { in: datos.presupuestoIds },
+          estado: "APROBADO",
+          siniestroId: ordenTrabajoActual.siniestroId,
+          ordenTrabajoId: null,
+        },
+        data: { ordenTrabajoId: id },
+      });
+
+      if (asociacion.count !== datos.presupuestoIds.length) {
+        throw new ErrorAsociacionCondicionadaPresupuestos();
+      }
+
+      const sectoresExistentes = await cliente.ordenTrabajoSector.findMany({
+        where: {
+          ordenTrabajoId: id,
+          sectorId: { in: sectorIdsNecesarios },
+        },
+        select: { sectorId: true },
+      });
+      const sectorIdsExistentes = new Set(
+        sectoresExistentes.map(({ sectorId }) => sectorId),
+      );
+      const sectorIdsFaltantes = sectorIdsNecesarios.filter(
+        (sectorId) => !sectorIdsExistentes.has(sectorId),
+      );
+
+      if (sectorIdsFaltantes.length > 0) {
+        await cliente.ordenTrabajoSector.createMany({
+          data: sectorIdsFaltantes.map((sectorId) => ({
+            ordenTrabajoId: id,
+            sectorId,
+            observacion: null,
+          })),
+        });
+      }
+
+      const ordenTrabajo = await cliente.ordenDeTrabajo.findUniqueOrThrow({
+        where: { id },
+        select: seleccionDetalleOrdenTrabajo,
+      });
+
+      return { actualizada: true, ordenTrabajo } as const;
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof ErrorActualizacionCondicionadaOrdenTrabajo ||
+      error instanceof ErrorAsociacionCondicionadaPresupuestos
+    ) {
+      const [ordenTrabajoActual, presupuestos] = await Promise.all([
+        prisma.ordenDeTrabajo.findUnique({
+          where: { id },
+          select: {
+            estado: true,
+            siniestroId: true,
+          },
+        }),
+        prisma.presupuesto.findMany({
+          where: { id: { in: datos.presupuestoIds } },
+          select: {
+            estado: true,
+            siniestroId: true,
+            ordenTrabajoId: true,
+          },
+        }),
+      ]);
+
+      if (!ordenTrabajoActual) {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_ENCONTRADA",
+        } as const;
+      }
+
+      if (ordenTrabajoActual.estado !== "BORRADOR") {
+        return {
+          actualizada: false,
+          motivo: "ORDEN_TRABAJO_NO_EDITABLE",
+        } as const;
+      }
+
+      if (presupuestos.length !== datos.presupuestoIds.length) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_NO_ENCONTRADO",
+        } as const;
+      }
+
+      if (presupuestos.some(({ estado }) => estado !== "APROBADO")) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_NO_APROBADO",
+        } as const;
+      }
+
+      if (
+        presupuestos.some(
+          ({ siniestroId }) => siniestroId !== ordenTrabajoActual.siniestroId,
+        )
+      ) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_OTRO_SINIESTRO",
+        } as const;
+      }
+
+      if (
+        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId === id)
+      ) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_YA_PERTENECE",
+        } as const;
+      }
+
+      if (
+        presupuestos.some(({ ordenTrabajoId }) => ordenTrabajoId !== null)
+      ) {
+        return {
+          actualizada: false,
+          motivo: "PRESUPUESTO_YA_ASOCIADO",
         } as const;
       }
     }

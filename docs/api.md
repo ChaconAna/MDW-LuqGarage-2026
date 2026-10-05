@@ -672,6 +672,7 @@ fechas ni datos adicionales del Siniestro o de los Presupuestos.
 | `POST /api/ordenes-trabajo` | Crea una Orden de Trabajo a partir de Presupuestos aprobados | `201` | `400` JSON/body inválido, `404` referencia inexistente, `409` regla de negocio, `500` error inesperado |
 | `GET /api/ordenes-trabajo/[id]` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente, `500` error inesperado |
 | `PATCH /api/ordenes-trabajo/[id]` | Modifica observaciones de Sectores de una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
+| `POST /api/ordenes-trabajo/[id]/presupuestos` | Agrega Presupuestos a una Orden de Trabajo en `BORRADOR` | `200` | `400` path/JSON/body inválido, `404` recurso inexistente, `409` regla de negocio, `500` error inesperado |
 
 El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
 `1` y `100` con default `10`. Ordena establemente por `id` ascendente y devuelve
@@ -750,10 +751,36 @@ Trabajo que no está en `BORRADOR` devuelve `409` con
 existente que no pertenece a la Orden de Trabajo devuelve `409` con
 `{ "error": "Uno o más Sectores no pertenecen a la Orden de Trabajo." }`.
 
+La incorporación posterior de Presupuestos recibe exclusivamente un array no
+vacío de UUID sin repetir:
+
+```json
+{
+  "presupuestoIds": ["uuid-presupuesto-1", "uuid-presupuesto-2"]
+}
+```
+
+La operación es aditiva: no quita, reemplaza ni reasigna Presupuestos. La Orden
+de Trabajo debe permanecer en `BORRADOR` y cada nuevo Presupuesto debe existir,
+estar `APROBADO`, pertenecer al mismo Siniestro y no estar asociado a ninguna
+Orden de Trabajo. Volver a agregar un Presupuesto que ya pertenece a la misma
+Orden de Trabajo también es inválido.
+
+Las tareas continúan derivándose de los `DetalleReparacion` y no se persisten
+nuevamente. Sólo se crean las relaciones con Sectores que todavía no estaban
+incluidos, con `observacion: null`; las relaciones existentes y sus
+observaciones se conservan sin cambios. La incorporación completa es atómica y
+la respuesta `200` utiliza la misma representación del GET detalle.
+
+Un Presupuesto inexistente devuelve `404` con
+`{ "error": "Uno o más Presupuestos no fueron encontrados." }`. Devuelve `409`
+si la OT no está en `BORRADOR`, si algún Presupuesto no está aprobado, pertenece
+a otro Siniestro, ya pertenece a esa misma OT o está asociado a otra OT, con los
+mensajes específicos documentados en los ejemplos HTTP.
+
 Un UUID inválido devuelve `400` con
 `{ "error": "El id debe ser un UUID válido." }`. Una Orden de Trabajo
 inexistente devuelve `404` con
 `{ "error": "Orden de Trabajo no encontrada." }`.
 
-No están implementadas la incorporación posterior de Presupuestos, la
-finalización ni la eliminación de Órdenes de Trabajo.
+No están implementadas la finalización ni la eliminación de Órdenes de Trabajo.
