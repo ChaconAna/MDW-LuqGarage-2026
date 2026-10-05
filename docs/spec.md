@@ -437,7 +437,7 @@ Un siniestro puede tener múltiples presupuestos.
 
 ## 10.5. Datos del Presupuesto
 
-Cada Presupuesto pertenece a un único Siniestro y debe tener un `numeroPresupuesto` obligatorio, almacenado como texto y único globalmente. El MVP no define todavía un formato ni un mecanismo automático para generar este número.
+Cada Presupuesto pertenece a un único Siniestro y debe tener un `numeroPresupuesto` obligatorio, almacenado como texto y único globalmente. Tanto el `numeroPresupuesto` como la asociación con el Siniestro se establecen al crear el Presupuesto y son inmutables: el Presupuesto no puede reasignarse posteriormente a otro Siniestro. El MVP no define todavía un formato ni un mecanismo automático para generar este número.
 
 La creación de un Presupuesto es una operación agregada: en el alta debe informarse al menos una reparación y pueden informarse, opcionalmente, los repuestos que formarán parte de su `BORRADOR` inicial.
 
@@ -524,7 +524,7 @@ o:
 
 Mientras el presupuesto esté en estado `BORRADOR`:
 
-- puede modificarse;
+- pueden modificarse únicamente sus Reparaciones y Repuestos;
 - pueden agregarse o quitarse reparaciones, siempre que se conserve al menos una;
 - pueden agregarse o quitarse repuestos;
 - puede guardarse y continuarse posteriormente.
@@ -765,7 +765,7 @@ Un siniestro solo puede confirmarse cuando se haya cargado toda la documentació
 
 ### RN07 — Presupuesto asociado
 
-Todo presupuesto debe pertenecer a un siniestro existente.
+Todo Presupuesto debe pertenecer a un Siniestro existente. La asociación se establece al crear el Presupuesto, es inmutable y no permite reasignarlo posteriormente a otro Siniestro.
 
 ### RN08 — Múltiples presupuestos
 
@@ -773,7 +773,7 @@ Un siniestro puede tener múltiples presupuestos.
 
 ### RN09 — Composición y edición del presupuesto
 
-Todo Presupuesto debe contener al menos una reparación. Solo los presupuestos en estado `BORRADOR` pueden modificarse y, durante su edición, no puede eliminarse su última reparación.
+Todo Presupuesto debe contener al menos una reparación. Solo los Presupuestos en estado `BORRADOR` pueden modificar sus Reparaciones y Repuestos. Durante su edición, no puede eliminarse la última Reparación; los Repuestos continúan siendo opcionales y su cardinalidad puede permanecer en `0..N`.
 
 ### RN10 — Envío del presupuesto
 
