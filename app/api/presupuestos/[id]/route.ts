@@ -5,7 +5,7 @@ import {
   parametrosPresupuestoSchema,
   type ParametrosPresupuesto,
 } from "@/lib/schemas/presupuesto";
-import { calcularTotalPresupuesto } from "@/lib/services/presupuesto";
+import { serializarDetallePresupuesto } from "@/lib/services/presupuesto";
 
 type ContextoRutaPresupuesto = {
   params: Promise<ParametrosPresupuesto>;
@@ -37,16 +37,5 @@ export async function GET(
     );
   }
 
-  const total = calcularTotalPresupuesto(
-    presupuesto.reparaciones.map(({ costo }) => costo),
-  );
-
-  return NextResponse.json({
-    ...presupuesto,
-    reparaciones: presupuesto.reparaciones.map(({ costo, ...detalle }) => ({
-      ...detalle,
-      costo: costo.toFixed(2),
-    })),
-    total,
-  });
+  return NextResponse.json(serializarDetallePresupuesto(presupuesto));
 }

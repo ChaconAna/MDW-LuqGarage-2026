@@ -492,9 +492,8 @@ El detalle contiene los campos de la representación del listado y agrega:
 
 `costo` y `total` son strings decimales con exactamente dos posiciones. El
 total se calcula como la suma de los costos de las reparaciones, sin incluir
-repuestos, y no se persiste. Un Presupuesto sin repuestos devuelve
-`"repuestos": []`; si no se recuperan reparaciones, devuelve
-`"reparaciones": []` y `"total": "0.00"`.
+repuestos, y no se persiste. Todo Presupuesto válido contiene al menos una
+reparación. Un Presupuesto sin repuestos devuelve `"repuestos": []`.
 
 El detalle no incluye Sector, Orden de Trabajo ni datos adicionales del
 Siniestro.
@@ -504,11 +503,53 @@ Siniestro.
 | Método y ruta | Propósito | Éxito actual | Errores actuales |
 |---|---|---|---|
 | `GET /api/presupuestos` | Lista Presupuestos con paginación y resumen del Siniestro | `200` | `400` query inválida |
+| `POST /api/presupuestos` | Crea un Presupuesto en estado `BORRADOR` con sus detalles | `201` | `400` body inválido, `404` referencia inexistente, `409` número duplicado |
 | `GET /api/presupuestos/[id]` | Obtiene un Presupuesto con reparaciones, repuestos y total derivado | `200` | `400` UUID inválido, `404` inexistente |
 
 El endpoint acepta `page` y `limit` según las convenciones generales de
 paginación, ordena establemente por `id` ascendente y devuelve `200 OK` con
 `data: []` cuando la página solicitada no contiene resultados.
 
-No están implementados la creación, la modificación, el envío ni las
-transiciones de estado de Presupuesto.
+### POST `/api/presupuestos`
+
+Body:
+
+```json
+{
+  "numeroPresupuesto": "PRES-2026-002",
+  "siniestroId": "uuid",
+  "reparaciones": [
+    {
+      "reparacionId": "uuid",
+      "costo": "150000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "uuid",
+      "cantidad": 2
+    }
+  ]
+}
+```
+
+`reparaciones` debe contener al menos un elemento y no puede repetir una
+Reparación. `costo` es un string no negativo con exactamente dos decimales,
+entre `"0.00"` y `"9999999999.99"`.
+
+`repuestos` es opcional: puede omitirse o enviarse como `[]`. Cuando contiene
+elementos, no puede repetir un Repuesto y cada `cantidad` debe ser un entero
+mayor o igual a `1` dentro del rango de Prisma `Int`.
+
+La respuesta `201` reutiliza la representación del detalle, con estado
+`BORRADOR`, costos y total como strings con dos decimales. La creación del
+Presupuesto, sus detalles y la actualización del Siniestro son atómicas. Si el
+Siniestro estaba `REGISTRADO`, pasa a `PRESUPUESTADO`; si ya estaba
+`PRESUPUESTADO`, conserva ese estado y admite el nuevo Presupuesto.
+
+Un JSON malformado o un body inválido devuelve `400`. Devuelve `404` si no
+existe el Siniestro o alguna Reparación o Repuesto solicitado. Un
+`numeroPresupuesto` ya utilizado devuelve `409`.
+
+No están implementados la modificación, el envío ni las transiciones de estado
+de Presupuesto.

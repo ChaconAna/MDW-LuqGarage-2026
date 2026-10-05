@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 
+import type { DetallePresupuesto } from "../db/presupuesto";
+
 export function calcularTotalPresupuesto(
   costos: readonly Prisma.Decimal[],
 ): string {
@@ -9,4 +11,21 @@ export function calcularTotalPresupuesto(
   );
 
   return total.toFixed(2);
+}
+
+export function serializarDetallePresupuesto(
+  presupuesto: DetallePresupuesto,
+) {
+  const total = calcularTotalPresupuesto(
+    presupuesto.reparaciones.map(({ costo }) => costo),
+  );
+
+  return {
+    ...presupuesto,
+    reparaciones: presupuesto.reparaciones.map(({ costo, ...detalle }) => ({
+      ...detalle,
+      costo: costo.toFixed(2),
+    })),
+    total,
+  };
 }

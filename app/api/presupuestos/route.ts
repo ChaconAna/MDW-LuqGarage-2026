@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { listarPresupuestos } from "@/lib/db/presupuesto";
-import { listadoPresupuestosQuerySchema } from "@/lib/schemas/presupuesto";
+import { crearPresupuesto, listarPresupuestos } from "@/lib/db/presupuesto";
+import {
+  crearPresupuestoSchema,
+  listadoPresupuestosQuerySchema,
+} from "@/lib/schemas/presupuesto";
+import { serializarDetallePresupuesto } from "@/lib/services/presupuesto";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -29,4 +33,58 @@ export async function GET(request: Request) {
       totalPages: Math.ceil(total / limit),
     },
   });
+}
+
+export async function POST(request: Request) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "El cuerpo de la solicitud no es un JSON válido." },
+      { status: 400 },
+    );
+  }
+
+  const resultadoBody = crearPresupuestoSchema.safeParse(body);
+
+  if (!resultadoBody.success) {
+    return NextResponse.json(
+      { error: "Los datos del Presupuesto son inválidos." },
+      { status: 400 },
+    );
+  }
+
+  const resultadoCreacion = await crearPresupuesto(resultadoBody.data);
+
+  if (!resultadoCreacion.creado) {
+    switch (resultadoCreacion.motivo) {
+      case "SINIESTRO_NO_ENCONTRADO":
+        return NextResponse.json(
+          { error: "Siniestro no encontrado." },
+          { status: 404 },
+        );
+      case "REPARACION_NO_ENCONTRADA":
+        return NextResponse.json(
+          { error: "Una o más Reparaciones no fueron encontradas." },
+          { status: 404 },
+        );
+      case "REPUESTO_NO_ENCONTRADO":
+        return NextResponse.json(
+          { error: "Uno o más Repuestos no fueron encontrados." },
+          { status: 404 },
+        );
+      case "NUMERO_DUPLICADO":
+        return NextResponse.json(
+          { error: "Ya existe un Presupuesto con el número indicado." },
+          { status: 409 },
+        );
+    }
+  }
+
+  return NextResponse.json(
+    serializarDetallePresupuesto(resultadoCreacion.presupuesto),
+    { status: 201 },
+  );
 }

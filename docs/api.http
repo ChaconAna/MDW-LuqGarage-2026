@@ -670,6 +670,7 @@ GET {{baseUrl}}/api/presupuestos?page=0&limit=101
 
 
 ### Consultar el primer Presupuesto del listado → 200
+# @name obtenerPresupuestoSembrado
 GET {{baseUrl}}/api/presupuestos/{{listarPresupuestos.response.body.$.data[0].id}}
 
 
@@ -679,3 +680,208 @@ GET {{baseUrl}}/api/presupuestos/no-es-un-uuid
 
 ### Presupuesto inexistente → 404
 GET {{baseUrl}}/api/presupuestos/{{uuidInexistente}}
+
+
+### Crear un Presupuesto sin repuestos → 201
+# Cambiar numeroPresupuesto si esta creación ya fue ejecutada.
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-POST-001",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "250000.00"
+    }
+  ]
+}
+
+
+### Crear un Presupuesto con repuestos → 201
+# Cambiar numeroPresupuesto si esta creación ya fue ejecutada.
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-POST-002",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "300000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 1
+    }
+  ]
+}
+
+
+### Presupuesto sin reparaciones → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-SIN-REPARACIONES",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": []
+}
+
+
+### Reparación duplicada → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPARACION-DUPLICADA",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    },
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "200000.00"
+    }
+  ]
+}
+
+
+### Repuesto duplicado → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPUESTO-DUPLICADO",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 1
+    },
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 2
+    }
+  ]
+}
+
+
+### Costo con más de dos decimales → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-COSTO-INVALIDO",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.999"
+    }
+  ]
+}
+
+
+### Cantidad de Repuesto inválida → 400
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-CANTIDAD-INVALIDA",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{obtenerPresupuestoSembrado.response.body.$.repuestos[0].repuesto.id}}",
+      "cantidad": 0
+    }
+  ]
+}
+
+
+### Siniestro inexistente → 404
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-SINIESTRO-404",
+  "siniestroId": "{{uuidInexistente}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### Reparación inexistente → 404
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPARACION-404",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{uuidInexistente}}",
+      "costo": "100000.00"
+    }
+  ]
+}
+
+
+### Repuesto inexistente → 404
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-DOCS-REPUESTO-404",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ],
+  "repuestos": [
+    {
+      "repuestoId": "{{uuidInexistente}}",
+      "cantidad": 1
+    }
+  ]
+}
+
+
+### Número de Presupuesto duplicado → 409
+POST {{baseUrl}}/api/presupuestos
+Content-Type: application/json
+
+{
+  "numeroPresupuesto": "PRES-SEED-001",
+  "siniestroId": "{{obtenerPresupuestoSembrado.response.body.$.siniestro.id}}",
+  "reparaciones": [
+    {
+      "reparacionId": "{{obtenerPresupuestoSembrado.response.body.$.reparaciones[0].reparacion.id}}",
+      "costo": "100000.00"
+    }
+  ]
+}

@@ -1,8 +1,11 @@
-import type { EstadoPresupuesto, Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { EstadoPresupuesto } from "@prisma/client";
 
+import type { DatosCreacionPresupuesto } from "../schemas/presupuesto";
 import type { ClienteTransaccion } from "./transaccion";
 
 import { prisma } from "./client";
+import { ejecutarTransaccion } from "./transaccion";
 
 const seleccionPresupuesto = {
   id: true,
@@ -46,6 +49,10 @@ const seleccionDetallePresupuesto = {
   },
 } satisfies Prisma.PresupuestoSelect;
 
+export type DetallePresupuesto = Prisma.PresupuestoGetPayload<{
+  select: typeof seleccionDetallePresupuesto;
+}>;
+
 type DatosPresupuesto = {
   numeroPresupuesto: string;
   estado: EstadoPresupuesto;
@@ -83,4 +90,76 @@ export function obtenerPresupuestoPorId(id: string) {
     where: { id },
     select: seleccionDetallePresupuesto,
   });
+}
+
+export async function crearPresupuesto(datos: DatosCreacionPresupuesto) {
+  try {
+    return await ejecutarTransaccion(async (cliente) => {
+      const siniestro = await cliente.siniestro.findUnique({
+        where: { id: datos.siniestroId },
+        select: { id: true },
+      });
+
+      if (!siniestro) {
+        return { creado: false, motivo: "SINIESTRO_NO_ENCONTRADO" } as const;
+      }
+
+      const [reparaciones, repuestos] = await Promise.all([
+        cliente.reparacion.findMany({
+          where: {
+            id: { in: datos.reparaciones.map(({ reparacionId }) => reparacionId) },
+          },
+          select: { id: true },
+        }),
+        cliente.repuesto.findMany({
+          where: {
+            id: { in: datos.repuestos.map(({ repuestoId }) => repuestoId) },
+          },
+          select: { id: true },
+        }),
+      ]);
+
+      if (reparaciones.length !== datos.reparaciones.length) {
+        return { creado: false, motivo: "REPARACION_NO_ENCONTRADA" } as const;
+      }
+
+      if (repuestos.length !== datos.repuestos.length) {
+        return { creado: false, motivo: "REPUESTO_NO_ENCONTRADO" } as const;
+      }
+
+      const presupuesto = await cliente.presupuesto.create({
+        data: {
+          numeroPresupuesto: datos.numeroPresupuesto,
+          estado: "BORRADOR",
+          siniestroId: datos.siniestroId,
+          reparaciones: {
+            create: datos.reparaciones,
+          },
+          repuestos: {
+            create: datos.repuestos,
+          },
+        },
+        select: seleccionDetallePresupuesto,
+      });
+
+      await cliente.siniestro.updateMany({
+        where: {
+          id: datos.siniestroId,
+          estado: "REGISTRADO",
+        },
+        data: { estado: "PRESUPUESTADO" },
+      });
+
+      return { creado: true, presupuesto } as const;
+    });
+  } catch (error: unknown) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { creado: false, motivo: "NUMERO_DUPLICADO" } as const;
+    }
+
+    throw error;
+  }
 }
