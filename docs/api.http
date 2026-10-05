@@ -3,7 +3,10 @@
 # Requisitos:
 #   1. Ejecutar `npm run db:seed` sobre la base de desarrollo.
 #   2. Levantar la aplicación con `npm run dev`.
-#   3. Ejecutar primero el listado de cada sección. Los requests siguientes
+#   3. Iniciar sesión normalmente mediante Auth.js y Google en el entorno donde
+#      se ejecutarán los requests, con un Usuario local activo y preautorizado.
+#      El cliente HTTP debe conservar esa sesión válida.
+#   4. Ejecutar primero el listado de cada sección. Los requests siguientes
 #      reutilizan IDs obtenidos de esas respuestas; no hay UUID de catálogos
 #      inventados ni copiados de otro entorno.
 #
@@ -12,7 +15,26 @@
 # el DNI, CUIT o patente de documentación: el registro anterior sigue en la
 # base y la restricción UNIQUE se conserva.
 #
-# No se envían tokens: autenticación y autorización llegan en Clase 6.
+# Autenticación y autorización:
+# - Todos los requests de dominio de este archivo requieren una sesión válida.
+# - Sin sesión válida, Usuario local inexistente o Usuario inactivo: 401.
+# - Con sesión válida pero rol no permitido: 403.
+# - Esta colección no simula OAuth, ni inventa tokens, cookies, headers o roles.
+#   La sesión debe provenir del flujo normal de Auth.js y Google.
+#
+# Roles requeridos por los requests existentes:
+# - Clientes, Aseguradoras, Vehículos y Siniestros: RECEPCIONISTA o
+#   ENCARGADO_DEL_TALLER.
+# - GET de Presupuestos: RECEPCIONISTA o ENCARGADO_DEL_TALLER. POST y PATCH:
+#   ENCARGADO_DEL_TALLER.
+# - Órdenes de Trabajo: ENCARGADO_DEL_TALLER para crear, modificar, agregar
+#   Presupuestos y finalizar. MECANICO solo puede consultar OTs FINALIZADA.
+#   Una OT BORRADOR no es visible para MECANICO y devuelve 404, igual que una
+#   OT inexistente.
+#
+# Para ejecutar el flujo completo de este archivo se necesita un Usuario con
+# rol ENCARGADO_DEL_TALLER. Los requests existentes no incluyen un mecanismo
+# alternativo de autenticación.
 
 @baseUrl = http://localhost:3000
 @uuidInexistente = 00000000-0000-4000-8000-000000000000
