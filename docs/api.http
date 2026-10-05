@@ -1027,6 +1027,7 @@ GET {{baseUrl}}/api/ordenes-trabajo?limit=101
 
 
 ### Consultar la primera Orden de Trabajo del listado → 200
+# @name obtenerOrdenTrabajoSembrada
 GET {{baseUrl}}/api/ordenes-trabajo/{{listarOrdenesTrabajo.response.body.$.data[0].id}}
 
 
@@ -1036,3 +1037,77 @@ GET {{baseUrl}}/api/ordenes-trabajo/no-es-un-uuid
 
 ### Orden de Trabajo inexistente → 404
 GET {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
+
+
+### Crear una Orden de Trabajo con Presupuestos aprobados disponibles → 201
+# Requiere reemplazar ambos valores por IDs reales de un Siniestro y de un
+# Presupuesto APROBADO de ese Siniestro que todavía no pertenezca a otra OT.
+# El seed no deja un Presupuesto con ese estado disponible: el APROBADO sembrado
+# ya forma parte de la OT histórica FINALIZADA.
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "REEMPLAZAR-POR-UUID-DE-SINIESTRO",
+  "presupuestoIds": [
+    "REEMPLAZAR-POR-UUID-DE-PRESUPUESTO-APROBADO-DISPONIBLE"
+  ]
+}
+
+
+### Body de Orden de Trabajo inválido: Presupuesto repetido → 400
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}",
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Siniestro inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{uuidInexistente}}",
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}
+
+
+### Presupuesto inexistente → 404
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
+  "presupuestoIds": ["{{uuidInexistente}}"]
+}
+
+
+### Presupuesto en BORRADOR, no aprobado → 409
+# Requiere haber ejecutado antes "Crear un Presupuesto sin repuestos".
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{crearPresupuestoBorrador.response.body.$.siniestro.id}}",
+  "presupuestoIds": ["{{crearPresupuestoBorrador.response.body.$.id}}"]
+}
+
+
+### Presupuesto ya asociado a otra Orden de Trabajo → 409
+POST {{baseUrl}}/api/ordenes-trabajo
+Content-Type: application/json
+
+{
+  "siniestroId": "{{obtenerOrdenTrabajoSembrada.response.body.$.siniestro.id}}",
+  "presupuestoIds": [
+    "{{obtenerOrdenTrabajoSembrada.response.body.$.presupuestos[0].id}}"
+  ]
+}

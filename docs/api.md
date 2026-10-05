@@ -1,9 +1,9 @@
 # Contrato HTTP actual — LuqGarage
 
 Este documento describe exclusivamente la API implementada actualmente para
-Cliente, Aseguradora, Vehículo, Siniestro, Presupuesto y el listado de Orden de
-Trabajo. No documenta operaciones futuras de transición de Presupuesto, otros
-endpoints de Orden de Trabajo ni endpoints de catálogos.
+Cliente, Aseguradora, Vehículo, Siniestro, Presupuesto y Orden de Trabajo. No
+documenta operaciones futuras de transición de Presupuesto, modificación o
+finalización de Orden de Trabajo ni endpoints de catálogos.
 
 ## Estado de la autorización
 
@@ -669,6 +669,7 @@ fechas ni datos adicionales del Siniestro o de los Presupuestos.
 | Método y ruta | Propósito | Éxito actual | Errores actuales |
 |---|---|---|---|
 | `GET /api/ordenes-trabajo` | Lista Órdenes de Trabajo con paginación y resumen del Siniestro | `200` | `400` query inválida, `500` error inesperado |
+| `POST /api/ordenes-trabajo` | Crea una Orden de Trabajo a partir de Presupuestos aprobados | `201` | `400` JSON/body inválido, `404` referencia inexistente, `409` regla de negocio, `500` error inesperado |
 | `GET /api/ordenes-trabajo/[id]` | Obtiene una Orden de Trabajo con Presupuestos y tareas organizadas por Sector | `200` | `400` UUID inválido, `404` inexistente, `500` error inesperado |
 
 El endpoint acepta `page` como entero positivo con default `1` y `limit` entre
@@ -680,10 +681,46 @@ Una query de paginación inválida devuelve `400` con
 `{ "error": "Los parámetros de paginación son inválidos." }`. Una excepción
 inesperada devuelve `500` con `{ "error": "Error interno." }`.
 
+El alta recibe exclusivamente un `siniestroId` UUID y un array
+`presupuestoIds` con uno o más UUID sin repetir:
+
+```json
+{
+  "siniestroId": "uuid",
+  "presupuestoIds": ["uuid-presupuesto-1", "uuid-presupuesto-2"]
+}
+```
+
+Todos los Presupuestos deben existir, estar `APROBADO`, pertenecer al
+Siniestro indicado y no estar asociados a otra Orden de Trabajo. La operación
+crea la Orden de Trabajo en `BORRADOR`, asocia todos los Presupuestos y crea una
+relación `OrdenTrabajoSector` con `observacion: null` por cada Sector distinto
+derivado de sus Reparaciones. Es atómica: si no puede asociarse la totalidad,
+no conserva la Orden de Trabajo ni asociaciones o Sectores parciales.
+
+Las tareas no se copian ni se persisten nuevamente. El detalle `201` usa la
+misma representación que `GET /api/ordenes-trabajo/[id]`: cada
+`DetalleReparacion` continúa siendo una ocurrencia independiente, aunque otra
+ocurrencia referencie la misma Reparación.
+
+Un JSON malformado devuelve `400` con
+`{ "error": "El cuerpo de la solicitud no es un JSON válido." }`; un body que
+no cumple el contrato devuelve `400` con
+`{ "error": "Los datos de la Orden de Trabajo son inválidos." }`. Un Siniestro
+inexistente devuelve `404` con `{ "error": "Siniestro no encontrado." }` y la
+ausencia de uno o más Presupuestos devuelve `404` con
+`{ "error": "Uno o más Presupuestos no fueron encontrados." }`.
+
+Si algún Presupuesto no está aprobado, pertenece a otro Siniestro o ya está
+asociado a una Orden de Trabajo, devuelve respectivamente `409` con
+`{ "error": "Uno o más Presupuestos no están aprobados." }`,
+`{ "error": "Uno o más Presupuestos no pertenecen al Siniestro indicado." }`
+o `{ "error": "Uno o más Presupuestos ya están asociados a otra Orden de Trabajo." }`.
+
 Un UUID inválido devuelve `400` con
 `{ "error": "El id debe ser un UUID válido." }`. Una Orden de Trabajo
 inexistente devuelve `404` con
 `{ "error": "Orden de Trabajo no encontrada." }`.
 
-No están implementadas la creación, la modificación, la finalización ni la
-eliminación de Órdenes de Trabajo.
+No están implementadas la modificación, la finalización ni la eliminación de
+Órdenes de Trabajo.

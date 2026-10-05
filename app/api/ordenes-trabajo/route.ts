@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { listarOrdenesTrabajo } from "@/lib/db/ordenTrabajo";
-import { listadoOrdenesTrabajoQuerySchema } from "@/lib/schemas/ordenTrabajo";
+import {
+  crearOrdenTrabajo,
+  listarOrdenesTrabajo,
+} from "@/lib/db/ordenTrabajo";
+import {
+  crearOrdenTrabajoSchema,
+  listadoOrdenesTrabajoQuerySchema,
+} from "@/lib/schemas/ordenTrabajo";
+import { serializarDetalleOrdenTrabajo } from "@/lib/services/ordenTrabajo";
 
 export async function GET(request: Request) {
   try {
@@ -33,6 +40,80 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     console.error(
       "Error inesperado en GET /api/ordenes-trabajo",
+      error,
+    );
+
+    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    let body: unknown;
+
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoBody = crearOrdenTrabajoSchema.safeParse(body);
+
+    if (!resultadoBody.success) {
+      return NextResponse.json(
+        { error: "Los datos de la Orden de Trabajo son inválidos." },
+        { status: 400 },
+      );
+    }
+
+    const resultadoCreacion = await crearOrdenTrabajo(resultadoBody.data);
+
+    if (!resultadoCreacion.creada) {
+      switch (resultadoCreacion.motivo) {
+        case "SINIESTRO_NO_ENCONTRADO":
+          return NextResponse.json(
+            { error: "Siniestro no encontrado." },
+            { status: 404 },
+          );
+        case "PRESUPUESTO_NO_ENCONTRADO":
+          return NextResponse.json(
+            { error: "Uno o más Presupuestos no fueron encontrados." },
+            { status: 404 },
+          );
+        case "PRESUPUESTO_NO_APROBADO":
+          return NextResponse.json(
+            { error: "Uno o más Presupuestos no están aprobados." },
+            { status: 409 },
+          );
+        case "PRESUPUESTO_OTRO_SINIESTRO":
+          return NextResponse.json(
+            {
+              error:
+                "Uno o más Presupuestos no pertenecen al Siniestro indicado.",
+            },
+            { status: 409 },
+          );
+        case "PRESUPUESTO_YA_ASOCIADO":
+          return NextResponse.json(
+            {
+              error:
+                "Uno o más Presupuestos ya están asociados a otra Orden de Trabajo.",
+            },
+            { status: 409 },
+          );
+      }
+    }
+
+    return NextResponse.json(
+      serializarDetalleOrdenTrabajo(resultadoCreacion.ordenTrabajo),
+      { status: 201 },
+    );
+  } catch (error: unknown) {
+    console.error(
+      "Error inesperado en POST /api/ordenes-trabajo",
       error,
     );
 
