@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { requerirRol } from "@/lib/auth";
 import { finalizarOrdenTrabajoPorId } from "@/lib/db/ordenTrabajo";
+import { responderError } from "@/lib/http";
 import {
   parametrosOrdenTrabajoSchema,
   type ParametrosOrdenTrabajo,
@@ -16,6 +18,8 @@ export async function POST(
   { params }: ContextoRutaOrdenTrabajo,
 ) {
   try {
+    await requerirRol(["ENCARGADO_DEL_TALLER"]);
+
     const resultadoParametros = parametrosOrdenTrabajoSchema.safeParse(
       await params,
     );
@@ -74,11 +78,6 @@ export async function POST(
       serializarDetalleOrdenTrabajo(resultadoFinalizacion.ordenTrabajo),
     );
   } catch (error: unknown) {
-    console.error(
-      "Error inesperado en POST /api/ordenes-trabajo/[id]/finalizar",
-      error,
-    );
-
-    return NextResponse.json({ error: "Error interno." }, { status: 500 });
+    return responderError("POST /api/ordenes-trabajo/[id]/finalizar", error);
   }
 }
