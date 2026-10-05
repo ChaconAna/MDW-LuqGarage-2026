@@ -960,7 +960,9 @@ Los siniestros no disponen de estado borrador.
 
 # 26. Autenticación y autorización
 
-El sistema deberá requerir autenticación mediante usuario y contraseña.
+El sistema deberá autenticar a los usuarios mediante Auth.js, utilizando Google como proveedor externo de identidad. LuqGarage no gestionará contraseñas propias.
+
+La autenticación permitirá verificar la identidad del usuario. La autorización continuará siendo responsabilidad de LuqGarage y se determinará según los roles o permisos propios del sistema.
 
 Las operaciones protegidas deberán verificar:
 
@@ -990,7 +992,7 @@ Los errores de servicios externos deberán manejarse evitando dejar datos en est
 
 ## RNF01 — Autenticación y autorización
 
-Solo usuarios autenticados y autorizados pueden ejecutar operaciones protegidas.
+La identidad de los usuarios deberá autenticarse mediante Google a través de Auth.js. Solo usuarios autenticados y autorizados según los roles o permisos de LuqGarage pueden ejecutar operaciones protegidas.
 
 ## RNF02 — Validación del servidor
 
@@ -1115,7 +1117,7 @@ La finalización de la Orden de Trabajo no cambia el estado del Siniestro, que p
 
 El MVP se considera funcional cuando el flujo completo puede ejecutarse desde un cliente HTTP sin depender de una interfaz gráfica:
 
-1. Autenticar un usuario.
+1. Autenticar un usuario mediante Google a través de Auth.js.
 2. Registrar/consultar Cliente.
 3. Registrar/consultar Vehículo.
 4. Registrar/consultar Aseguradora.
