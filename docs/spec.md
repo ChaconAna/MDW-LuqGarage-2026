@@ -27,9 +27,8 @@ El sistema permitirá:
 - Adjuntar documentación y fotografías a los siniestros.
 - Registrar presupuestos asociados a siniestros.
 - Incorporar al menos una reparación y, opcionalmente, repuestos a los presupuestos.
-- Enviar presupuestos a una aseguradora mediante email.
-- Procesar la respuesta recibida por email.
-- Aprobar o rechazar automáticamente un presupuesto según dicha respuesta.
+- Registrar manualmente que un presupuesto fue enviado a la aseguradora.
+- Registrar manualmente la aprobación o el rechazo de un presupuesto según una respuesta externa.
 - Generar una Orden de Trabajo utilizando uno o varios presupuestos aprobados pertenecientes al mismo siniestro.
 - Organizar las reparaciones de la Orden de Trabajo por sectores.
 - Consultar las Órdenes de Trabajo finalizadas.
@@ -53,7 +52,8 @@ Puede:
 - Registrar siniestros.
 - Consultar siniestros.
 - Consultar presupuestos.
-- Modificar manualmente el estado de un presupuesto ENVIADO a APROBADO o RECHAZADO cuando falle el procesamiento automático de la respuesta de la aseguradora.
+- Registrar manualmente que un presupuesto `BORRADOR` fue enviado a la aseguradora mediante una comunicación externa a LuqGarage.
+- Registrar manualmente la respuesta externa de un presupuesto ENVIADO como APROBADO o RECHAZADO.
 
 No puede:
 
@@ -74,7 +74,7 @@ Puede:
 - Realizar todas las acciones disponibles para la Recepcionista.
 - Registrar presupuestos.
 - Editar presupuestos en estado `BORRADOR`.
-- Confirmar y enviar presupuestos.
+- Registrar manualmente que los presupuestos fueron enviados a las aseguradoras.
 - Generar Órdenes de Trabajo.
 - Editar Órdenes de Trabajo en estado `BORRADOR`.
 - Finalizar la generación de una Orden de Trabajo.
@@ -302,7 +302,7 @@ El sistema debe permitir registrar:
 - Vehículo.
 - Aseguradora.
 
-El número de siniestro y el número de póliza se almacenan como texto.
+El número de siniestro y el número de póliza se cargan manualmente y se almacenan como texto.
 
 La fecha de registro se persiste como fecha y hora, y se genera automáticamente en el momento en que el Siniestro queda efectivamente registrado. Esta fecha se utiliza como referencia para validar que la fecha del siniestro no sea posterior a la fecha de registro.
 
@@ -336,25 +336,6 @@ Cada DocumentoSiniestro pertenece a un único Siniestro y un Siniestro puede con
 La presencia y la unicidad de las seis categorías obligatorias se validan en el servidor al confirmar el registro. Esta validación no utiliza una restricción de unicidad compuesta en la base de datos, ya que un mismo Siniestro puede contener múltiples documentos de categoría `ADICIONAL`.
 
 Antes de confirmar el registro puede reemplazarse un archivo y el MVP no conserva versiones anteriores. Una vez registrado el Siniestro, sus documentos forman parte del historial y no pueden eliminarse.
-
-## 8.6. Extracción automática de información
-
-El sistema podrá utilizar un servicio externo de IA para analizar la imagen de la denuncia y extraer:
-
-- Número de siniestro.
-- Número de póliza.
-
-Los valores obtenidos serán utilizados para autocompletar los campos correspondientes.
-
-La información obtenida mediante IA deberá poder ser verificada y corregida antes de confirmar el registro.
-
-La IA constituye una dependencia accesoria.
-
-Si el servicio no responde, supera el tiempo máximo de espera o no puede interpretar correctamente el documento:
-
-- el sistema no debe fallar;
-- el usuario podrá ingresar los valores manualmente;
-- deberá registrarse el fallo técnico correspondiente.
 
 ## 8.7. Validaciones
 
@@ -531,28 +512,17 @@ Mientras el presupuesto esté en estado `BORRADOR`:
 
 ## 14.3. Presupuesto enviado
 
-Al confirmar el presupuesto, LuqGarage lo envia por email a la aseguradora.
-
-El servicio de email constituye una dependencia esencial para esta operación.
-
-El presupuesto solamente pasa a `ENVIADO` cuando el servicio externo confirma correctamente el envío.
-
-Si el envío falla:
-
-- el presupuesto permanece en `BORRADOR`;
-- la operación debe informar el error;
-- la falla debe registrarse;
-- debe ser posible reintentar posteriormente.
+Un presupuesto pasa de `BORRADOR` a `ENVIADO` cuando un usuario autorizado registra manualmente que fue enviado a la aseguradora mediante una comunicación externa a LuqGarage.
 
 Una vez `ENVIADO`, el presupuesto no puede modificarse.
 
 ## 14.4. Presupuesto aprobado
 
-Un presupuesto pasa de `ENVIADO` a `APROBADO` cuando el sistema procesa una respuesta válida de aprobación recibida por email.
+Un presupuesto pasa de `ENVIADO` a `APROBADO` cuando un usuario autorizado registra manualmente una respuesta externa como aprobada.
 
 ## 14.5. Presupuesto rechazado
 
-Un presupuesto pasa de `ENVIADO` a `RECHAZADO` cuando el sistema procesa una respuesta válida de rechazo recibida por email.
+Un presupuesto pasa de `ENVIADO` a `RECHAZADO` cuando un usuario autorizado registra manualmente una respuesta externa como rechazada.
 
 Un presupuesto rechazado:
 
@@ -567,42 +537,15 @@ El nuevo presupuesto podrá tomar como referencia el presupuesto rechazado, pero
 
 # 15. Comunicación con la Aseguradora
 
-En el MVP, la comunicación por email con la aseguradora será simulada mediante Mailtrap Email Sandbox.
+La comunicación con la aseguradora ocurre fuera de LuqGarage.
 
-## 15.1. Envío
+## 15.1. Registro del envío
 
-Cuando el Encargado confirma un presupuesto:
+Un usuario autorizado registra manualmente que un presupuesto en `BORRADOR` fue enviado a la aseguradora. Al registrarlo, el presupuesto pasa a `ENVIADO`.
 
-1. El sistema valida el presupuesto.
-2. Intenta enviarlo mediante el servicio externo.
-3. Si el envío resulta exitoso, cambia su estado a `ENVIADO`.
-4. Si falla, permanece en `BORRADOR`.
+## 15.2. Registro de la respuesta
 
-## 15.2. Recepción
-
-La aseguradora simulada responderá mediante email indicando si el presupuesto fue:
-
-- `APROBADO`
-- `RECHAZADO`
-
-LuqGarage deberá recuperar y procesar la respuesta recibida.
-
-La respuesta deberá permitir identificar claramente el presupuesto al cual corresponde.
-
-## 15.3. Procesamiento
-
-Si la respuesta puede interpretarse claramente:
-
-- aprobación → `APROBADO`;
-- rechazo → `RECHAZADO`.
-
-Si la respuesta no puede interpretarse:
-
-- el presupuesto permanece en `ENVIADO`;
-- no se realiza una transición automática;
-- el problema debe quedar registrado.
-
-El sistema no debe interpretar una respuesta ambigua como una aprobación.
+Cuando un usuario autorizado dispone de una respuesta externa que puede registrar como `APROBADO` o `RECHAZADO`, registra manualmente el resultado y el presupuesto en estado `ENVIADO` pasa al estado correspondiente.
 
 
 
@@ -747,7 +690,7 @@ Una Orden de Trabajo `FINALIZADA` no admite la incorporación de nuevos Presupue
 Si aparecen nuevas reparaciones para el mismo Siniestro después de finalizar una Orden de Trabajo:
 
 1. se crea un nuevo Presupuesto para el mismo Siniestro;
-2. el nuevo Presupuesto recorre el flujo normal de envío y aprobación;
+2. el nuevo Presupuesto recorre el registro manual del envío y de la respuesta externa;
 3. una vez aprobado, puede utilizarse para generar una nueva Orden de Trabajo;
 4. la Orden de Trabajo anterior permanece `FINALIZADA` e histórica;
 5. el Siniestro permanece en estado `PRESUPUESTADO`.
@@ -795,37 +738,33 @@ Todo Presupuesto debe contener al menos una reparación. Solo los Presupuestos e
 
 ### RN10 — Envío del presupuesto
 
-Un presupuesto solo pasa a `ENVIADO` cuando el servicio de email confirma correctamente su envío.
+Un presupuesto en estado `BORRADOR` pasa a `ENVIADO` cuando la Recepcionista o el Encargado del Taller registra manualmente que fue enviado a la aseguradora mediante una comunicación externa a LuqGarage.
 
 ### RN11 — Respuesta de aseguradora
 
-Un presupuesto `ENVIADO` puede pasar a `APROBADO` o `RECHAZADO` como resultado del procesamiento automático de una respuesta válida de la aseguradora o, ante una falla del procesamiento automático, mediante el registro manual de dicha respuesta por un usuario autorizado.
+Un presupuesto `ENVIADO` pasa a `APROBADO` o `RECHAZADO` cuando la Recepcionista o el Encargado del Taller registra manualmente una respuesta externa como tal.
 
-### RN12 — Respuesta ambigua
-
-Una respuesta que no pueda interpretarse inequívocamente no modifica el estado del presupuesto.
-
-### RN13 — Presupuesto rechazado
+### RN12 — Presupuesto rechazado
 
 Un presupuesto `RECHAZADO` no puede modificarse ni utilizarse en una Orden de Trabajo.
 
-### RN14 — Nuevo presupuesto
+### RN13 — Nuevo presupuesto
 
 Si después de un rechazo se necesita presentar otra propuesta, debe crearse un nuevo presupuesto.
 
-### RN15 — Generación de Orden de Trabajo
+### RN14 — Generación de Orden de Trabajo
 
 Solo pueden incorporarse a una Orden de Trabajo, tanto al crearla como posteriormente mientras permanezca en `BORRADOR`, Presupuestos existentes en estado `APROBADO` que todavía no estén asociados a ninguna Orden de Trabajo.
 
-### RN16 — Mismo siniestro
+### RN15 — Mismo siniestro
 
 Todos los Presupuestos de una Orden de Trabajo, incluidos los que se incorporen posteriormente mientras permanezca en `BORRADOR`, deben pertenecer al mismo Siniestro de la Orden de Trabajo.
 
-### RN17 — Uso único de presupuesto
+### RN16 — Uso único de presupuesto
 
 Un Presupuesto puede pertenecer como máximo a una Orden de Trabajo. Su asociación es permanente dentro del alcance del MVP: no puede quitarse, reemplazarse ni reasignarse. La incorporación posterior es exclusivamente aditiva y un Presupuesto que ya pertenece a la misma Orden de Trabajo no puede agregarse nuevamente.
 
-### RN18 — Tareas de la Orden de Trabajo
+### RN17 — Tareas de la Orden de Trabajo
 
 Cada `DetalleReparacion` de un Presupuesto asociado origina una tarea independiente en la Orden de Trabajo y conserva su procedencia en ese Presupuesto. Dos detalles de Presupuestos distintos que referencien la misma `Reparacion` representan tareas distintas y no se consolidan ni se deduplican por `reparacionId`.
 
@@ -835,7 +774,7 @@ No pueden agregarse nuevas tareas desde la Orden de Trabajo.
 
 Cuando se incorpora un Presupuesto adicional a una Orden de Trabajo en estado `BORRADOR`, sus `DetalleReparacion` se incorporan como nuevas tareas u ocurrencias derivadas conforme a estas mismas reglas.
 
-### RN19 — Sector de reparación
+### RN18 — Sector de reparación
 
 Cada reparación pertenece a un único sector.
 
@@ -843,31 +782,31 @@ Un sector puede contener múltiples reparaciones.
 
 Al incorporar Presupuestos adicionales, cada Sector derivado se relaciona una sola vez con la Orden de Trabajo. Los Sectores nuevos comienzan sin observación; los Sectores que ya pertenecen a la Orden de Trabajo conservan su relación y su observación existente.
 
-### RN20 — Finalización de la Orden de Trabajo
+### RN19 — Finalización de la Orden de Trabajo
 
 La confección de la Orden de Trabajo solo puede finalizar cuando todas las reparaciones se encuentren correctamente sectorizadas. Al pasar a `FINALIZADA`, queda disponible para consulta del Mecánico y no puede reabrirse, incorporar nuevos Presupuestos ni modificar las observaciones de sus Sectores. Esta finalización no representa que las reparaciones físicas hayan terminado.
 
-### RN21 — Estado del siniestro
+### RN20 — Estado del siniestro
 
 Cuando se registra el primer presupuesto, el siniestro pasa a `PRESUPUESTADO`.
 
 La finalización de una Orden de Trabajo no modifica el estado del Siniestro, que permanece `PRESUPUESTADO`.
 
-Si aparecen nuevas reparaciones después de finalizar una Orden de Trabajo, debe crearse un nuevo Presupuesto y recorrerse nuevamente el flujo de envío y aprobación antes de generar una nueva Orden de Trabajo para el mismo Siniestro. La Orden de Trabajo anterior permanece `FINALIZADA` e histórica.
+Si aparecen nuevas reparaciones después de finalizar una Orden de Trabajo, debe crearse un nuevo Presupuesto y recorrerse nuevamente el registro del envío y de la respuesta externa antes de generar una nueva Orden de Trabajo para el mismo Siniestro. La Orden de Trabajo anterior permanece `FINALIZADA` e histórica.
 
-### RN22 — Baja lógica
+### RN21 — Baja lógica
 
 Clientes, Vehículos y Aseguradoras se eliminan mediante baja lógica.
 
 Los registros inactivos permanecen disponibles para consultas históricas, pero no pueden utilizarse en operaciones nuevas.
 
-### RN23 — Historial
+### RN22 — Historial
 
 Siniestros, Presupuestos y Órdenes de Trabajo no pueden eliminarse.
 
-### RN24 — Actualización manual del estado
+### RN23 — Actualización manual del estado
 
-Si el sistema no puede procesar automáticamente la respuesta de la aseguradora, la Recepcionista o el Encargado podrán registrar manualmente el resultado, cambiando un presupuesto ENVIADO a APROBADO o RECHAZADO.
+La Recepcionista o el Encargado podrán registrar manualmente una respuesta externa como APROBADO o RECHAZADO, cambiando un presupuesto `ENVIADO` al estado correspondiente.
 
 
 # 23. Integraciones externas
@@ -879,32 +818,6 @@ Se utilizará almacenamiento externo para guardar las fotografías y documentaci
 Supabase Storage constituye una dependencia esencial para registrar un Siniestro. La base de datos almacenará únicamente la información necesaria para relacionar cada archivo con su siniestro, incluida una referencia generada por el servidor a partir de una carga exitosa en Storage. No se aceptarán referencias arbitrarias provistas por el cliente.
 
 Las credenciales del servicio deberán utilizarse exclusivamente del lado servidor.
-
-## 23.2. Servicio de IA
-
-Se utilizará un servicio externo de IA para extraer de la denuncia:
-
-- número de siniestro;
-- número de póliza.
-
-Esta integración es accesoria.
-
-Una falla del servicio no debe impedir registrar el siniestro, siempre que los datos requeridos sean ingresados manualmente.
-
-## 23.3. Mailtrap
-
-Mailtrap Email Sandbox se utilizará en el MVP para simular la comunicación por email con las aseguradoras.
-
-El sistema deberá:
-
-- enviar presupuestos;
-- recuperar respuestas;
-- identificar el presupuesto correspondiente;
-- determinar si fue aprobado o rechazado;
-- actualizar su estado cuando la respuesta sea válida.
-
-El uso de Mailtrap representa una simulación del proceso de comunicación y no una integración real con los sistemas internos de una aseguradora.
-
 
 # 24. Manejo de fallas de servicios externos
 
@@ -928,37 +841,6 @@ Si falla la carga de cualquiera de los documentos obligatorios:
 - si la compensación falla, se registra técnicamente el incidente.
 
 Esta compensación se limita a los archivos cargados durante el intento fallido y no habilita la eliminación de documentación perteneciente a un Siniestro ya registrado.
-
-## 24.2. Falla de IA
-
-Si falla:
-
-- se permite continuar manualmente;
-- no se pierde la información cargada;
-- se registra el error.
-
-## 24.3. Falla de envío de email
-
-Si falla el envío:
-
-- el presupuesto no pasa a `ENVIADO`;
-- permanece en `BORRADOR`;
-- se informa el error;
-- puede reintentarse.
-
-## 24.4. Falla al consultar respuestas
-
-Si la respuesta de la aseguradora fue recibida por un medio verificable pero el sistema no pudo procesarla automáticamente, un usuario autorizado podrá registrar manualmente el resultado.
-
-
-## 24.5. Respuesta inválida
-
-Si se recibe un email cuyo contenido no permite determinar aprobación o rechazo:
-
-- no se modifica el presupuesto;
-- permanece `ENVIADO`;
-- se registra el incidente.
-
 
 # 25. Persistencia de borradores
 
@@ -1059,14 +941,14 @@ Quedan fuera del alcance del MVP:
 
 # 30. Flujo general del MVP
 
+El flujo del Presupuesto es: `BORRADOR → registro manual del envío externo → ENVIADO → registro manual de la respuesta externa → APROBADO o RECHAZADO`.
+
 RECEPCIONISTA / ENCARGADO
            │
            ▼
    Registrar Siniestro
            │
            ├── Documentación → Storage externo
-           │
-           └── Denuncia → IA (opcional)
            │
            ▼
      SINIESTRO: REGISTRADO
@@ -1080,23 +962,15 @@ RECEPCIONISTA / ENCARGADO
            ▼
       BORRADOR
            │
-           │ confirmar
+           │ registrar envío externo
            ▼
-    Enviar por email
+      ENVIADO
            │
-      ┌────┴─────┐
-      │          │
-    falla        OK
-      │          │
-      ▼          ▼
-  BORRADOR     ENVIADO
-                  │
-                  ▼
-          Respuesta aseguradora
-                  │
-            ┌─────┴─────┐
-            ▼           ▼
-        APROBADO     RECHAZADO
+           │ registrar respuesta externa
+           ▼
+     ┌─────┴─────┐
+     ▼           ▼
+ APROBADO     RECHAZADO
             │
             │
             │ uno o varios presupuestos
@@ -1121,7 +995,7 @@ RECEPCIONISTA / ENCARGADO
                   ▼
           FIN DEL MVP
 
-La finalización de la Orden de Trabajo no cambia el estado del Siniestro, que permanece `PRESUPUESTADO`. Si posteriormente aparecen nuevas reparaciones, se inicia para el mismo Siniestro otro ciclo de Presupuesto, envío, aprobación y nueva Orden de Trabajo; la Orden de Trabajo anterior permanece `FINALIZADA` e histórica.
+La finalización de la Orden de Trabajo no cambia el estado del Siniestro, que permanece `PRESUPUESTADO`. Si posteriormente aparecen nuevas reparaciones, se inicia para el mismo Siniestro otro ciclo de Presupuesto, registro del envío, registro de la respuesta externa y nueva Orden de Trabajo; la Orden de Trabajo anterior permanece `FINALIZADA` e histórica.
 
 
 # 31. Criterio de finalización del MVP
@@ -1134,8 +1008,8 @@ El MVP se considera funcional cuando el flujo completo puede ejecutarse desde un
 4. Registrar/consultar Aseguradora.
 5. Registrar un Siniestro con su documentación.
 6. Crear un Presupuesto en estado `BORRADOR` con al menos una reparación y, opcionalmente, repuestos.
-7. Confirmarlo y enviarlo.
-8. Procesar una respuesta simulada de aseguradora.
+7. Registrar manualmente que fue enviado a la aseguradora.
+8. Registrar manualmente una respuesta externa como aprobada o rechazada.
 9. Obtener un presupuesto `APROBADO`.
 10. Seleccionar uno o varios presupuestos aprobados del mismo siniestro.
 11. Generar una Orden de Trabajo.
