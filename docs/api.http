@@ -3,13 +3,15 @@
 # Requisitos:
 #   1. Ejecutar `npm run db:seed` sobre la base de desarrollo.
 #   2. Levantar la aplicación con `npm run dev`.
-#   3. Iniciar sesión normalmente mediante Auth.js y Google en el entorno donde
-#      se ejecutarán los requests. Un Usuario local activo con vínculo compatible
+#   3. Iniciar sesión normalmente mediante Auth.js y Google en
+#      `http://localhost:3000`. Un Usuario local activo con vínculo compatible
 #      puede iniciar sesión; si el email Google válido no existe, se crea un
 #      Usuario activo con rol MECANICO. Un Usuario preparado con otro rol lo
-#      conserva al vincularse; los Usuarios inactivos son rechazados. El cliente
-#      HTTP debe conservar esa sesión válida.
-#   4. Ejecutar primero el listado de cada sección. Los requests siguientes
+#      conserva al vincularse; los Usuarios inactivos son rechazados.
+#   4. Ejecutar el request "Cargar sesión real de Auth.js en REST Client" de la
+#      sección siguiente. REST Client solicitará interactivamente la cookie real
+#      y conservará la sesión en su cookie jar para los requests posteriores.
+#   5. Ejecutar primero el listado de cada sección. Los requests siguientes
 #      reutilizan IDs obtenidos de esas respuestas; no hay UUID de catálogos
 #      inventados ni copiados de otro entorno.
 #
@@ -46,18 +48,35 @@
 ###############################################################################
 # AUTORIZACIÓN — CASOS DE CLASE 6
 ###############################################################################
-# Este archivo no obtiene ni reutiliza automáticamente la sesión del navegador.
-# Para los casos autenticados, iniciar sesión mediante Auth.js y Google con el
-# usuario indicado y configurar el cliente HTTP para que use la sesión real de
-# Auth.js del mismo entorno. No copiar ni versionar cookies, tokens o secretos.
+# El navegador y REST Client no comparten cookies. Para cargar una sesión real:
+# 1. Iniciar sesión con Google en `http://localhost:3000` con el usuario indicado.
+# 2. En DevTools, copiar temporalmente el par nombre=valor de la cookie
+#    `authjs.session-token` perteneciente a `http://localhost:3000`.
+# 3. Ejecutar el request de bootstrap siguiente y pegar el par cuando REST Client
+#    lo solicite. El prompt evita que el valor quede escrito en este archivo.
+# 4. Verificar un 200 con la sesión y continuar usando siempre `localhost`, sin
+#    cambiar el host por `127.0.0.1`. Auth.js renueva la cookie y REST Client la
+#    conserva en su cookie jar para los requests posteriores del mismo host.
+#
+# La cookie es una credencial temporal y sensible: no guardarla en archivos ni
+# incluirla en commits, capturas o documentación. Para cambiar de usuario o rol,
+# iniciar la sesión real correspondiente en el navegador y repetir el bootstrap.
+# La opción `rest-client.rememberCookiesForSubsequentRequests` debe estar activa;
+# su valor predeterminado en REST Client es `true`.
 
 ### Sin sesión de Auth.js: esperado 401
-# Ejecutar desde un cliente HTTP sin una sesión válida.
+# Ejecutar antes del bootstrap, con el cookie jar sin una sesión válida.
 GET {{baseUrl}}/api/clientes
 
 
+### Cargar sesión real de Auth.js en REST Client: esperado 200
+# @prompt authCookie Pegá temporalmente el par nombre=valor de authjs.session-token
+GET {{baseUrl}}/api/auth/session
+Cookie: {{authCookie}}
+
+
 ### Sesión real de MECANICO en una operación no permitida: esperado 403
-# Iniciar sesión como MECANICO y usar esa sesión real en el cliente HTTP.
+# Cargar mediante el bootstrap una sesión real de un Usuario MECANICO.
 GET {{baseUrl}}/api/clientes
 
 
