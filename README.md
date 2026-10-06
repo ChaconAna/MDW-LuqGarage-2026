@@ -32,9 +32,51 @@ Next.js (App Router) + TypeScript + PostgreSQL (Supabase) + Prisma + Zod + Auth.
 
 Supabase Storage para archivos. Deploy en Vercel.
 
-## Cómo levantarlo
+## Instalación y ejecución local
 
-`npm install` · copiar `.env.example` a `.env.local` · `npm run dev`
+Se recomienda utilizar Node.js 20, la misma versión utilizada por la CI del
+proyecto.
+
+1. Instalar las dependencias:
+
+   ```bash
+   npm install
+   ```
+
+2. Copiar `.env.example` como `.env.local` y completar todas las variables de
+   base de datos, Supabase Storage y autenticación antes de continuar. No deben
+   incluirse secretos reales en archivos versionados.
+
+3. Aplicar las migraciones existentes de Prisma a la base configurada:
+
+   ```bash
+   npx prisma migrate dev
+   ```
+
+4. Cargar los datos iniciales:
+
+   ```bash
+   npm run db:seed
+   ```
+
+5. Iniciar el servidor de desarrollo:
+
+   ```bash
+   npm run dev
+   ```
+
+La aplicación queda disponible de forma predeterminada en
+`http://localhost:3000`.
+
+### Comandos disponibles
+
+```bash
+npm run dev        # servidor de desarrollo
+npm test           # tests
+npm run typecheck  # chequeo de tipos
+npm run lint       # lint
+npm run build      # build de producción
+```
 
 ## Autenticación con Google
 
