@@ -35,3 +35,21 @@ Supabase Storage para archivos. Deploy en Vercel.
 ## Cómo levantarlo
 
 `npm install` · copiar `.env.example` a `.env.local` · `npm run dev`
+
+## Autenticación con Google
+
+Configurar `AUTH_SECRET`, `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` en
+`.env.local` para desarrollo y como variables de entorno del deployment en
+Vercel.
+
+En el cliente OAuth de Google deben registrarse estos redirect URI de Auth.js:
+
+- Desarrollo: `http://localhost:3000/api/auth/callback/google`
+- Producción: `https://mdw-luq-garage-2026.vercel.app/api/auth/callback/google`
+
+Un usuario Google nuevo se crea con rol `MECANICO`. Para probar la API como
+`RECEPCIONISTA` o `ENCARGADO_DEL_TALLER`, el Usuario local puede prepararse o
+modificarse manualmente mediante Prisma Studio en el entorno de prueba. Este es
+un mecanismo de preparación del MVP, no una funcionalidad del producto. El rol
+se almacena en la base de datos y se revalida del lado servidor al autorizar
+cada request.
