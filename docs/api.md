@@ -363,76 +363,55 @@ consulta la existencia física del archivo.
 | Método y ruta | Roles permitidos | Propósito | Éxito | Errores específicos |
 |---|---|---|---|---|
 | `GET /api/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Lista Siniestros con paginación, sin documentos | `200` | `400` query inválida |
-| `POST /api/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Registra un Siniestro con toda su documentación | `201` | `400` body/RN02/RN06 inválidos, `404` relación inexistente, `409` número duplicado o relación inactiva |
+| `POST /api/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Registra un Siniestro con toda su documentación | `201` | `400` formulario/RN02/RN06 inválidos, `404` relación inexistente, `409` número duplicado o relación inactiva, `502` fallo de Storage |
 | `GET /api/siniestros/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene un Siniestro con sus documentos | `200` | `400` UUID inválido, `404` inexistente |
 
 ### POST `/api/siniestros`
 
-Body exacto:
+El request usa `multipart/form-data` y requiere los siguientes campos de texto:
 
-```json
-{
-  "numeroSiniestro": "SIN-2026-0001",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "MODERADO",
-  "numeroPoliza": "POL-123456",
-  "clienteId": "uuid",
-  "vehiculoId": "uuid",
-  "aseguradoraId": "uuid",
-  "documentos": [
-    {
-      "tipo": "DENUNCIA",
-      "referenciaArchivo": "documentos/denuncia.jpg"
-    },
-    {
-      "tipo": "LATERAL_DERECHA",
-      "referenciaArchivo": "documentos/lateral-derecha.jpg"
-    },
-    {
-      "tipo": "LATERAL_IZQUIERDA",
-      "referenciaArchivo": "documentos/lateral-izquierda.jpg"
-    },
-    {
-      "tipo": "FRONTAL",
-      "referenciaArchivo": "documentos/frontal.jpg"
-    },
-    {
-      "tipo": "TRASERA",
-      "referenciaArchivo": "documentos/trasera.jpg"
-    },
-    {
-      "tipo": "CERTIFICADO_COBERTURA",
-      "referenciaArchivo": "documentos/certificado.jpg"
-    }
-  ]
-}
+| Campo | Descripción |
+|---|---|
+| `numeroSiniestro` | Número de Siniestro no vacío. |
+| `fechaSiniestro` | Timestamp ISO válido con offset. |
+| `gradoDano` | `LEVE`, `MODERADO` o `GRAVE`. |
+| `numeroPoliza` | Número de póliza no vacío. |
+| `clienteId` | UUID. |
+| `vehiculoId` | UUID. |
+| `aseguradoraId` | UUID. |
+
+Cada documento se representa mediante dos partes del formulario con el mismo
+índice no negativo `n`:
+
+```text
+documentos[n][tipo]     = categoría documental
+documentos[n][archivo]  = archivo
 ```
 
-`numeroSiniestro`, `numeroPoliza` y cada `referenciaArchivo` deben ser strings
-no vacíos. `fechaSiniestro` debe ser un timestamp ISO válido y no puede ser
-posterior a la fecha de registro capturada por el servidor. `gradoDano` acepta
-`LEVE`, `MODERADO` o `GRAVE`. Los tres identificadores relacionados deben ser
-UUID.
+El índice solo asocia el tipo con su archivo. Cada par debe contener ambos
+campos. El cliente envía los archivos y no puede enviar `referenciaArchivo`;
+esa referencia es generada por el servidor luego de una carga exitosa en
+Storage.
 
-El array `documentos` debe contener exactamente un elemento de cada tipo
-obligatorio: `DENUNCIA`, `LATERAL_DERECHA`, `LATERAL_IZQUIERDA`, `FRONTAL`,
-`TRASERA` y `CERTIFICADO_COBERTURA`. Puede contener cero o más elementos
-`ADICIONAL`; no se exige que `referenciaArchivo` sea único.
+Los documentos deben incluir exactamente un archivo de cada tipo obligatorio:
+`DENUNCIA`, `LATERAL_DERECHA`, `LATERAL_IZQUIERDA`, `FRONTAL`, `TRASERA` y
+`CERTIFICADO_COBERTURA`. También pueden incluir cero o más documentos de tipo
+`ADICIONAL`.
 
-El body es estricto. No acepta `id`, `fechaRegistro`, `estado`,
-`documentos[].id`, `documentos[].siniestroId` ni otros campos adicionales.
-El servidor genera esos valores, establece el estado `REGISTRADO` y crea el
-Siniestro y todos sus documentos atómicamente. La respuesta `201` utiliza la
-representación del detalle definida arriba.
+`fechaSiniestro` no puede ser posterior a la fecha de registro capturada por
+el servidor. La respuesta `201` utiliza la representación del detalle definida
+arriba.
 
 Una relación inexistente devuelve `404`. Una relación existente pero inactiva
 o un `numeroSiniestro` duplicado devuelve `409`. Una fecha posterior a la de
-registro o una composición documental que incumple RN06 devuelve `400`.
+registro, una composición documental que incumple RN06 o un formulario
+multipart inválido devuelve `400`.
 
-En este incremento, `referenciaArchivo` es exclusivamente la referencia
-textual persistida. El POST no carga ni comprueba físicamente archivos en
-Supabase Storage; esa integración queda pendiente para el incremento de
-servicios externos.
+Si no es posible almacenar la documentación, devuelve `502` con:
+
+```json
+{ "error": "No fue posible almacenar la documentación." }
+```
 
 No están implementados `PATCH` ni `DELETE` de Siniestro.
 
@@ -886,8 +865,7 @@ excepción inesperada, con el mensaje exacto `Error interno`.
 | Operación | Situación | Status | Mensaje exacto |
 |---|---|---:|---|
 | `GET /api/siniestros` | Paginación inválida | `400` | `Los parámetros de paginación son inválidos.` |
-| `POST /api/siniestros` | JSON malformado | `400` | `El cuerpo de la solicitud no es un JSON válido.` |
-| `POST /api/siniestros` | Body inválido, incluida la documentación RN06 | `400` | `Los datos del Siniestro son inválidos.` |
+| `POST /api/siniestros` | Formulario multipart inválido, incluida la documentación RN06 | `400` | `Los datos del Siniestro son inválidos.` |
 | `POST /api/siniestros` | Fecha del Siniestro posterior a la fecha de registro, RN02 | `400` | `La fecha del Siniestro no puede ser posterior a la fecha de registro.` |
 | `POST /api/siniestros` | Cliente inexistente | `404` | `Cliente no encontrado.` |
 | `POST /api/siniestros` | Vehículo inexistente | `404` | `Vehículo no encontrado.` |
@@ -896,6 +874,7 @@ excepción inesperada, con el mensaje exacto `Error interno`.
 | `POST /api/siniestros` | Vehículo inactivo | `409` | `El Vehículo indicado está inactivo.` |
 | `POST /api/siniestros` | Aseguradora inactiva | `409` | `La Aseguradora indicada está inactiva.` |
 | `POST /api/siniestros` | Número de Siniestro duplicado | `409` | `Ya existe un Siniestro con el número indicado.` |
+| `POST /api/siniestros` | No fue posible almacenar la documentación | `502` | `No fue posible almacenar la documentación.` |
 | `GET /api/siniestros/[id]` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
 | `GET /api/siniestros/[id]` | Siniestro inexistente | `404` | `Siniestro no encontrado.` |
 

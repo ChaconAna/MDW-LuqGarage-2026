@@ -41,6 +41,7 @@
 
 @baseUrl = http://localhost:3000
 @uuidInexistente = 00000000-0000-4000-8000-000000000000
+@archivoSiniestro = ./REEMPLAZAR-POR-ARCHIVO-REAL/documento.jpg
 
 ###############################################################################
 # AUTORIZACIÓN — CASOS DE CLASE 6
@@ -497,202 +498,695 @@ GET {{baseUrl}}/api/siniestros/no-es-un-uuid
 GET {{baseUrl}}/api/siniestros/{{uuidInexistente}}
 
 
-### Crear un Siniestro con dos documentos adicionales → 201
+### Crear un Siniestro con la documentación obligatoria → 201
 # Los recursos relacionados se toman del Siniestro sembrado. Cambiar el
-# numeroSiniestro si esta creación ya fue ejecutada.
+# numeroSiniestro si esta creación ya fue ejecutada. Este repositorio no
+# incluye archivos de ejemplo: reemplazar `archivoSiniestro` por un archivo
+# local real antes de ejecutar los requests de Siniestros.
 # @name crearSiniestroDocumentacion
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroBoundary
 
-{
-  "numeroSiniestro": "SIN-DOCS-POST-001",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "MODERADO",
-  "numeroPoliza": "POL-DOCS-POST-001",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/post/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/post/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/post/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/post/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/post/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/post/certificado.jpg" },
-    { "tipo": "ADICIONAL", "referenciaArchivo": "docs/post/adicional-1.jpg" },
-    { "tipo": "ADICIONAL", "referenciaArchivo": "docs/post/adicional-2.jpg" }
-  ]
-}
+--SiniestroBoundary
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-POST-001
+--SiniestroBoundary
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroBoundary
+Content-Disposition: form-data; name="gradoDano"
+
+MODERADO
+--SiniestroBoundary
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-POST-001
+--SiniestroBoundary
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="denuncia.jpg"
+Content-Type: application/octet-stream
+
+< {{archivoSiniestro}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="lateral-derecha.jpg"
+Content-Type: application/octet-stream
+
+< {{archivoSiniestro}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="lateral-izquierda.jpg"
+Content-Type: application/octet-stream
+
+< {{archivoSiniestro}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="frontal.jpg"
+Content-Type: application/octet-stream
+
+< {{archivoSiniestro}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+TRASERA
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="trasera.jpg"
+Content-Type: application/octet-stream
+
+< {{archivoSiniestro}}
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroBoundary
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="certificado-cobertura.jpg"
+Content-Type: application/octet-stream
+
+< {{archivoSiniestro}}
+--SiniestroBoundary--
 
 
 ### Body de Siniestro inválido → 400
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroInvalido
 
-{
-  "id": "{{uuidInexistente}}"
-}
+--SiniestroInvalido
+Content-Disposition: form-data; name="id"
+
+{{uuidInexistente}}
+--SiniestroInvalido--
 
 
 ### Fecha del Siniestro posterior a fechaRegistro → 400
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroRN02
 
-{
-  "numeroSiniestro": "SIN-DOCS-RN02-INVALIDO",
-  "fechaSiniestro": "2099-01-01T00:00:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-RN02",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/rn02/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/rn02/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/rn02/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/rn02/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/rn02/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/rn02/certificado.jpg" }
-  ]
-}
+--SiniestroRN02
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-RN02-INVALIDO
+--SiniestroRN02
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2999-01-01T00:00:00.000Z
+--SiniestroRN02
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroRN02
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-RN02
+--SiniestroRN02
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroRN02
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroRN02
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+TRASERA
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroRN02
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN02--
 
 
 ### Documentación obligatoria incompleta: falta TRASERA → 400
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroRN06Incompleto
 
-{
-  "numeroSiniestro": "SIN-DOCS-RN06-INCOMPLETO",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-RN06-1",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/incompleto/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/incompleto/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/incompleto/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/incompleto/frontal.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/incompleto/certificado.jpg" }
-  ]
-}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-RN06-INCOMPLETO
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-RN06-1
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroRN06Incompleto
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Incompleto--
 
 
 ### Categoría obligatoria DENUNCIA duplicada → 400
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroRN06Duplicado
 
-{
-  "numeroSiniestro": "SIN-DOCS-RN06-DUPLICADO",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-RN06-2",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/duplicado/denuncia-1.jpg" },
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/duplicado/denuncia-2.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/duplicado/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/duplicado/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/duplicado/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/duplicado/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/duplicado/certificado.jpg" }
-  ]
-}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-RN06-DUPLICADO
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-RN06-2
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+DENUNCIA
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_DERECHA
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+FRONTAL
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+TRASERA
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[6][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroRN06Duplicado
+Content-Disposition: form-data; name="documentos[6][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroRN06Duplicado--
 
 
 ### Cliente inexistente → 404
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroCliente404
 
-{
-  "numeroSiniestro": "SIN-DOCS-CLIENTE-INEXISTENTE",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-404-1",
-  "clienteId": "{{uuidInexistente}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-1/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-1/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-1/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-1/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-1/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-1/certificado.jpg" }
-  ]
-}
+--SiniestroCliente404
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-CLIENTE-INEXISTENTE
+--SiniestroCliente404
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroCliente404
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroCliente404
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-404-1
+--SiniestroCliente404
+Content-Disposition: form-data; name="clienteId"
+
+{{uuidInexistente}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+TRASERA
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroCliente404
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroCliente404--
 
 
 ### Vehículo inexistente → 404
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroVehiculo404
 
-{
-  "numeroSiniestro": "SIN-DOCS-VEHICULO-INEXISTENTE",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-404-2",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{uuidInexistente}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-2/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-2/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-2/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-2/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-2/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-2/certificado.jpg" }
-  ]
-}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-VEHICULO-INEXISTENTE
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-404-2
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="vehiculoId"
+
+{{uuidInexistente}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+TRASERA
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroVehiculo404
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroVehiculo404--
 
 
 ### Aseguradora inexistente → 404
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroAseguradora404
 
-{
-  "numeroSiniestro": "SIN-DOCS-ASEGURADORA-INEXISTENTE",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-404-3",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{uuidInexistente}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/404-3/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/404-3/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/404-3/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/404-3/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/404-3/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/404-3/certificado.jpg" }
-  ]
-}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-DOCS-ASEGURADORA-INEXISTENTE
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-404-3
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{uuidInexistente}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+TRASERA
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroAseguradora404
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroAseguradora404--
 
 
 ### Número del Siniestro sembrado duplicado, sin ADICIONAL → 409
 POST {{baseUrl}}/api/siniestros
-Content-Type: application/json
+Content-Type: multipart/form-data; boundary=SiniestroDuplicado409
 
-{
-  "numeroSiniestro": "SIN-SEED-VALIDO-001",
-  "fechaSiniestro": "2026-03-03T14:30:00.000Z",
-  "gradoDano": "LEVE",
-  "numeroPoliza": "POL-DOCS-DUPLICADO",
-  "clienteId": "{{listarSiniestros.response.body.$.data[0].cliente.id}}",
-  "vehiculoId": "{{listarSiniestros.response.body.$.data[0].vehiculo.id}}",
-  "aseguradoraId": "{{listarSiniestros.response.body.$.data[0].aseguradora.id}}",
-  "documentos": [
-    { "tipo": "DENUNCIA", "referenciaArchivo": "docs/409/denuncia.jpg" },
-    { "tipo": "LATERAL_DERECHA", "referenciaArchivo": "docs/409/lateral-derecha.jpg" },
-    { "tipo": "LATERAL_IZQUIERDA", "referenciaArchivo": "docs/409/lateral-izquierda.jpg" },
-    { "tipo": "FRONTAL", "referenciaArchivo": "docs/409/frontal.jpg" },
-    { "tipo": "TRASERA", "referenciaArchivo": "docs/409/trasera.jpg" },
-    { "tipo": "CERTIFICADO_COBERTURA", "referenciaArchivo": "docs/409/certificado.jpg" }
-  ]
-}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="numeroSiniestro"
+
+SIN-SEED-VALIDO-001
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="fechaSiniestro"
+
+2026-03-03T14:30:00.000Z
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="gradoDano"
+
+LEVE
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="numeroPoliza"
+
+POL-DOCS-DUPLICADO
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="clienteId"
+
+{{listarSiniestros.response.body.$.data[0].cliente.id}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="vehiculoId"
+
+{{listarSiniestros.response.body.$.data[0].vehiculo.id}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="aseguradoraId"
+
+{{listarSiniestros.response.body.$.data[0].aseguradora.id}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[0][tipo]"
+
+DENUNCIA
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[0][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[1][tipo]"
+
+LATERAL_DERECHA
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[1][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[2][tipo]"
+
+LATERAL_IZQUIERDA
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[2][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[3][tipo]"
+
+FRONTAL
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[3][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[4][tipo]"
+
+TRASERA
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[4][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[5][tipo]"
+
+CERTIFICADO_COBERTURA
+--SiniestroDuplicado409
+Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documento.jpg"
+
+< {{archivoSiniestro}}
+--SiniestroDuplicado409--
+
+
+### Falla de Storage → 502
+# Si no es posible almacenar la documentación, el endpoint responde:
+# { "error": "No fue posible almacenar la documentación." }
 
 
 # No se incluye un request de relación inactiva: el seed deja activas las tres
