@@ -950,6 +950,18 @@ excepción inesperada, con el mensaje exacto `Error interno`.
 | `PATCH /api/presupuestos/[id]` | Una o más Reparaciones inexistentes | `404` | `Una o más Reparaciones no fueron encontradas.` |
 | `PATCH /api/presupuestos/[id]` | Uno o más Repuestos inexistentes | `404` | `Uno o más Repuestos no fueron encontrados.` |
 | `PATCH /api/presupuestos/[id]` | Presupuesto fuera de `BORRADOR` o cambio concurrente de estado | `409` | `El Presupuesto sólo puede modificarse en estado BORRADOR.` |
+| `POST /api/presupuestos/[id]/enviar` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `POST /api/presupuestos/[id]/enviar` | Presupuesto inexistente | `404` | `Presupuesto no encontrado.` |
+| `POST /api/presupuestos/[id]/enviar` | Estado de origen distinto de `BORRADOR` | `409` | `El Presupuesto no está en estado BORRADOR.` |
+| `POST /api/presupuestos/[id]/enviar` | Error inesperado | `500` | `Error interno` |
+| `POST /api/presupuestos/[id]/aprobar` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `POST /api/presupuestos/[id]/aprobar` | Presupuesto inexistente | `404` | `Presupuesto no encontrado.` |
+| `POST /api/presupuestos/[id]/aprobar` | Estado de origen distinto de `ENVIADO` | `409` | `El Presupuesto no está en estado ENVIADO.` |
+| `POST /api/presupuestos/[id]/aprobar` | Error inesperado | `500` | `Error interno` |
+| `POST /api/presupuestos/[id]/rechazar` | ID con formato inválido | `400` | `El id debe ser un UUID válido.` |
+| `POST /api/presupuestos/[id]/rechazar` | Presupuesto inexistente | `404` | `Presupuesto no encontrado.` |
+| `POST /api/presupuestos/[id]/rechazar` | Estado de origen distinto de `ENVIADO` | `409` | `El Presupuesto no está en estado ENVIADO.` |
+| `POST /api/presupuestos/[id]/rechazar` | Error inesperado | `500` | `Error interno` |
 
 ### Orden de Trabajo
 
