@@ -1,13 +1,112 @@
 import { NextResponse } from "next/server";
 
 import { requerirRol } from "@/lib/auth";
-import { crearSiniestro, listarSiniestros } from "@/lib/db/siniestro";
+import { listarSiniestros } from "@/lib/db/siniestro";
 import { responderError } from "@/lib/http";
 import {
-  crearSiniestroSchema,
+  crearSiniestroMultipartSchema,
   listadoSiniestrosQuerySchema,
 } from "@/lib/schemas/siniestro";
-import { esFechaSiniestroValida } from "@/lib/services/siniestro";
+import {
+  esFechaSiniestroValida,
+  registrarSiniestroConDocumentos,
+} from "@/lib/services/siniestro";
+
+const camposSiniestroMultipart = [
+  "numeroSiniestro",
+  "fechaSiniestro",
+  "gradoDano",
+  "numeroPoliza",
+  "clienteId",
+  "vehiculoId",
+  "aseguradoraId",
+] as const;
+
+const campoDocumentoMultipartRegex =
+  /^documentos\[(0|[1-9]\d*)\]\[(tipo|archivo)\]$/;
+
+type DocumentoMultipart = {
+  tipo?: string;
+  archivo?: File;
+};
+
+function convertirFormDataSiniestro(formData: FormData): unknown {
+  const campos: Record<(typeof camposSiniestroMultipart)[number], string> = {
+    numeroSiniestro: "",
+    fechaSiniestro: "",
+    gradoDano: "",
+    numeroPoliza: "",
+    clienteId: "",
+    vehiculoId: "",
+    aseguradoraId: "",
+  };
+
+  for (const nombreCampo of camposSiniestroMultipart) {
+    const valores = formData.getAll(nombreCampo);
+
+    if (valores.length !== 1 || typeof valores[0] !== "string") {
+      return null;
+    }
+
+    campos[nombreCampo] = valores[0];
+  }
+
+  const documentosPorIndice = new Map<number, DocumentoMultipart>();
+
+  for (const [nombreCampo, valor] of formData.entries()) {
+    if (camposSiniestroMultipart.includes(nombreCampo as never)) {
+      continue;
+    }
+
+    const coincidencia = campoDocumentoMultipartRegex.exec(nombreCampo);
+
+    if (!coincidencia) {
+      return null;
+    }
+
+    const indice = Number(coincidencia[1]);
+    const propiedad = coincidencia[2];
+    const documento = documentosPorIndice.get(indice) ?? {};
+
+    if (propiedad === "tipo") {
+      if (documento.tipo !== undefined || typeof valor !== "string") {
+        return null;
+      }
+
+      documento.tipo = valor;
+    } else {
+      if (documento.archivo !== undefined || !(valor instanceof File)) {
+        return null;
+      }
+
+      documento.archivo = valor;
+    }
+
+    documentosPorIndice.set(indice, documento);
+  }
+
+  const documentos = [...documentosPorIndice.entries()]
+    .sort(([indiceA], [indiceB]) => indiceA - indiceB)
+    .map(([, documento]) => {
+      if (documento.tipo === undefined || documento.archivo === undefined) {
+        return null;
+      }
+
+      return {
+        tipo: documento.tipo,
+        archivo: documento.archivo,
+      };
+    });
+
+  if (documentos.some((documento) => documento === null)) {
+    return null;
+  }
+
+  return {
+    ...campos,
+    documentos,
+  };
+}
 
 export async function GET(request: Request) {
   try {
@@ -47,18 +146,20 @@ export async function POST(request: Request) {
   try {
     await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
 
-    let body: unknown;
+    let formData: FormData;
 
     try {
-      body = await request.json();
+      formData = await request.formData();
     } catch {
       return NextResponse.json(
-        { error: "El cuerpo de la solicitud no es un JSON válido." },
+        { error: "Los datos del Siniestro son inválidos." },
         { status: 400 },
       );
     }
 
-    const resultadoBody = crearSiniestroSchema.safeParse(body);
+    const resultadoBody = crearSiniestroMultipartSchema.safeParse(
+      convertirFormDataSiniestro(formData),
+    );
 
     if (!resultadoBody.success) {
       return NextResponse.json(
@@ -81,13 +182,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const resultadoCreacion = await crearSiniestro(
+    const resultadoCreacion = await registrarSiniestroConDocumentos(
       resultadoBody.data,
       fechaRegistro,
     );
 
     if (!resultadoCreacion.creado) {
       switch (resultadoCreacion.motivo) {
+        case "ALMACENAMIENTO_FALLIDO":
+          return NextResponse.json(
+            { error: "No fue posible almacenar la documentación." },
+            { status: 502 },
+          );
         case "CLIENTE_NO_ENCONTRADO":
           return NextResponse.json(
             { error: "Cliente no encontrado." },
