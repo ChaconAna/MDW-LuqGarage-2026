@@ -24,13 +24,13 @@ Flujo principal: `Siniestro → Presupuesto → aprobación/rechazo → Orden de
 
 El flujo del MVP termina al finalizar la generación de la Orden de Trabajo. La ejecución y el seguimiento de las reparaciones dentro del taller quedan fuera del alcance actual.
 
-El backend todavía se encuentra en desarrollo y el repositorio conserva principalmente la estructura y el código de ejemplo iniciales. La especificación funcional completa está en [`docs/spec.md`](./docs/spec.md).
+El backend todavía se encuentra en desarrollo. La especificación funcional completa está en [`docs/spec.md`](./docs/spec.md).
 
 ## Stack
 
 Next.js (App Router) + TypeScript + PostgreSQL (Supabase) + Prisma + Zod + Auth.js + Tailwind CSS + shadcn/ui.
 
-Supabase Storage para archivos, Mailtrap para simular emails y un servicio externo de IA para la extracción asistida de datos. Deploy en Vercel.
+Supabase Storage para archivos. Deploy en Vercel.
 
 ## Cómo levantarlo
 
