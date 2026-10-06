@@ -24,14 +24,74 @@ Flujo principal: `Siniestro → Presupuesto → aprobación/rechazo → Orden de
 
 El flujo del MVP termina al finalizar la generación de la Orden de Trabajo. La ejecución y el seguimiento de las reparaciones dentro del taller quedan fuera del alcance actual.
 
-El backend todavía se encuentra en desarrollo y el repositorio conserva principalmente la estructura y el código de ejemplo iniciales. La especificación funcional completa está en [`docs/spec.md`](./docs/spec.md).
+El backend todavía se encuentra en desarrollo. La especificación funcional completa está en [`docs/spec.md`](./docs/spec.md).
 
 ## Stack
 
 Next.js (App Router) + TypeScript + PostgreSQL (Supabase) + Prisma + Zod + Auth.js + Tailwind CSS + shadcn/ui.
 
-Supabase Storage para archivos, Mailtrap para simular emails y un servicio externo de IA para la extracción asistida de datos. Deploy en Vercel.
+Supabase Storage para archivos. Deploy en Vercel.
 
-## Cómo levantarlo
+## Instalación y ejecución local
 
-`npm install` · copiar `.env.example` a `.env.local` · `npm run dev`
+Se recomienda utilizar Node.js 20, la misma versión utilizada por la CI del
+proyecto.
+
+1. Instalar las dependencias:
+
+   ```bash
+   npm install
+   ```
+
+2. Copiar `.env.example` como `.env.local` y completar todas las variables de
+   base de datos, Supabase Storage y autenticación antes de continuar. No deben
+   incluirse secretos reales en archivos versionados.
+
+3. Aplicar las migraciones existentes de Prisma a la base configurada:
+
+   ```bash
+   npx prisma migrate dev
+   ```
+
+4. Cargar los datos iniciales:
+
+   ```bash
+   npm run db:seed
+   ```
+
+5. Iniciar el servidor de desarrollo:
+
+   ```bash
+   npm run dev
+   ```
+
+La aplicación queda disponible de forma predeterminada en
+`http://localhost:3000`.
+
+### Comandos disponibles
+
+```bash
+npm run dev        # servidor de desarrollo
+npm test           # tests
+npm run typecheck  # chequeo de tipos
+npm run lint       # lint
+npm run build      # build de producción
+```
+
+## Autenticación con Google
+
+Configurar `AUTH_SECRET`, `AUTH_GOOGLE_ID` y `AUTH_GOOGLE_SECRET` en
+`.env.local` para desarrollo y como variables de entorno del deployment en
+Vercel.
+
+En el cliente OAuth de Google deben registrarse estos redirect URI de Auth.js:
+
+- Desarrollo: `http://localhost:3000/api/auth/callback/google`
+- Producción: `https://mdw-luq-garage-2026.vercel.app/api/auth/callback/google`
+
+Un usuario Google nuevo se crea con rol `MECANICO`. Para probar la API como
+`RECEPCIONISTA` o `ENCARGADO_DEL_TALLER`, el Usuario local puede prepararse o
+modificarse manualmente mediante Prisma Studio en el entorno de prueba. Este es
+un mecanismo de preparación del MVP, no una funcionalidad del producto. El rol
+se almacena en la base de datos y se revalida del lado servidor al autorizar
+cada request.

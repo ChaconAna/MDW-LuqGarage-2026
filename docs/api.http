@@ -28,8 +28,8 @@
 # Roles requeridos por los requests existentes:
 # - Clientes, Aseguradoras, Vehículos y Siniestros: RECEPCIONISTA o
 #   ENCARGADO_DEL_TALLER.
-# - GET de Presupuestos: RECEPCIONISTA o ENCARGADO_DEL_TALLER. POST y PATCH:
-#   ENCARGADO_DEL_TALLER.
+# - GET y transiciones manuales de Presupuestos: RECEPCIONISTA o
+#   ENCARGADO_DEL_TALLER. POST de creación y PATCH: ENCARGADO_DEL_TALLER.
 # - Órdenes de Trabajo: ENCARGADO_DEL_TALLER para crear, modificar, agregar
 #   Presupuestos y finalizar. MECANICO solo puede consultar OTs FINALIZADA.
 #   Una OT BORRADOR no es visible para MECANICO y devuelve 404, igual que una
@@ -496,6 +496,30 @@ GET {{baseUrl}}/api/siniestros/no-es-un-uuid
 
 ### Siniestro inexistente → 404
 GET {{baseUrl}}/api/siniestros/{{uuidInexistente}}
+
+
+### Demostración manual de éxito y falla de Supabase Storage
+# 1. Con la configuración válida de Supabase, ejecutar primero el request de
+# creación que aparece a continuación. El resultado esperado es 201 y el
+# Siniestro debe quedar registrado con sus referencias de documentación.
+#
+# 2. Para provocar una falla controlada, cambiar temporalmente en el entorno
+# de prueba una variable de configuración de Supabase por un valor que haga
+# fallar Storage, por ejemplo SUPABASE_STORAGE_BUCKET por el nombre de un
+# bucket inexistente. Usar un numeroSiniestro nuevo para este intento y
+# ejecutar nuevamente el mismo request. El resultado esperado es:
+# HTTP 502
+# { "error": "No fue posible almacenar la documentación." }
+# Verificar que el nuevo Siniestro no quedó persistido y que los logs de la
+# aplicación registraron la falla de Storage.
+#
+# 3. Para demostrar el timeout, configurar temporalmente SUPABASE_URL con una
+# URL de prueba que no responda, usar otro numeroSiniestro nuevo y ejecutar el
+# mismo request. La operación debe finalizar por el timeout configurado y
+# responder 502 con el mensaje anterior, sin quedar esperando indefinidamente.
+#
+# 4. Al terminar cualquiera de las demostraciones, restaurar la configuración
+# válida de Supabase antes de continuar usando la aplicación.
 
 
 ### Crear un Siniestro con la documentación obligatoria → 201
@@ -1184,11 +1208,6 @@ Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documen
 --SiniestroDuplicado409--
 
 
-### Falla de Storage → 502
-# Si no es posible almacenar la documentación, el endpoint responde:
-# { "error": "No fue posible almacenar la documentación." }
-
-
 # No se incluye un request de relación inactiva: el seed deja activas las tres
 # relaciones y producir ese estado requeriría ejecutar bajas lógicas ajenas a
 # este incremento. El contrato y el handler sí contemplan el caso con 409.
@@ -1244,6 +1263,7 @@ Content-Type: application/json
 
 ### Crear un Presupuesto con repuestos → 201
 # Cambiar numeroPresupuesto si esta creación ya fue ejecutada.
+# @name crearPresupuestoParaRechazar
 POST {{baseUrl}}/api/presupuestos
 Content-Type: application/json
 
@@ -1547,15 +1567,36 @@ Content-Type: application/json
 }
 
 
+### Registrar el envío externo del Presupuesto BORRADOR → 200 ENVIADO
+# Ejecutar después de "Crear un Presupuesto sin repuestos".
+# @name enviarPresupuesto
+POST {{baseUrl}}/api/presupuestos/{{crearPresupuestoBorrador.response.body.$.id}}/enviar
+
+
+### Registrar la aprobación externa del Presupuesto ENVIADO → 200 APROBADO
+# Ejecutar después de "Registrar el envío externo del Presupuesto BORRADOR".
+# @name aprobarPresupuesto
+POST {{baseUrl}}/api/presupuestos/{{enviarPresupuesto.response.body.$.id}}/aprobar
+
+
+### Registrar el envío del Presupuesto destinado al ejemplo de rechazo → 200
+# Ejecutar después de "Crear un Presupuesto con repuestos".
+# @name enviarPresupuestoParaRechazar
+POST {{baseUrl}}/api/presupuestos/{{crearPresupuestoParaRechazar.response.body.$.id}}/enviar
+
+
+### Registrar el rechazo externo del Presupuesto ENVIADO → 200 RECHAZADO
+# Ejemplo separado del flujo aprobado. Ejecutar después del envío anterior.
+# @name rechazarPresupuesto
+POST {{baseUrl}}/api/presupuestos/{{enviarPresupuestoParaRechazar.response.body.$.id}}/rechazar
+
+
 ###############################################################################
 # ÓRDENES DE TRABAJO
 ###############################################################################
 # El seed actual deja una única OT FINALIZADA y su único Presupuesto APROBADO
-# ya asociado. Los ejemplos que dependen de crear una OT BORRADOR no pueden
-# encadenarse sólo con este archivo: POST /api/presupuestos crea BORRADORES y
-# la API actual no expone la transición a APROBADO. Los placeholders se
-# conservan de forma explícita para no presentar UUID ficticios como ejemplos
-# reproducibles.
+# ya asociado. El flujo anterior crea y aprueba otro Presupuesto disponible,
+# que permite encadenar los ejemplos de creación de una OT BORRADOR.
 
 ### Listar Órdenes de Trabajo con paginación por defecto → 200
 # @name listarOrdenesTrabajo
@@ -1588,19 +1629,15 @@ GET {{baseUrl}}/api/ordenes-trabajo/{{uuidInexistente}}
 
 
 ### Crear una Orden de Trabajo con Presupuestos aprobados disponibles → 201
-# Requiere reemplazar ambos valores por IDs reales de un Siniestro y de un
-# Presupuesto APROBADO de ese Siniestro que todavía no pertenezca a otra OT.
-# El seed no deja un Presupuesto con ese estado disponible: el APROBADO sembrado
-# ya forma parte de la OT histórica FINALIZADA, y los endpoints actuales no
-# permiten aprobar el Presupuesto BORRADOR que puede crearse en este archivo.
+# Requiere haber ejecutado el flujo BORRADOR → ENVIADO → APROBADO anterior.
 # @name crearOrdenTrabajoBorrador
 POST {{baseUrl}}/api/ordenes-trabajo
 Content-Type: application/json
 
 {
-  "siniestroId": "REEMPLAZAR-POR-UUID-DE-SINIESTRO",
+  "siniestroId": "{{aprobarPresupuesto.response.body.$.siniestro.id}}",
   "presupuestoIds": [
-    "REEMPLAZAR-POR-UUID-DE-PRESUPUESTO-APROBADO-DISPONIBLE"
+    "{{aprobarPresupuesto.response.body.$.id}}"
   ]
 }
 
@@ -1640,14 +1677,14 @@ Content-Type: application/json
 }
 
 
-### Presupuesto en BORRADOR, no aprobado → 409
-# Requiere haber ejecutado antes "Crear un Presupuesto sin repuestos".
+### Presupuesto RECHAZADO, no aprobado → 409
+# Requiere haber ejecutado antes el ejemplo separado de rechazo.
 POST {{baseUrl}}/api/ordenes-trabajo
 Content-Type: application/json
 
 {
-  "siniestroId": "{{crearPresupuestoBorrador.response.body.$.siniestro.id}}",
-  "presupuestoIds": ["{{crearPresupuestoBorrador.response.body.$.id}}"]
+  "siniestroId": "{{rechazarPresupuesto.response.body.$.siniestro.id}}",
+  "presupuestoIds": ["{{rechazarPresupuesto.response.body.$.id}}"]
 }
 
 
@@ -1763,8 +1800,8 @@ Content-Type: application/json
 
 ### Agregar un Presupuesto aprobado disponible a una OT BORRADOR → 200
 # Requiere reemplazar el valor por un Presupuesto APROBADO del mismo Siniestro
-# que todavía no pertenezca a ninguna OT. El seed no contiene uno y la API
-# actual no permite llevar a APROBADO un Presupuesto creado como BORRADOR.
+# que todavía no pertenezca a ninguna OT. Puede obtenerse creando otro
+# Presupuesto y ejecutando sus endpoints de envío y aprobación.
 POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
 Content-Type: application/json
 
@@ -1816,12 +1853,12 @@ Content-Type: application/json
 
 
 ### Incorporación de Presupuesto no aprobado → 409
-# Requiere haber ejecutado antes "Crear un Presupuesto sin repuestos".
+# Requiere haber ejecutado antes el ejemplo separado de rechazo.
 POST {{baseUrl}}/api/ordenes-trabajo/{{crearOrdenTrabajoBorrador.response.body.$.id}}/presupuestos
 Content-Type: application/json
 
 {
-  "presupuestoIds": ["{{crearPresupuestoBorrador.response.body.$.id}}"]
+  "presupuestoIds": ["{{rechazarPresupuesto.response.body.$.id}}"]
 }
 
 

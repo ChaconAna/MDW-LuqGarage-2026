@@ -16,7 +16,7 @@ El MVP centraliza tres procesos principales:
 
 Los actores definidos para el MVP son:
 
-- **Recepcionista:** gestiona información administrativa, clientes, vehículos, aseguradoras y siniestros. Puede intervenir manualmente en el estado de un presupuesto cuando falle el procesamiento automático de la respuesta de la aseguradora, según las reglas definidas en `docs/spec.md`.
+- **Recepcionista:** gestiona información administrativa, clientes, vehículos, aseguradoras y siniestros. Puede registrar manualmente que un presupuesto `BORRADOR` fue enviado, cambiándolo a `ENVIADO`, y registrar la respuesta externa como `APROBADO` o `RECHAZADO` cuando se encuentre `ENVIADO`, según las reglas definidas en `docs/spec.md`.
 - **Encargado del Taller:** puede realizar las tareas administrativas correspondientes y además gestionar presupuestos y órdenes de trabajo.
 - **Mecánico:** consulta las órdenes de trabajo habilitadas según el alcance definido en `docs/spec.md`.
 - **Administrador:** gestiona usuarios, roles y permisos.
@@ -49,8 +49,6 @@ Lo que el sistema tiene que hacer está en [`docs/spec.md`](./docs/spec.md): ent
 - Tailwind + shadcn/ui
 - Deploy en Vercel
 - Supabase Storage para documentación y fotografías de siniestros
-- Mailtrap para la simulación de comunicación por email con aseguradoras
-- Servicio externo de IA para la extracción asistida de datos de documentación, según `docs/spec.md`
 
 No reemplazar estas tecnologías ni agregar dependencias alternativas sin una necesidad concreta y aprobación previa.
 

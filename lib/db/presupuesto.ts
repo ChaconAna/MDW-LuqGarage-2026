@@ -105,6 +105,114 @@ export function obtenerPresupuestoPorId(id: string) {
   });
 }
 
+export async function enviarPresupuestoPorId(id: string) {
+  const transicion = await prisma.presupuesto.updateMany({
+    where: {
+      id,
+      estado: "BORRADOR",
+    },
+    data: { estado: "ENVIADO" },
+  });
+
+  if (transicion.count === 1) {
+    const presupuesto = await prisma.presupuesto.findUniqueOrThrow({
+      where: { id },
+      select: seleccionDetallePresupuesto,
+    });
+
+    return { enviado: true, presupuesto } as const;
+  }
+
+  const presupuestoActual = await prisma.presupuesto.findUnique({
+    where: { id },
+    select: { estado: true },
+  });
+
+  if (!presupuestoActual) {
+    return {
+      enviado: false,
+      motivo: "PRESUPUESTO_NO_ENCONTRADO",
+    } as const;
+  }
+
+  return {
+    enviado: false,
+    motivo: "PRESUPUESTO_NO_ENVIABLE",
+  } as const;
+}
+
+export async function aprobarPresupuestoPorId(id: string) {
+  const transicion = await prisma.presupuesto.updateMany({
+    where: {
+      id,
+      estado: "ENVIADO",
+    },
+    data: { estado: "APROBADO" },
+  });
+
+  if (transicion.count === 1) {
+    const presupuesto = await prisma.presupuesto.findUniqueOrThrow({
+      where: { id },
+      select: seleccionDetallePresupuesto,
+    });
+
+    return { aprobado: true, presupuesto } as const;
+  }
+
+  const presupuestoActual = await prisma.presupuesto.findUnique({
+    where: { id },
+    select: { estado: true },
+  });
+
+  if (!presupuestoActual) {
+    return {
+      aprobado: false,
+      motivo: "PRESUPUESTO_NO_ENCONTRADO",
+    } as const;
+  }
+
+  return {
+    aprobado: false,
+    motivo: "PRESUPUESTO_NO_APROBABLE",
+  } as const;
+}
+
+export async function rechazarPresupuestoPorId(id: string) {
+  const transicion = await prisma.presupuesto.updateMany({
+    where: {
+      id,
+      estado: "ENVIADO",
+    },
+    data: { estado: "RECHAZADO" },
+  });
+
+  if (transicion.count === 1) {
+    const presupuesto = await prisma.presupuesto.findUniqueOrThrow({
+      where: { id },
+      select: seleccionDetallePresupuesto,
+    });
+
+    return { rechazado: true, presupuesto } as const;
+  }
+
+  const presupuestoActual = await prisma.presupuesto.findUnique({
+    where: { id },
+    select: { estado: true },
+  });
+
+  if (!presupuestoActual) {
+    return {
+      rechazado: false,
+      motivo: "PRESUPUESTO_NO_ENCONTRADO",
+    } as const;
+  }
+
+  return {
+    rechazado: false,
+    motivo: "PRESUPUESTO_NO_RECHAZABLE",
+  } as const;
+}
+
 export async function crearPresupuesto(datos: DatosCreacionPresupuesto) {
   try {
     return await ejecutarTransaccion(async (cliente) => {
