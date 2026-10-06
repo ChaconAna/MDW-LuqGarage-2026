@@ -2,8 +2,7 @@
 
 Este documento describe exclusivamente la API implementada actualmente para
 Cliente, Aseguradora, Vehículo, Siniestro, Presupuesto y Orden de Trabajo. No
-documenta operaciones futuras de transición de Presupuesto ni endpoints de
-catálogos.
+documenta endpoints futuros ni endpoints de catálogos.
 
 ## Autenticación y autorización
 
@@ -487,6 +486,9 @@ Siniestro.
 | `POST /api/presupuestos` | `ENCARGADO_DEL_TALLER` | Crea un Presupuesto en estado `BORRADOR` con sus detalles | `201` | `400` body inválido, `404` referencia inexistente, `409` número duplicado |
 | `GET /api/presupuestos/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Obtiene un Presupuesto con reparaciones, repuestos y total derivado | `200` | `400` UUID inválido, `404` inexistente |
 | `PATCH /api/presupuestos/[id]` | `ENCARGADO_DEL_TALLER` | Reemplaza Reparaciones y/o Repuestos de un Presupuesto en `BORRADOR` | `200` | `400` UUID/body inválido, `404` Presupuesto o referencia inexistente, `409` estado no editable |
+| `POST /api/presupuestos/[id]/enviar` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Registra el envío externo: `BORRADOR` → `ENVIADO` | `200` | `400` UUID inválido, `404` inexistente, `409` estado de origen inválido |
+| `POST /api/presupuestos/[id]/aprobar` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Registra la respuesta externa: `ENVIADO` → `APROBADO` | `200` | `400` UUID inválido, `404` inexistente, `409` estado de origen inválido |
+| `POST /api/presupuestos/[id]/rechazar` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Registra la respuesta externa: `ENVIADO` → `RECHAZADO` | `200` | `400` UUID inválido, `404` inexistente, `409` estado de origen inválido |
 
 El endpoint acepta `page` y `limit` según las convenciones generales de
 paginación, ordena establemente por `id` ascendente y devuelve `200 OK` con
@@ -574,7 +576,57 @@ Presupuesto o alguna Reparación o Repuesto informado. Si el Presupuesto existe
 pero no permanece en `BORRADOR`, devuelve `409`; la misma respuesta se utiliza
 si pierde esa condición concurrentemente antes de la escritura.
 
-No están implementados el envío ni las transiciones de estado de Presupuesto.
+### POST `/api/presupuestos/[id]/enviar`
+
+Registra manualmente que un Presupuesto fue enviado a la Aseguradora mediante
+una comunicación externa. No recibe un estado desde el cliente. Solo realiza
+la transición `BORRADOR` → `ENVIADO` y devuelve `200` con la representación
+del detalle resultante.
+
+Roles autorizados: `RECEPCIONISTA` y `ENCARGADO_DEL_TALLER`.
+
+| Resultado | Status | Body de error |
+|---|---:|---|
+| UUID inválido | `400` | `{ "error": "El id debe ser un UUID válido." }` |
+| Sin autenticación válida | `401` | `{ "error": "No autenticado" }` |
+| Usuario sin rol autorizado | `403` | `{ "error": "No podés realizar esta operación" }` |
+| Presupuesto inexistente | `404` | `{ "error": "Presupuesto no encontrado." }` |
+| Estado de origen distinto de `BORRADOR` | `409` | `{ "error": "El Presupuesto no está en estado BORRADOR." }` |
+| Error inesperado | `500` | `{ "error": "Error interno" }` |
+
+### POST `/api/presupuestos/[id]/aprobar`
+
+Registra manualmente una respuesta externa de aprobación. No recibe un estado
+desde el cliente. Solo realiza la transición `ENVIADO` → `APROBADO` y devuelve
+`200` con la representación del detalle resultante.
+
+Roles autorizados: `RECEPCIONISTA` y `ENCARGADO_DEL_TALLER`.
+
+| Resultado | Status | Body de error |
+|---|---:|---|
+| UUID inválido | `400` | `{ "error": "El id debe ser un UUID válido." }` |
+| Sin autenticación válida | `401` | `{ "error": "No autenticado" }` |
+| Usuario sin rol autorizado | `403` | `{ "error": "No podés realizar esta operación" }` |
+| Presupuesto inexistente | `404` | `{ "error": "Presupuesto no encontrado." }` |
+| Estado de origen distinto de `ENVIADO` | `409` | `{ "error": "El Presupuesto no está en estado ENVIADO." }` |
+| Error inesperado | `500` | `{ "error": "Error interno" }` |
+
+### POST `/api/presupuestos/[id]/rechazar`
+
+Registra manualmente una respuesta externa de rechazo. No recibe un estado
+desde el cliente. Solo realiza la transición `ENVIADO` → `RECHAZADO` y devuelve
+`200` con la representación del detalle resultante.
+
+Roles autorizados: `RECEPCIONISTA` y `ENCARGADO_DEL_TALLER`.
+
+| Resultado | Status | Body de error |
+|---|---:|---|
+| UUID inválido | `400` | `{ "error": "El id debe ser un UUID válido." }` |
+| Sin autenticación válida | `401` | `{ "error": "No autenticado" }` |
+| Usuario sin rol autorizado | `403` | `{ "error": "No podés realizar esta operación" }` |
+| Presupuesto inexistente | `404` | `{ "error": "Presupuesto no encontrado." }` |
+| Estado de origen distinto de `ENVIADO` | `409` | `{ "error": "El Presupuesto no está en estado ENVIADO." }` |
+| Error inesperado | `500` | `{ "error": "Error interno" }` |
 
 ## Orden de Trabajo
 
