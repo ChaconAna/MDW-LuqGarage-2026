@@ -498,6 +498,30 @@ GET {{baseUrl}}/api/siniestros/no-es-un-uuid
 GET {{baseUrl}}/api/siniestros/{{uuidInexistente}}
 
 
+### Demostración manual de éxito y falla de Supabase Storage
+# 1. Con la configuración válida de Supabase, ejecutar primero el request de
+# creación que aparece a continuación. El resultado esperado es 201 y el
+# Siniestro debe quedar registrado con sus referencias de documentación.
+#
+# 2. Para provocar una falla controlada, cambiar temporalmente en el entorno
+# de prueba una variable de configuración de Supabase por un valor que haga
+# fallar Storage, por ejemplo SUPABASE_STORAGE_BUCKET por el nombre de un
+# bucket inexistente. Usar un numeroSiniestro nuevo para este intento y
+# ejecutar nuevamente el mismo request. El resultado esperado es:
+# HTTP 502
+# { "error": "No fue posible almacenar la documentación." }
+# Verificar que el nuevo Siniestro no quedó persistido y que los logs de la
+# aplicación registraron la falla de Storage.
+#
+# 3. Para demostrar el timeout, configurar temporalmente SUPABASE_URL con una
+# URL de prueba que no responda, usar otro numeroSiniestro nuevo y ejecutar el
+# mismo request. La operación debe finalizar por el timeout configurado y
+# responder 502 con el mensaje anterior, sin quedar esperando indefinidamente.
+#
+# 4. Al terminar cualquiera de las demostraciones, restaurar la configuración
+# válida de Supabase antes de continuar usando la aplicación.
+
+
 ### Crear un Siniestro con la documentación obligatoria → 201
 # Los recursos relacionados se toman del Siniestro sembrado. Cambiar el
 # numeroSiniestro si esta creación ya fue ejecutada. Este repositorio no
@@ -1182,11 +1206,6 @@ Content-Disposition: form-data; name="documentos[5][archivo]"; filename="documen
 
 < {{archivoSiniestro}}
 --SiniestroDuplicado409--
-
-
-### Falla de Storage → 502
-# Si no es posible almacenar la documentación, el endpoint responde:
-# { "error": "No fue posible almacenar la documentación." }
 
 
 # No se incluye un request de relación inactiva: el seed deja activas las tres
