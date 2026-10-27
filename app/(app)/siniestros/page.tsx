@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarSiniestros } from "@/lib/db/siniestro";
 import { listadoSiniestrosQuerySchema } from "@/lib/schemas/siniestro";
@@ -65,7 +67,12 @@ export default async function SiniestrosPage() {
                     className="border-b border-current/10 last:border-b-0"
                   >
                     <th scope="row" className="px-4 py-3 font-medium">
-                      {siniestro.numeroSiniestro}
+                      <Link
+                        href={`/siniestros/${siniestro.id}`}
+                        className="rounded-sm text-blue-700 underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current dark:text-blue-300"
+                      >
+                        {siniestro.numeroSiniestro}
+                      </Link>
                     </th>
                     <td className="px-4 py-3">
                       {siniestro.cliente.nombre} {siniestro.cliente.apellido}
