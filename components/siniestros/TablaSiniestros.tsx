@@ -97,7 +97,7 @@ export default function TablaSiniestros({
                     <Link
                       href={`/siniestros/${siniestro.id}`}
                       prefetch={false}
-                      className="rounded-sm text-blue-700 underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current dark:text-blue-300"
+                      className="rounded-sm text-link underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
                     >
                       {siniestro.numeroSiniestro}
                     </Link>
