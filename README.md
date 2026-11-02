@@ -14,7 +14,7 @@ https://mdw-luq-garage-2026.vercel.app/
 
 LuqGarage es un MVP académico desarrollado para Metodologías y Desarrollos Web (MDW) 2026. Busca centralizar la gestión de un taller de chapa y pintura que trabaja con compañías aseguradoras.
 
-El alcance actual corresponde al backend de las clases 1 a 7 y comprende tres procesos: registro de siniestros, gestión de presupuestos y generación de órdenes de trabajo.
+El backend desarrollado durante las clases 1 a 7 se mantiene funcional y comprende tres procesos: registro de siniestros, gestión de presupuestos y generación de órdenes de trabajo. La Clase 10 incorpora la interfaz con React y Next.js, un sistema de diseño y el consumo de las consultas existentes, sin habilitar automáticamente nuevas operaciones de escritura.
 
 Roles: recepcionista (gestiona la información administrativa y los siniestros), encargado del taller (gestiona presupuestos y órdenes de trabajo), mecánico (consulta órdenes finalizadas) y administrador (gestiona usuarios, roles y permisos).
 
@@ -24,7 +24,19 @@ Flujo principal: `Siniestro → Presupuesto → aprobación/rechazo → Orden de
 
 El flujo del MVP termina al finalizar la generación de la Orden de Trabajo. La ejecución y el seguimiento de las reparaciones dentro del taller quedan fuera del alcance actual.
 
-El backend todavía se encuentra en desarrollo. La especificación funcional completa está en [`docs/spec.md`](./docs/spec.md).
+La especificación funcional completa y el mapa de pantallas del flujo principal están en [`docs/spec.md`](./docs/spec.md). Las interacciones del flujo que allí figuran como pendientes todavía no tienen una pantalla implementada.
+
+## Interfaz disponible
+
+| Dirección | Propósito | Acceso |
+|---|---|---|
+| `/` | Punto de entrada y redirección según la sesión y el rol vigente | Público |
+| `/login` | Inicio de sesión con Google | Público; los usuarios autenticados son redirigidos a una pantalla autorizada |
+| `/siniestros` | Listado y filtro de siniestros | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
+| `/siniestros/[id]` | Detalle de un siniestro | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
+| `/sistema` | Galería del sistema de diseño | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER`, `MECANICO`, `ADMINISTRADOR` |
+
+Las pantallas privadas validan la sesión, el estado activo del Usuario y su rol vigente en el servidor. La interfaz utiliza Tailwind CSS 4 y componentes base de shadcn/ui, con un tema oscuro permanente y estilos reutilizables.
 
 ## Stack
 
