@@ -1,4 +1,5 @@
 import { signIn } from "@/auth";
+import { Button } from "@/components/ui/button";
 import { ErrorAutenticacion, requerirUsuario, type UsuarioAutenticado } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -38,12 +39,12 @@ export default async function Home() {
           }}
           className="mt-6"
         >
-          <button
+          <Button
             type="submit"
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+            className="bg-black px-4 py-2 text-white hover:bg-black/80"
           >
             Entrar con Google
-          </button>
+          </Button>
         </form>
       )}
     </main>

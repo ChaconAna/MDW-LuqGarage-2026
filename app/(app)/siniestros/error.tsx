@@ -1,6 +1,7 @@
 "use client";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
+import { Button } from "@/components/ui/button";
 
 type SiniestrosErrorProps = {
   error: Error & { digest?: string };
@@ -26,13 +27,13 @@ export default function SiniestrosError({ reset }: SiniestrosErrorProps) {
             </p>
           </div>
 
-          <button
+          <Button
             type="button"
             onClick={reset}
-            className="mt-5 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
+            className="mt-5 bg-foreground px-4 py-2 text-background hover:bg-foreground hover:opacity-80"
           >
             Reintentar
-          </button>
+          </Button>
         </section>
       </ContenedorPagina>
     </main>

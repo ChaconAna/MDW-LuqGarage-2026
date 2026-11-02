@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import type { EstadoSiniestro, GradoDano } from "@prisma/client";
 
+import { Input } from "@/components/ui/input";
+
 type SiniestroFila = {
   id: string;
   numeroSiniestro: string;
@@ -41,12 +43,12 @@ export default function TablaSiniestros({
         <label htmlFor="filtro-numero-siniestro" className="block text-sm font-medium">
           Filtrar por número de siniestro
         </label>
-        <input
+        <Input
           id="filtro-numero-siniestro"
           type="search"
           value={busqueda}
           onChange={(evento) => setBusqueda(evento.target.value)}
-          className="mt-2 w-full max-w-sm rounded-md border border-current/30 bg-transparent px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+          className="mt-2 max-w-sm border-current/30 px-3 py-2 text-sm shadow-none dark:bg-transparent"
         />
       </div>
 
