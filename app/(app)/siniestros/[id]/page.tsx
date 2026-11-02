@@ -5,6 +5,7 @@ import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import SeccionDetalleSiniestro from "@/components/siniestros/SeccionDetalleSiniestro";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerSiniestroPorId } from "@/lib/db/siniestro";
+import { clasesEnlaceTexto } from "@/lib/utils";
 import {
   parametrosSiniestroSchema,
   type ParametrosSiniestro,
@@ -57,7 +58,7 @@ export default async function SiniestroDetallePage({
         <div className="space-y-6">
           <Link
             href="/siniestros"
-            className="inline-block rounded-sm text-sm text-link underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+            className={`${clasesEnlaceTexto} inline-block text-sm`}
           >
             Volver a siniestros
           </Link>

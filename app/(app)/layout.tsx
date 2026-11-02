@@ -7,6 +7,7 @@ import { auth, signOut } from "@/auth";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import { Button } from "@/components/ui/button";
 import { autorizarPagina } from "@/lib/authPagina";
+import { clasesEnlaceTexto } from "@/lib/utils";
 
 const rolesConAccesoAlSistema = [
   "RECEPCIONISTA",
@@ -55,14 +56,14 @@ export default async function AppLayout({ children }: AppLayoutProps) {
                 {puedeVerSiniestros ? (
                   <Link
                     href="/siniestros"
-                    className="rounded-sm text-link underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                    className={clasesEnlaceTexto}
                   >
                     Siniestros
                   </Link>
                 ) : null}
                 <Link
                   href="/sistema"
-                  className="rounded-sm text-link underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                  className={clasesEnlaceTexto}
                 >
                   Sistema
                 </Link>

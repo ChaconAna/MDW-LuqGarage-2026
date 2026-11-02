@@ -30,7 +30,7 @@ export default function SiniestrosError({ reset }: SiniestrosErrorProps) {
           <Button
             type="button"
             onClick={reset}
-            className="mt-5 bg-foreground px-4 py-2 text-background hover:bg-foreground hover:opacity-80"
+            className="mt-5"
           >
             Reintentar
           </Button>

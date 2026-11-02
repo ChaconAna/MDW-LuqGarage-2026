@@ -2,6 +2,7 @@ import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { autorizarPagina } from "@/lib/authPagina";
+import { clasesEnlaceTexto } from "@/lib/utils";
 
 const rolesConAcceso = [
   "RECEPCIONISTA",
@@ -125,7 +126,7 @@ export default async function SistemaPage() {
               </p>
               <a
                 href="#sistema-botones"
-                className="inline-block rounded-sm text-link underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                className={`${clasesEnlaceTexto} inline-block`}
               >
                 Enlace de ejemplo
               </a>
