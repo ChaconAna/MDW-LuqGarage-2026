@@ -206,7 +206,7 @@ El siguiente mapa documenta las pantallas disponibles y las interacciones pendie
 
 | Paso del flujo principal | Pantalla | Dirección | Roles autorizados | Estado de implementación |
 |---|---|---|---|---|
-| Autenticarse con Google | Inicio y autenticación | `/` | Acceso público sin sesión; todos los roles autenticados | Implementada |
+| Autenticarse con Google | Inicio de sesión | `/login` (con `/` como punto de entrada) | Acceso público sin sesión; los usuarios autenticados son redirigidos según su rol | Implementada |
 | Consultar siniestros registrados | Listado de siniestros | `/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Implementada |
 | Consultar el detalle de un siniestro | Detalle de siniestro | `/siniestros/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Implementada |
 | Registrar un siniestro con su documentación obligatoria | — | — | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Interacción pendiente |

@@ -78,7 +78,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
               <form
                 action={async () => {
                   "use server";
-                  await signOut({ redirectTo: "/" });
+                  await signOut({ redirectTo: "/login" });
                 }}
                 className="sm:shrink-0"
               >

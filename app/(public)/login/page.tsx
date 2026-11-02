@@ -1,0 +1,56 @@
+import { redirect } from "next/navigation";
+
+import { signIn } from "@/auth";
+import { Button } from "@/components/ui/button";
+import {
+  ErrorAutenticacion,
+  requerirUsuario,
+  type UsuarioAutenticado,
+} from "@/lib/auth";
+
+export default async function LoginPage() {
+  let usuario: UsuarioAutenticado | null = null;
+
+  try {
+    usuario = await requerirUsuario();
+  } catch (error: unknown) {
+    if (!(error instanceof ErrorAutenticacion)) {
+      throw error;
+    }
+  }
+
+  if (
+    usuario?.rol === "RECEPCIONISTA" ||
+    usuario?.rol === "ENCARGADO_DEL_TALLER"
+  ) {
+    redirect("/siniestros");
+  }
+
+  if (usuario?.rol === "MECANICO" || usuario?.rol === "ADMINISTRADOR") {
+    redirect("/sistema");
+  }
+
+  return (
+    <main className="mx-auto max-w-2xl p-8">
+      <h1 className="text-2xl font-bold">LuqGarage</h1>
+      <p className="mt-2 text-sm opacity-70">
+        Sistema de gestión para un taller de chapa y pintura.
+      </p>
+      {usuario ? (
+        <p className="mt-6 text-sm">
+          Todavía no hay una pantalla disponible para tu rol.
+        </p>
+      ) : (
+        <form
+          action={async () => {
+            "use server";
+            await signIn("google");
+          }}
+          className="mt-6"
+        >
+          <Button type="submit">Entrar con Google</Button>
+        </form>
+      )}
+    </main>
+  );
+}
