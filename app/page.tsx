@@ -39,10 +39,7 @@ export default async function Home() {
           }}
           className="mt-6"
         >
-          <Button
-            type="submit"
-            className="bg-black px-4 py-2 text-white hover:bg-black/80"
-          >
+          <Button type="submit">
             Entrar con Google
           </Button>
         </form>
