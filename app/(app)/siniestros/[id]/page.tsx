@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
+import SeccionDetalleSiniestro from "@/components/siniestros/SeccionDetalleSiniestro";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerSiniestroPorId } from "@/lib/db/siniestro";
 import {
@@ -68,13 +69,10 @@ export default async function SiniestroDetallePage({
             <p className="mt-1 text-sm opacity-75">Estado: {siniestro.estado}</p>
           </header>
 
-          <section
-            aria-labelledby="datos-siniestro"
-            className="rounded-lg border border-current/20 p-5"
+          <SeccionDetalleSiniestro
+            idTitulo="datos-siniestro"
+            titulo="Datos del siniestro"
           >
-            <h2 id="datos-siniestro" className="text-lg font-semibold">
-              Datos del siniestro
-            </h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm opacity-75">Fecha del siniestro</dt>
@@ -96,15 +94,12 @@ export default async function SiniestroDetallePage({
             <p className="mt-4 text-xs opacity-75">
               Fechas expresadas en hora de Buenos Aires.
             </p>
-          </section>
+          </SeccionDetalleSiniestro>
 
-          <section
-            aria-labelledby="cliente-siniestro"
-            className="rounded-lg border border-current/20 p-5"
+          <SeccionDetalleSiniestro
+            idTitulo="cliente-siniestro"
+            titulo="Cliente"
           >
-            <h2 id="cliente-siniestro" className="text-lg font-semibold">
-              Cliente
-            </h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm opacity-75">Nombre y apellido</dt>
@@ -121,15 +116,12 @@ export default async function SiniestroDetallePage({
                 <dd>{siniestro.cliente.activo ? "Activo" : "Inactivo"}</dd>
               </div>
             </dl>
-          </section>
+          </SeccionDetalleSiniestro>
 
-          <section
-            aria-labelledby="vehiculo-siniestro"
-            className="rounded-lg border border-current/20 p-5"
+          <SeccionDetalleSiniestro
+            idTitulo="vehiculo-siniestro"
+            titulo="Vehículo"
           >
-            <h2 id="vehiculo-siniestro" className="text-lg font-semibold">
-              Vehículo
-            </h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm opacity-75">Patente</dt>
@@ -151,15 +143,12 @@ export default async function SiniestroDetallePage({
                 <dd>{siniestro.vehiculo.activo ? "Activo" : "Inactivo"}</dd>
               </div>
             </dl>
-          </section>
+          </SeccionDetalleSiniestro>
 
-          <section
-            aria-labelledby="aseguradora-siniestro"
-            className="rounded-lg border border-current/20 p-5"
+          <SeccionDetalleSiniestro
+            idTitulo="aseguradora-siniestro"
+            titulo="Aseguradora"
           >
-            <h2 id="aseguradora-siniestro" className="text-lg font-semibold">
-              Aseguradora
-            </h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-sm opacity-75">Nombre</dt>
@@ -174,15 +163,12 @@ export default async function SiniestroDetallePage({
                 <dd>{siniestro.aseguradora.activo ? "Activa" : "Inactiva"}</dd>
               </div>
             </dl>
-          </section>
+          </SeccionDetalleSiniestro>
 
-          <section
-            aria-labelledby="documentos-siniestro"
-            className="rounded-lg border border-current/20 p-5"
+          <SeccionDetalleSiniestro
+            idTitulo="documentos-siniestro"
+            titulo="Documentos asociados"
           >
-            <h2 id="documentos-siniestro" className="text-lg font-semibold">
-              Documentos asociados
-            </h2>
             {siniestro.documentos.length === 0 ? (
               <p className="mt-4">No hay documentos asociados.</p>
             ) : (
@@ -192,7 +178,7 @@ export default async function SiniestroDetallePage({
                 ))}
               </ul>
             )}
-          </section>
+          </SeccionDetalleSiniestro>
         </div>
       </ContenedorPagina>
     </main>
