@@ -3,9 +3,11 @@ import Link from "next/link";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarClientesActivos } from "@/lib/db/cliente";
+import { listarVehiculosActivos } from "@/lib/db/vehiculo";
 import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_CLIENTES = 10;
+const LIMITE_VEHICULOS = 10;
 
 export default async function SiniestroNuevoPage() {
   const autorizacion = await autorizarPagina([
@@ -25,6 +27,10 @@ export default async function SiniestroNuevoPage() {
   }
 
   const { clientes, total } = await listarClientesActivos(1, LIMITE_CLIENTES);
+  const { vehiculos, total: totalVehiculos } = await listarVehiculosActivos(
+    1,
+    LIMITE_VEHICULOS,
+  );
 
   return (
     <main>
@@ -60,6 +66,32 @@ export default async function SiniestroNuevoPage() {
                         {cliente.nombre} {cliente.apellido}
                       </p>
                       <p>DNI: {cliente.dni}</p>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+
+          <section aria-labelledby="vehiculos-activos" className="space-y-3">
+            <h2 id="vehiculos-activos" className="text-xl font-semibold">
+              Vehículos activos
+            </h2>
+
+            {vehiculos.length === 0 ? (
+              <p>No hay vehículos activos disponibles.</p>
+            ) : (
+              <>
+                <p>
+                  Primera página: mostrando {vehiculos.length} de {totalVehiculos}{" "}
+                  vehículos activos (hasta {LIMITE_VEHICULOS} por página).
+                </p>
+                <ul className="divide-y divide-current/20 rounded-lg border border-current/20">
+                  {vehiculos.map((vehiculo) => (
+                    <li key={vehiculo.id} className="space-y-1 p-4">
+                      <p className="font-medium">Patente: {vehiculo.patente}</p>
+                      <p>Marca: {vehiculo.modelo.marca.nombre}</p>
+                      <p>Modelo: {vehiculo.modelo.nombre}</p>
                     </li>
                   ))}
                 </ul>
