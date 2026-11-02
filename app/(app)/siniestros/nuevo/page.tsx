@@ -2,12 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
-import { Button } from "@/components/ui/button";
+import SelectorClienteActivo from "@/components/siniestros/SelectorClienteActivo";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarAseguradorasActivas } from "@/lib/db/aseguradora";
-import { listarClientesActivos } from "@/lib/db/cliente";
+import { listarClientesActivos, obtenerClientePorId } from "@/lib/db/cliente";
 import { listarVehiculosActivos } from "@/lib/db/vehiculo";
-import { listadoClientesQuerySchema } from "@/lib/schemas/cliente";
+import {
+  listadoClientesQuerySchema,
+  parametrosClienteSchema,
+} from "@/lib/schemas/cliente";
 import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_CLIENTES = 10;
@@ -20,10 +23,19 @@ type SiniestroNuevoPageProps = {
   }>;
 };
 
-function hrefPaginaClientes(pagina: number) {
-  return pagina === 1
-    ? "/siniestros/nuevo"
-    : `/siniestros/nuevo?clientesPage=${pagina}`;
+function hrefPaginaClientes(pagina: number, clienteId?: string) {
+  const parametros = new URLSearchParams();
+
+  if (pagina !== 1) {
+    parametros.set("clientesPage", String(pagina));
+  }
+
+  if (clienteId) {
+    parametros.set("clienteId", clienteId);
+  }
+
+  const query = parametros.toString();
+  return query ? `/siniestros/nuevo?${query}` : "/siniestros/nuevo";
 }
 
 export default async function SiniestroNuevoPage({
@@ -46,10 +58,39 @@ export default async function SiniestroNuevoPage({
   }
 
   const parametros = await searchParams;
+  let clienteSeleccionado: Awaited<
+    ReturnType<typeof listarClientesActivos>
+  >["clientes"][number] | null = null;
+  let errorSeleccion: string | undefined;
+
+  if (parametros.clienteId !== undefined) {
+    const resultadoCliente = parametrosClienteSchema.safeParse({
+      id: parametros.clienteId,
+    });
+
+    if (!resultadoCliente.success) {
+      errorSeleccion = "La selección de cliente no es válida. Elegí un cliente activo.";
+    } else {
+      const cliente = await obtenerClientePorId(resultadoCliente.data.id);
+
+      if (!cliente || !cliente.activo) {
+        errorSeleccion =
+          "El cliente seleccionado no existe o ya no está activo. Elegí un cliente activo.";
+      } else {
+        clienteSeleccionado = {
+          id: cliente.id,
+          nombre: cliente.nombre,
+          apellido: cliente.apellido,
+          dni: cliente.dni,
+        };
+      }
+    }
+  }
+
   const paginaParametro = parametros.clientesPage;
 
   if (paginaParametro !== undefined && typeof paginaParametro !== "string") {
-    redirect(hrefPaginaClientes(1));
+    redirect(hrefPaginaClientes(1, clienteSeleccionado?.id));
   }
 
   const resultadoQuery = listadoClientesQuerySchema.safeParse({
@@ -58,7 +99,7 @@ export default async function SiniestroNuevoPage({
   });
 
   if (!resultadoQuery.success) {
-    redirect(hrefPaginaClientes(1));
+    redirect(hrefPaginaClientes(1, clienteSeleccionado?.id));
   }
 
   const paginaClientes = resultadoQuery.data.page;
@@ -67,7 +108,7 @@ export default async function SiniestroNuevoPage({
   const totalPaginasClientes = Math.max(1, Math.ceil(total / LIMITE_CLIENTES));
 
   if (paginaClientes > totalPaginasClientes) {
-    redirect(hrefPaginaClientes(totalPaginasClientes));
+    redirect(hrefPaginaClientes(totalPaginasClientes, clienteSeleccionado?.id));
   }
 
   const { clientes } =
@@ -100,76 +141,15 @@ export default async function SiniestroNuevoPage({
               Clientes activos
             </h2>
 
-            {clientes.length === 0 ? (
-              <p>No hay clientes activos disponibles.</p>
-            ) : (
-              <>
-                <p>
-                  Mostrando {clientes.length} de {total} clientes
-                  activos (hasta {LIMITE_CLIENTES} por página).
-                </p>
-                <ul className="divide-y divide-current/20 rounded-lg border border-current/20">
-                  {clientes.map((cliente) => (
-                    <li key={cliente.id} className="space-y-1 p-4">
-                      <p className="font-medium">
-                        {cliente.nombre} {cliente.apellido}
-                      </p>
-                      <p>DNI: {cliente.dni}</p>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-            <nav
-              aria-label="Paginación de clientes activos"
-              className="flex flex-wrap items-center gap-3"
-            >
-              {paginaClientes > 1 ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link
-                    href={hrefPaginaClientes(paginaClientes - 1)}
-                    aria-label={`Ir a la página ${paginaClientes - 1} de clientes activos`}
-                  >
-                    Anterior
-                  </Link>
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  aria-label="Página anterior de clientes activos no disponible"
-                >
-                  Anterior
-                </Button>
-              )}
-
-              <span aria-current="page" className="text-sm">
-                Página {paginaClientes} de {totalPaginasClientes}
-              </span>
-
-              {paginaClientes < totalPaginasClientes ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link
-                    href={hrefPaginaClientes(paginaClientes + 1)}
-                    aria-label={`Ir a la página ${paginaClientes + 1} de clientes activos`}
-                  >
-                    Siguiente
-                  </Link>
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled
-                  aria-label="Página siguiente de clientes activos no disponible"
-                >
-                  Siguiente
-                </Button>
-              )}
-            </nav>
+            <SelectorClienteActivo
+              clientes={clientes}
+              clienteSeleccionado={clienteSeleccionado}
+              errorSeleccion={errorSeleccion}
+              pagina={paginaClientes}
+              totalPaginas={totalPaginasClientes}
+              total={total}
+              limite={LIMITE_CLIENTES}
+            />
           </section>
 
           <section aria-labelledby="vehiculos-activos" className="space-y-3">
