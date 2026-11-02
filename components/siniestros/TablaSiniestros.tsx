@@ -34,7 +34,10 @@ export default function TablaSiniestros({
 
   return (
     <>
-      <p className="mt-2 text-sm opacity-75">
+      <p
+        id="alcance-filtro-siniestros"
+        className="mt-2 text-sm opacity-75"
+      >
         Cargados {siniestros.length} de {total} siniestros. El filtro busca solo
         entre los registros cargados.
       </p>
@@ -46,9 +49,10 @@ export default function TablaSiniestros({
         <Input
           id="filtro-numero-siniestro"
           type="search"
+          aria-describedby="alcance-filtro-siniestros"
           value={busqueda}
           onChange={(evento) => setBusqueda(evento.target.value)}
-          className="mt-2 max-w-sm border-current/30 px-3 py-2 text-sm shadow-none dark:bg-transparent"
+          className="mt-2 max-w-sm border-foreground/40 px-3 py-2 text-sm shadow-none dark:bg-transparent"
         />
       </div>
 
@@ -57,8 +61,13 @@ export default function TablaSiniestros({
         {siniestros.length}.
       </p>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-current/20">
-        <table className="w-full text-left text-sm">
+      <div
+        role="region"
+        aria-label="Listado de siniestros con desplazamiento horizontal"
+        tabIndex={0}
+        className="mt-6 overflow-x-auto rounded-lg border border-current/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+      >
+        <table className="w-full min-w-3xl text-left text-sm">
           <caption className="sr-only">Listado de siniestros</caption>
           <thead className="border-b border-current/20 bg-current/5">
             <tr>
