@@ -21,6 +21,13 @@ export default async function Home() {
     redirect("/siniestros");
   }
 
+  if (
+    usuario?.rol === "MECANICO" ||
+    usuario?.rol === "ADMINISTRADOR"
+  ) {
+    redirect("/sistema");
+  }
+
   return (
     <main className="mx-auto max-w-2xl p-8">
       <h1 className="text-2xl font-bold">LuqGarage</h1>
