@@ -200,7 +200,27 @@ Un cliente dado de baja:
 - continúa apareciendo en registros históricos;
 - no puede utilizarse para nuevas operaciones.
 
+## 5.2. Mapa de pantallas del flujo principal
 
+El siguiente mapa documenta las pantallas disponibles y las interacciones pendientes del flujo principal. El símbolo `—` indica que todavía no existe una pantalla o dirección para ese paso. Los estados y efectos automáticos del dominio no requieren una pantalla independiente.
+
+| Paso del flujo principal | Pantalla | Dirección | Roles autorizados | Estado de implementación |
+|---|---|---|---|---|
+| Autenticarse con Google | Inicio y autenticación | `/` | Acceso público sin sesión; todos los roles autenticados | Implementada |
+| Consultar siniestros registrados | Listado de siniestros | `/siniestros` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Implementada |
+| Consultar el detalle de un siniestro | Detalle de siniestro | `/siniestros/[id]` | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Implementada |
+| Registrar un siniestro con su documentación obligatoria | — | — | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Crear y editar un presupuesto en estado `BORRADOR` | — | — | `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Registrar el envío externo de un presupuesto | — | — | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Registrar la respuesta externa como aprobación o rechazo | — | — | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Seleccionar uno o varios presupuestos aprobados del mismo siniestro | — | — | `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Crear una Orden de Trabajo | — | — | `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Organizar las reparaciones de una Orden de Trabajo por sectores | — | — | `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Finalizar la confección de una Orden de Trabajo | — | — | `ENCARGADO_DEL_TALLER` | Interacción pendiente |
+| Consultar Órdenes de Trabajo finalizadas | — | — | `ENCARGADO_DEL_TALLER`, `MECANICO` | Interacción pendiente |
+| Actualización automática del Siniestro a `PRESUPUESTADO` al registrarse su primer presupuesto asociado | No requiere pantalla independiente | — | No aplica | Regla automática del dominio |
+
+Los endpoints bajo `/api/...` permiten ejecutar operaciones del backend, pero no equivalen a pantallas implementadas ni definen direcciones futuras de interfaz.
 
 # 6. Gestión de Vehículos
 
