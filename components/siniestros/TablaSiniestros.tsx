@@ -5,6 +5,9 @@ import Link from "next/link";
 
 import type { EstadoSiniestro, GradoDano } from "@prisma/client";
 
+import { Input } from "@/components/ui/input";
+import { clasesEnlaceTexto } from "@/lib/utils";
+
 type SiniestroFila = {
   id: string;
   numeroSiniestro: string;
@@ -32,7 +35,10 @@ export default function TablaSiniestros({
 
   return (
     <>
-      <p className="mt-2 text-sm opacity-75">
+      <p
+        id="alcance-filtro-siniestros"
+        className="mt-2 text-sm opacity-75"
+      >
         Cargados {siniestros.length} de {total} siniestros. El filtro busca solo
         entre los registros cargados.
       </p>
@@ -41,12 +47,13 @@ export default function TablaSiniestros({
         <label htmlFor="filtro-numero-siniestro" className="block text-sm font-medium">
           Filtrar por número de siniestro
         </label>
-        <input
+        <Input
           id="filtro-numero-siniestro"
           type="search"
+          aria-describedby="alcance-filtro-siniestros"
           value={busqueda}
           onChange={(evento) => setBusqueda(evento.target.value)}
-          className="mt-2 w-full max-w-sm rounded-md border border-current/30 bg-transparent px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current"
+          className="mt-2 max-w-sm border-foreground/40 px-3 py-2 text-sm shadow-none dark:bg-transparent"
         />
       </div>
 
@@ -55,8 +62,13 @@ export default function TablaSiniestros({
         {siniestros.length}.
       </p>
 
-      <div className="mt-6 overflow-x-auto rounded-lg border border-current/20">
-        <table className="w-full text-left text-sm">
+      <div
+        role="region"
+        aria-label="Listado de siniestros con desplazamiento horizontal"
+        tabIndex={0}
+        className="mt-6 overflow-x-auto rounded-lg border border-current/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+      >
+        <table className="w-full min-w-3xl text-left text-sm">
           <caption className="sr-only">Listado de siniestros</caption>
           <thead className="border-b border-current/20 bg-current/5">
             <tr>
@@ -97,7 +109,7 @@ export default function TablaSiniestros({
                     <Link
                       href={`/siniestros/${siniestro.id}`}
                       prefetch={false}
-                      className="rounded-sm text-blue-700 underline underline-offset-4 hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current dark:text-blue-300"
+                      className={clasesEnlaceTexto}
                     >
                       {siniestro.numeroSiniestro}
                     </Link>

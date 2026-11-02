@@ -87,14 +87,14 @@ describe("autorizarPagina", () => {
     },
   );
 
-  it("redirige a / sin consultar el Usuario cuando no hay sesión", async () => {
+  it("redirige a /login sin consultar el Usuario cuando no hay sesión", async () => {
     dependencias.auth.mockResolvedValue(null);
 
     await expect(autorizarPagina(rolesPermitidos)).rejects.toBe(
       interrupcionRedireccion,
     );
 
-    expect(dependencias.redirect).toHaveBeenCalledExactlyOnceWith("/");
+    expect(dependencias.redirect).toHaveBeenCalledExactlyOnceWith("/login");
     expect(dependencias.obtenerUsuarioParaAutorizacionPorId).not.toHaveBeenCalled();
   });
 
@@ -104,7 +104,7 @@ describe("autorizarPagina", () => {
       caso: "inactivo",
       usuario: { id: usuarioId, rol: "RECEPCIONISTA", activo: false },
     },
-  ])("redirige a / para un Usuario $caso", async ({ usuario }) => {
+  ])("redirige a /login para un Usuario $caso", async ({ usuario }) => {
     dependencias.auth.mockResolvedValue({
       user: { usuarioId, rol: "RECEPCIONISTA" },
     });
@@ -115,7 +115,7 @@ describe("autorizarPagina", () => {
     );
 
     expect(requerirRol).toHaveBeenCalledExactlyOnceWith(rolesPermitidos);
-    expect(dependencias.redirect).toHaveBeenCalledExactlyOnceWith("/");
+    expect(dependencias.redirect).toHaveBeenCalledExactlyOnceWith("/login");
   });
 
   it("conserva la autorización según el rol vigente aunque difiera del JWT", async () => {

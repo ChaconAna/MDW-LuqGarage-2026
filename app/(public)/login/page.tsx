@@ -1,8 +1,14 @@
-import { signIn } from "@/auth";
-import { ErrorAutenticacion, requerirUsuario, type UsuarioAutenticado } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
-export default async function Home() {
+import { signIn } from "@/auth";
+import { Button } from "@/components/ui/button";
+import {
+  ErrorAutenticacion,
+  requerirUsuario,
+  type UsuarioAutenticado,
+} from "@/lib/auth";
+
+export default async function LoginPage() {
   let usuario: UsuarioAutenticado | null = null;
 
   try {
@@ -18,6 +24,10 @@ export default async function Home() {
     usuario?.rol === "ENCARGADO_DEL_TALLER"
   ) {
     redirect("/siniestros");
+  }
+
+  if (usuario?.rol === "MECANICO" || usuario?.rol === "ADMINISTRADOR") {
+    redirect("/sistema");
   }
 
   return (
@@ -38,12 +48,7 @@ export default async function Home() {
           }}
           className="mt-6"
         >
-          <button
-            type="submit"
-            className="rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
-          >
-            Entrar con Google
-          </button>
+          <Button type="submit">Entrar con Google</Button>
         </form>
       )}
     </main>

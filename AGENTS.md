@@ -29,7 +29,7 @@ Un siniestro puede tener múltiples presupuestos. Una Orden de Trabajo puede agr
 
 El backend desarrollado durante las clases 1 a 7 debe mantenerse funcional y conservar las restricciones de alcance y las reglas existentes correspondientes a esas clases.
 
-El alcance actual incluye el inicio del desarrollo del frontend de la Clase 8: React moderno dentro de Next.js, limitado a pantallas de solo lectura que reutilicen las consultas, reglas de negocio y mecanismos de autenticación y autorización existentes.
+El alcance actual corresponde al desarrollo de la Clase 10: UI, Design System y consumo de la API mediante React moderno dentro de Next.js, reutilizando las consultas, reglas de negocio y mecanismos de autenticación y autorización existentes.
 
 Esta ampliación no habilita automáticamente formularios, nuevas operaciones de escritura ni funcionalidades de clases posteriores; su implementación requiere una solicitud explícita. Las operaciones de escritura ya implementadas en el backend de las clases 1 a 7 deben mantenerse funcionales.
 

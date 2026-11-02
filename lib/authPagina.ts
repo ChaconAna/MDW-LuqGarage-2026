@@ -23,7 +23,7 @@ export async function autorizarPagina(
     return { autorizado: true, usuario };
   } catch (error: unknown) {
     if (error instanceof ErrorAutenticacion) {
-      redirect("/");
+      redirect("/login");
     }
 
     if (error instanceof ErrorAutorizacion) {
