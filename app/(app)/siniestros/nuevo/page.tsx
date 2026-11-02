@@ -1,17 +1,34 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
+import { Button } from "@/components/ui/button";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarAseguradorasActivas } from "@/lib/db/aseguradora";
 import { listarClientesActivos } from "@/lib/db/cliente";
 import { listarVehiculosActivos } from "@/lib/db/vehiculo";
+import { listadoClientesQuerySchema } from "@/lib/schemas/cliente";
 import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_CLIENTES = 10;
 const LIMITE_VEHICULOS = 10;
 const LIMITE_ASEGURADORAS = 10;
 
-export default async function SiniestroNuevoPage() {
+type SiniestroNuevoPageProps = {
+  searchParams: Promise<{
+    [key: string]: string | string[] | undefined;
+  }>;
+};
+
+function hrefPaginaClientes(pagina: number) {
+  return pagina === 1
+    ? "/siniestros/nuevo"
+    : `/siniestros/nuevo?clientesPage=${pagina}`;
+}
+
+export default async function SiniestroNuevoPage({
+  searchParams,
+}: SiniestroNuevoPageProps) {
   const autorizacion = await autorizarPagina([
     "RECEPCIONISTA",
     "ENCARGADO_DEL_TALLER",
@@ -28,7 +45,35 @@ export default async function SiniestroNuevoPage() {
     );
   }
 
-  const { clientes, total } = await listarClientesActivos(1, LIMITE_CLIENTES);
+  const parametros = await searchParams;
+  const paginaParametro = parametros.clientesPage;
+
+  if (paginaParametro !== undefined && typeof paginaParametro !== "string") {
+    redirect(hrefPaginaClientes(1));
+  }
+
+  const resultadoQuery = listadoClientesQuerySchema.safeParse({
+    page: paginaParametro,
+    limit: LIMITE_CLIENTES,
+  });
+
+  if (!resultadoQuery.success) {
+    redirect(hrefPaginaClientes(1));
+  }
+
+  const paginaClientes = resultadoQuery.data.page;
+  const primeraPagina = await listarClientesActivos(1, LIMITE_CLIENTES);
+  const total = primeraPagina.total;
+  const totalPaginasClientes = Math.max(1, Math.ceil(total / LIMITE_CLIENTES));
+
+  if (paginaClientes > totalPaginasClientes) {
+    redirect(hrefPaginaClientes(totalPaginasClientes));
+  }
+
+  const { clientes } =
+    paginaClientes === 1
+      ? primeraPagina
+      : await listarClientesActivos(paginaClientes, LIMITE_CLIENTES);
   const { vehiculos, total: totalVehiculos } = await listarVehiculosActivos(
     1,
     LIMITE_VEHICULOS,
@@ -60,7 +105,7 @@ export default async function SiniestroNuevoPage() {
             ) : (
               <>
                 <p>
-                  Primera página: mostrando {clientes.length} de {total} clientes
+                  Mostrando {clientes.length} de {total} clientes
                   activos (hasta {LIMITE_CLIENTES} por página).
                 </p>
                 <ul className="divide-y divide-current/20 rounded-lg border border-current/20">
@@ -75,6 +120,56 @@ export default async function SiniestroNuevoPage() {
                 </ul>
               </>
             )}
+            <nav
+              aria-label="Paginación de clientes activos"
+              className="flex flex-wrap items-center gap-3"
+            >
+              {paginaClientes > 1 ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link
+                    href={hrefPaginaClientes(paginaClientes - 1)}
+                    aria-label={`Ir a la página ${paginaClientes - 1} de clientes activos`}
+                  >
+                    Anterior
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  aria-label="Página anterior de clientes activos no disponible"
+                >
+                  Anterior
+                </Button>
+              )}
+
+              <span aria-current="page" className="text-sm">
+                Página {paginaClientes} de {totalPaginasClientes}
+              </span>
+
+              {paginaClientes < totalPaginasClientes ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link
+                    href={hrefPaginaClientes(paginaClientes + 1)}
+                    aria-label={`Ir a la página ${paginaClientes + 1} de clientes activos`}
+                  >
+                    Siguiente
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  aria-label="Página siguiente de clientes activos no disponible"
+                >
+                  Siguiente
+                </Button>
+              )}
+            </nav>
           </section>
 
           <section aria-labelledby="vehiculos-activos" className="space-y-3">
