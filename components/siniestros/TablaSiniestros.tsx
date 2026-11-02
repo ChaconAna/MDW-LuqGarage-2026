@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import type { EstadoSiniestro, GradoDano } from "@prisma/client";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { clasesEnlaceTexto } from "@/lib/utils";
 
@@ -20,11 +21,19 @@ type SiniestroFila = {
 
 type TablaSiniestrosProps = {
   siniestros: SiniestroFila[];
+  pagina: number;
+  totalPaginas: number;
   total: number;
 };
 
+function hrefPaginaSiniestros(pagina: number) {
+  return pagina === 1 ? "/siniestros" : `/siniestros?page=${pagina}`;
+}
+
 export default function TablaSiniestros({
   siniestros,
+  pagina,
+  totalPaginas,
   total,
 }: TablaSiniestrosProps) {
   const [busqueda, setBusqueda] = useState("");
@@ -40,7 +49,7 @@ export default function TablaSiniestros({
         className="mt-2 text-sm opacity-75"
       >
         Cargados {siniestros.length} de {total} siniestros. El filtro busca solo
-        entre los registros cargados.
+        entre los registros de la página actual.
       </p>
 
       <div className="mt-6">
@@ -61,6 +70,57 @@ export default function TablaSiniestros({
         Coincidencias en los registros cargados: {siniestrosFiltrados.length} de{" "}
         {siniestros.length}.
       </p>
+
+      <nav
+        aria-label="Paginación de siniestros"
+        className="mt-5 flex flex-wrap items-center gap-3"
+      >
+        {pagina > 1 ? (
+          <Button asChild variant="outline" size="sm">
+            <Link
+              href={hrefPaginaSiniestros(pagina - 1)}
+              aria-label={`Ir a la página ${pagina - 1}`}
+            >
+              Anterior
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled
+            aria-label="Página anterior no disponible"
+          >
+            Anterior
+          </Button>
+        )}
+
+        <span aria-current="page" className="text-sm">
+          Página {pagina} de {totalPaginas}
+        </span>
+
+        {pagina < totalPaginas ? (
+          <Button asChild variant="outline" size="sm">
+            <Link
+              href={hrefPaginaSiniestros(pagina + 1)}
+              aria-label={`Ir a la página ${pagina + 1}`}
+            >
+              Siguiente
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled
+            aria-label="Página siguiente no disponible"
+          >
+            Siguiente
+          </Button>
+        )}
+      </nav>
 
       <div
         role="region"
