@@ -71,6 +71,33 @@ export async function listarVehiculos(page: number, limit: number) {
   return { vehiculos, total };
 }
 
+export async function listarVehiculosActivos(page: number, limit: number) {
+  const where = { activo: true } satisfies Prisma.VehiculoWhereInput;
+  const [vehiculos, total] = await prisma.$transaction([
+    prisma.vehiculo.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        patente: true,
+        modelo: {
+          select: {
+            nombre: true,
+            marca: {
+              select: { nombre: true },
+            },
+          },
+        },
+      },
+    }),
+    prisma.vehiculo.count({ where }),
+  ]);
+
+  return { vehiculos, total };
+}
+
 export async function crearVehiculo(datos: DatosCreacionVehiculo) {
   try {
     const vehiculo = await prisma.vehiculo.create({
