@@ -1,9 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
+import { useNavegacionSelectores } from "@/components/siniestros/NavegacionSelectores";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { listarClientesActivos } from "@/lib/db/cliente";
@@ -31,40 +30,7 @@ export default function SelectorClienteActivo({
   total,
   limite,
 }: SelectorClienteActivoProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [pendiente, iniciarTransicion] = useTransition();
-
-  function seleccionarCliente(clienteId: string) {
-    if (pendiente) return;
-
-    const parametros = new URLSearchParams(searchParams.toString());
-    parametros.set("clienteId", clienteId);
-
-    iniciarTransicion(() => {
-      router.replace(`${pathname}?${parametros.toString()}`, { scroll: false });
-    });
-  }
-
-  function hrefPaginaClientes(numero: number) {
-    const parametros = new URLSearchParams(searchParams.toString());
-
-    if (numero === 1) {
-      parametros.delete("clientesPage");
-    } else {
-      parametros.set("clientesPage", String(numero));
-    }
-
-    if (clienteSeleccionado) {
-      parametros.set("clienteId", clienteSeleccionado.id);
-    } else {
-      parametros.delete("clienteId");
-    }
-
-    const query = parametros.toString();
-    return query ? `${pathname}?${query}` : pathname;
-  }
+  const { pendiente, seleccionar, hrefPagina } = useNavegacionSelectores();
 
   return (
     <div className="space-y-3" aria-busy={pendiente}>
@@ -107,7 +73,7 @@ export default function SelectorClienteActivo({
                     name="clienteId"
                     value={cliente.id}
                     checked={clienteSeleccionado?.id === cliente.id}
-                    onChange={() => seleccionarCliente(cliente.id)}
+                    onChange={() => seleccionar("clienteId", cliente.id)}
                     disabled={pendiente}
                     className="mt-1 h-4 w-4 shrink-0 rounded-full p-0 shadow-none"
                   />
@@ -131,7 +97,7 @@ export default function SelectorClienteActivo({
         {pagina > 1 && !pendiente ? (
           <Button asChild variant="outline" size="sm">
             <Link
-              href={hrefPaginaClientes(pagina - 1)}
+              href={hrefPagina("clientesPage", pagina - 1)}
               aria-label={`Ir a la página ${pagina - 1} de clientes activos`}
             >
               Anterior
@@ -156,7 +122,7 @@ export default function SelectorClienteActivo({
         {pagina < totalPaginas && !pendiente ? (
           <Button asChild variant="outline" size="sm">
             <Link
-              href={hrefPaginaClientes(pagina + 1)}
+              href={hrefPagina("clientesPage", pagina + 1)}
               aria-label={`Ir a la página ${pagina + 1} de clientes activos`}
             >
               Siguiente
