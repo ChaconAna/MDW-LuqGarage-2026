@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import SelectorClienteActivo from "@/components/siniestros/SelectorClienteActivo";
+import { Button } from "@/components/ui/button";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarAseguradorasActivas } from "@/lib/db/aseguradora";
 import { listarClientesActivos, obtenerClientePorId } from "@/lib/db/cliente";
@@ -11,6 +12,7 @@ import {
   listadoClientesQuerySchema,
   parametrosClienteSchema,
 } from "@/lib/schemas/cliente";
+import { listadoVehiculosQuerySchema } from "@/lib/schemas/vehiculo";
 import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_CLIENTES = 10;
@@ -23,11 +25,19 @@ type SiniestroNuevoPageProps = {
   }>;
 };
 
-function hrefPaginaClientes(pagina: number, clienteId?: string) {
+function hrefPaginas(
+  paginaClientes: number,
+  paginaVehiculos: number,
+  clienteId?: string,
+) {
   const parametros = new URLSearchParams();
 
-  if (pagina !== 1) {
-    parametros.set("clientesPage", String(pagina));
+  if (paginaClientes !== 1) {
+    parametros.set("clientesPage", String(paginaClientes));
+  }
+
+  if (paginaVehiculos !== 1) {
+    parametros.set("vehiculosPage", String(paginaVehiculos));
   }
 
   if (clienteId) {
@@ -87,38 +97,60 @@ export default async function SiniestroNuevoPage({
     }
   }
 
-  const paginaParametro = parametros.clientesPage;
+  const resultadoClientesQuery =
+    parametros.clientesPage === undefined ||
+    typeof parametros.clientesPage === "string"
+      ? listadoClientesQuerySchema.safeParse({
+          page: parametros.clientesPage,
+          limit: LIMITE_CLIENTES,
+        })
+      : null;
+  const resultadoVehiculosQuery =
+    parametros.vehiculosPage === undefined ||
+    typeof parametros.vehiculosPage === "string"
+      ? listadoVehiculosQuerySchema.safeParse({
+          page: parametros.vehiculosPage,
+          limit: LIMITE_VEHICULOS,
+        })
+      : null;
+  const paginaClientesSolicitada = resultadoClientesQuery?.success
+    ? resultadoClientesQuery.data.page
+    : 1;
+  const paginaVehiculosSolicitada = resultadoVehiculosQuery?.success
+    ? resultadoVehiculosQuery.data.page
+    : 1;
 
-  if (paginaParametro !== undefined && typeof paginaParametro !== "string") {
-    redirect(hrefPaginaClientes(1, clienteSeleccionado?.id));
-  }
-
-  const resultadoQuery = listadoClientesQuerySchema.safeParse({
-    page: paginaParametro,
-    limit: LIMITE_CLIENTES,
-  });
-
-  if (!resultadoQuery.success) {
-    redirect(hrefPaginaClientes(1, clienteSeleccionado?.id));
-  }
-
-  const paginaClientes = resultadoQuery.data.page;
-  const primeraPagina = await listarClientesActivos(1, LIMITE_CLIENTES);
-  const total = primeraPagina.total;
+  const [primeraPaginaClientes, primeraPaginaVehiculos] = await Promise.all([
+    listarClientesActivos(1, LIMITE_CLIENTES),
+    listarVehiculosActivos(1, LIMITE_VEHICULOS),
+  ]);
+  const total = primeraPaginaClientes.total;
+  const totalVehiculos = primeraPaginaVehiculos.total;
   const totalPaginasClientes = Math.max(1, Math.ceil(total / LIMITE_CLIENTES));
+  const totalPaginasVehiculos = Math.max(
+    1,
+    Math.ceil(totalVehiculos / LIMITE_VEHICULOS),
+  );
+  const paginaClientes = Math.min(paginaClientesSolicitada, totalPaginasClientes);
+  const paginaVehiculos = Math.min(paginaVehiculosSolicitada, totalPaginasVehiculos);
 
-  if (paginaClientes > totalPaginasClientes) {
-    redirect(hrefPaginaClientes(totalPaginasClientes, clienteSeleccionado?.id));
+  if (
+    !resultadoClientesQuery?.success ||
+    !resultadoVehiculosQuery?.success ||
+    paginaClientes !== paginaClientesSolicitada ||
+    paginaVehiculos !== paginaVehiculosSolicitada
+  ) {
+    redirect(hrefPaginas(paginaClientes, paginaVehiculos, clienteSeleccionado?.id));
   }
 
   const { clientes } =
     paginaClientes === 1
-      ? primeraPagina
+      ? primeraPaginaClientes
       : await listarClientesActivos(paginaClientes, LIMITE_CLIENTES);
-  const { vehiculos, total: totalVehiculos } = await listarVehiculosActivos(
-    1,
-    LIMITE_VEHICULOS,
-  );
+  const { vehiculos } =
+    paginaVehiculos === 1
+      ? primeraPaginaVehiculos
+      : await listarVehiculosActivos(paginaVehiculos, LIMITE_VEHICULOS);
   const { aseguradoras, total: totalAseguradoras } =
     await listarAseguradorasActivas(1, LIMITE_ASEGURADORAS);
 
@@ -162,7 +194,7 @@ export default async function SiniestroNuevoPage({
             ) : (
               <>
                 <p>
-                  Primera página: mostrando {vehiculos.length} de {totalVehiculos}{" "}
+                  Mostrando {vehiculos.length} de {totalVehiculos}{" "}
                   vehículos activos (hasta {LIMITE_VEHICULOS} por página).
                 </p>
                 <ul className="divide-y divide-current/20 rounded-lg border border-current/20">
@@ -176,6 +208,64 @@ export default async function SiniestroNuevoPage({
                 </ul>
               </>
             )}
+            <nav
+              aria-label="Paginación de vehículos activos"
+              className="flex flex-wrap items-center gap-3"
+            >
+              {paginaVehiculos > 1 ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link
+                    href={hrefPaginas(
+                      paginaClientes,
+                      paginaVehiculos - 1,
+                      clienteSeleccionado?.id,
+                    )}
+                    aria-label={`Ir a la página ${paginaVehiculos - 1} de vehículos activos`}
+                  >
+                    Anterior
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  aria-label="Página anterior de vehículos activos no disponible"
+                >
+                  Anterior
+                </Button>
+              )}
+
+              <span aria-current="page" className="text-sm">
+                Página {paginaVehiculos} de {totalPaginasVehiculos}
+              </span>
+
+              {paginaVehiculos < totalPaginasVehiculos ? (
+                <Button asChild variant="outline" size="sm">
+                  <Link
+                    href={hrefPaginas(
+                      paginaClientes,
+                      paginaVehiculos + 1,
+                      clienteSeleccionado?.id,
+                    )}
+                    aria-label={`Ir a la página ${paginaVehiculos + 1} de vehículos activos`}
+                  >
+                    Siguiente
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  aria-label="Página siguiente de vehículos activos no disponible"
+                >
+                  Siguiente
+                </Button>
+              )}
+            </nav>
           </section>
 
           <section aria-labelledby="aseguradoras-activas" className="space-y-3">
