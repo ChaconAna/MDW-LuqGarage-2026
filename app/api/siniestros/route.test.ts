@@ -42,6 +42,10 @@ vi.mock("@/lib/schemas/siniestro", async () =>
   import("../../../lib/schemas/siniestro"),
 );
 
+vi.mock("@/lib/services/siniestroMultipart", async () =>
+  import("../../../lib/services/siniestroMultipart"),
+);
+
 import { POST } from "./route";
 
 const tiposDocumentosObligatorios = [
@@ -133,9 +137,9 @@ describe("POST /api/siniestros", () => {
     ]);
   });
 
-  it("rechaza una estructura documental incompleta sin invocar la orquestación", async () => {
+  it.each(["tipo", "archivo"])("rechaza un documento sin %s sin invocar la orquestación", async (propiedad) => {
     const formData = crearFormDataValido();
-    formData.delete("documentos[0][archivo]");
+    formData.delete(`documentos[0][${propiedad}]`);
 
     const respuesta = await POST(crearRequest(formData));
 
@@ -146,17 +150,76 @@ describe("POST /api/siniestros", () => {
     expect(dependencias.registrarSiniestroConDocumentos).not.toHaveBeenCalled();
   });
 
-  it("rechaza un campo multipart no permitido, incluida una referenciaArchivo", async () => {
+  it.each([
+    "campoDesconocido",
+    "referenciaArchivo",
+    "documentos[0][referenciaArchivo]",
+  ])("rechaza el campo multipart no permitido %s", async (nombreCampo) => {
     const formData = crearFormDataValido();
-    formData.set(
-      "documentos[0][referenciaArchivo]",
-      "referencia-arbitraria.jpg",
-    );
+    formData.set(nombreCampo, "referencia-arbitraria.jpg");
 
     const respuesta = await POST(crearRequest(formData));
 
     expect(respuesta.status).toBe(400);
+    await expect(respuesta.json()).resolves.toEqual({
+      error: "Los datos del Siniestro son inválidos.",
+    });
     expect(dependencias.registrarSiniestroConDocumentos).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "numeroSiniestro",
+    "documentos[0][tipo]",
+    "documentos[0][archivo]",
+  ])("rechaza valores multipart repetidos en %s", async (nombreCampo) => {
+    const formData = crearFormDataValido();
+    const valor = formData.get(nombreCampo);
+    if (valor === null) {
+      throw new Error("El campo de prueba debe existir.");
+    }
+    formData.append(nombreCampo, valor);
+
+    const respuesta = await POST(crearRequest(formData));
+
+    expect(respuesta.status).toBe(400);
+    await expect(respuesta.json()).resolves.toEqual({
+      error: "Los datos del Siniestro son inválidos.",
+    });
+    expect(dependencias.registrarSiniestroConDocumentos).not.toHaveBeenCalled();
+  });
+
+  it("conserva las fotografías adicionales y ordena los documentos por índice numérico", async () => {
+    const formData = crearFormDataValido();
+    for (const indice of [10, 6]) {
+      formData.set(`documentos[${indice}][tipo]`, TipoDocumentoSiniestro.ADICIONAL);
+      formData.set(
+        `documentos[${indice}][archivo]`,
+        new File(["foto adicional"], `adicional-${indice}.jpg`),
+      );
+    }
+    dependencias.registrarSiniestroConDocumentos.mockResolvedValue({
+      creado: true,
+      siniestro: { id: "siniestro-id" },
+    });
+
+    const respuesta = await POST(crearRequest(formData));
+
+    expect(respuesta.status).toBe(201);
+    expect(dependencias.registrarSiniestroConDocumentos).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documentos: [
+          ...tiposDocumentosObligatorios.map((tipo) => ({
+            tipo,
+            archivo: expect.objectContaining({ name: `${tipo.toLowerCase()}.jpg` }),
+          })),
+          ...[6, 10].map((indice) => ({
+            tipo: TipoDocumentoSiniestro.ADICIONAL,
+            archivo: expect.objectContaining({ name: `adicional-${indice}.jpg` }),
+          })),
+        ],
+      }),
+      expect.any(Date),
+    );
   });
 
   it("rechaza una fecha futura sin invocar la orquestación", async () => {

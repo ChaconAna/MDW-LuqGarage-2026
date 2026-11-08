@@ -59,6 +59,26 @@ export async function listarAseguradoras(page: number, limit: number) {
   return { aseguradoras, total };
 }
 
+export async function listarAseguradorasActivas(page: number, limit: number) {
+  const where = { activo: true } satisfies Prisma.AseguradoraWhereInput;
+  const [aseguradoras, total] = await prisma.$transaction([
+    prisma.aseguradora.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        nombre: true,
+        cuit: true,
+      },
+    }),
+    prisma.aseguradora.count({ where }),
+  ]);
+
+  return { aseguradoras, total };
+}
+
 export async function crearAseguradora(datos: DatosCreacionAseguradora) {
   try {
     const aseguradora = await prisma.aseguradora.create({

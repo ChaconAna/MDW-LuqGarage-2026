@@ -74,6 +74,27 @@ export async function listarClientes(page: number, limit: number) {
   return { clientes, total };
 }
 
+export async function listarClientesActivos(page: number, limit: number) {
+  const where = { activo: true } satisfies Prisma.ClienteWhereInput;
+  const [clientes, total] = await prisma.$transaction([
+    prisma.cliente.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        nombre: true,
+        apellido: true,
+        dni: true,
+      },
+    }),
+    prisma.cliente.count({ where }),
+  ]);
+
+  return { clientes, total };
+}
+
 export async function crearCliente(datos: DatosCreacionCliente) {
   try {
     const cliente = await prisma.cliente.create({
