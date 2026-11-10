@@ -7,9 +7,9 @@ export function puedeEditarPresupuesto(estado: EstadoPresupuesto): boolean {
 }
 
 export function calcularTotalPresupuesto(
-  costos: readonly Prisma.Decimal[],
+  costos: readonly (Prisma.Decimal | string)[],
 ): string {
-  const total = costos.reduce(
+  const total = costos.reduce<Prisma.Decimal>(
     (acumulado, costo) => acumulado.plus(costo),
     new Prisma.Decimal(0),
   );
