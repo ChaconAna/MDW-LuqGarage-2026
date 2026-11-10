@@ -7,6 +7,7 @@ vi.mock("@/lib/auth", async () => import("../../../lib/auth"));
 vi.mock("@/lib/db/ordenTrabajo", () => ({ crearOrdenTrabajo: d.crear }));
 vi.mock("@/lib/db/presupuesto", () => ({ listarPresupuestosAprobadosDisponibles: d.listar }));
 vi.mock("@/lib/schemas/ordenTrabajo", async () => import("../../../lib/schemas/ordenTrabajo"));
+vi.mock("@/lib/services/ordenTrabajo", async () => import("../../../lib/services/ordenTrabajo"));
 vi.mock("next/cache", () => ({ revalidatePath: d.revalidar }));
 vi.mock("next/navigation", () => ({ redirect: d.redirigir }));
 

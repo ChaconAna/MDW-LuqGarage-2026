@@ -20,6 +20,11 @@ vi.mock("next/link", () => ({ default: ({ children, ...props }: React.ComponentP
 vi.mock("@/components/layout/ContenedorPagina", () => ({ default: ({ children }: { children: React.ReactNode }) => React.createElement("div", {}, children) }));
 vi.mock("@/components/ui/button", () => ({ Button: ({ children }: { children: React.ReactNode }) => React.createElement("button", {}, children) }));
 vi.mock("@/components/ordenesTrabajo/FormularioOrdenTrabajo", () => ({ default: (props: { siniestroId: string; inicial: unknown }) => React.createElement("form", { "data-siniestro": props.siniestroId }, JSON.stringify(props.inicial)) }));
+vi.mock("@/components/ordenesTrabajo/DetalleOrdenTrabajo", async () => import("./DetalleOrdenTrabajo"));
+vi.mock("@/components/ordenesTrabajo/ConfeccionOrdenTrabajo", async () => {
+  const { default: DetalleOrdenTrabajo } = await import("./DetalleOrdenTrabajo");
+  return { default: ({ inicialOrden }: { inicialOrden: Parameters<typeof DetalleOrdenTrabajo>[0]["orden"] }) => React.createElement(DetalleOrdenTrabajo, { orden: inicialOrden, esEncargado: true }, inicialOrden.estado === "BORRADOR" ? "Controles de confección" : null) };
+});
 
 import Listado from "../../app/(app)/ordenes-trabajo/page";
 import Detalle from "../../app/(app)/ordenes-trabajo/[id]/page";
@@ -77,7 +82,7 @@ describe("autorización de páginas y navegación OT", () => {
     expect(pagina).toContain(`data-siniestro="${siniestroId}"`);
     expect(d.usuario.mock.invocationCallOrder.at(-1)).toBeLessThan(d.siniestro.mock.invocationCallOrder[0]!);
     expect(d.disponibles).toHaveBeenCalledWith(siniestroId, 1, 10);
-    expect(d.siniestro.mock.invocationCallOrder[0]).toBeLessThan(d.disponibles.mock.invocationCallOrder[0]!);
+    expect(d.siniestro.mock.invocationCallOrder[0]).toBeLessThan(d.disponibles.mock.invocationCallOrder.at(-1)!);
     expect(d.finalizada).not.toHaveBeenCalled();
   });
   it("Mecánico usa listado y conteo restringidos y no ve enlaces prohibidos", async () => {
@@ -92,6 +97,13 @@ describe("autorización de páginas y navegación OT", () => {
   it("Mecánico recibe 404 por acceso directo a BORRADOR sin recurrir al detalle sin filtro", async () => {
     rol("MECANICO"); d.finalizada.mockResolvedValue(null);
     await expect(Detalle({ params: params() })).rejects.toBe(noEncontrado); expect(d.detalle).not.toHaveBeenCalled();
+  });
+  it("sólo carga catálogo y controles de confección para el Encargado en BORRADOR", async () => {
+    expect(html(await Detalle({ params: params() }))).toContain("Controles de confección");
+    expect(d.disponibles).toHaveBeenCalledExactlyOnceWith(siniestroId, 1, 10);
+    d.disponibles.mockClear(); d.detalle.mockResolvedValue({ ...detalle, estado: "FINALIZADA" });
+    expect(html(await Detalle({ params: params() }))).not.toContain("Controles de confección"); expect(d.disponibles).not.toHaveBeenCalled();
+    rol("MECANICO"); expect(html(await Detalle({ params: params() }))).not.toContain("Controles de confección"); expect(d.disponibles).not.toHaveBeenCalled();
   });
   it.each(["ENCARGADO_DEL_TALLER", "MECANICO", "RECEPCIONISTA", "ADMINISTRADOR"])("navegación principal para %s", async (r) => {
     rol(r); const pagina = html(await Layout({ children: <p>Contenido</p> }));

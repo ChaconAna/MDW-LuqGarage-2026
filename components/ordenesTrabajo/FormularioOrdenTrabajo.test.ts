@@ -60,7 +60,7 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
             loader: "jsx",
             resolveDir: process.cwd(),
             contents: args.path === "action"
-              ? "export const crearOrdenTrabajoAction = (...args) => window.__crear(...args); export const consultarPresupuestosDisponiblesAction = (...args) => window.__catalogo(...args);"
+              ? "export const crearOrdenTrabajoAction = (...args) => window.__crear(...args); export const incorporarPresupuestosOrdenTrabajoAction = (...args) => window.__incorporar(...args); export const consultarPresupuestosDisponiblesAction = (...args) => window.__catalogo(...args);"
               : args.path.endsWith("navigation")
                 ? "export const useRouter = () => ({replace: href => window.__navegar(href)}); export const usePathname = () => location.pathname; export const useSearchParams = () => new URLSearchParams(location.search);"
                 : 'import React from "react"; export default function Link({href, children, ...props}) { return <a {...props} href={href} onClick={e => { if (e.defaultPrevented) return; e.preventDefault(); window.__navegar(href); }}>{children}</a>; }',

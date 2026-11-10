@@ -1,7 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { crearOrdenTrabajoAction, consultarPresupuestosDisponiblesAction, type EstadoCreacionOrdenTrabajo } from "@/app/(app)/ordenes-trabajo/actions";
+import { startTransition, useActionState, useEffect, useRef, useState, useTransition, type RefObject } from "react";
+import { crearOrdenTrabajoAction, incorporarPresupuestosOrdenTrabajoAction, consultarPresupuestosDisponiblesAction, type EstadoCreacionOrdenTrabajo } from "@/app/(app)/ordenes-trabajo/actions";
 import { Button } from "@/components/ui/button";
 
 type PresupuestoDisponible = Awaited<ReturnType<typeof consultarPresupuestosDisponiblesAction>> extends infer R
@@ -10,27 +10,49 @@ type PresupuestoDisponible = Awaited<ReturnType<typeof consultarPresupuestosDisp
 type Props = {
   siniestroId: string;
   inicial: { presupuestos: PresupuestoDisponible; total: number };
+  incorporacion?: {
+    ordenTrabajoId: string;
+    bloqueado: boolean;
+    bloqueo: RefObject<boolean>;
+    onActividad: (activa: boolean) => void;
+    onGuardado: (orden: NonNullable<EstadoCreacionOrdenTrabajo["ordenTrabajo"]>) => void;
+  };
 };
 
-export default function FormularioOrdenTrabajo({ siniestroId, inicial }: Props) {
+export default function FormularioOrdenTrabajo({ siniestroId, inicial, incorporacion }: Props) {
   const [catalogo, setCatalogo] = useState({ ...inicial, pagina: 1 });
   const [seleccionados, setSeleccionados] = useState<PresupuestoDisponible>([]);
   const [errorCatalogo, setErrorCatalogo] = useState<string>();
-  const [estado, enviar, pendienteEnvio] = useActionState(crearOrdenTrabajoAction.bind(null, siniestroId), {} as EstadoCreacionOrdenTrabajo);
+  const [estado, enviar, pendienteEnvio] = useActionState(async (anterior: EstadoCreacionOrdenTrabajo, ids: string[]) => {
+    if (!incorporacion) return crearOrdenTrabajoAction(siniestroId, anterior, ids);
+    try {
+      const resultado = await incorporarPresupuestosOrdenTrabajoAction(incorporacion.ordenTrabajoId, { presupuestoIds: ids });
+      if (resultado.ordenTrabajo) { setSeleccionados([]); incorporacion.onGuardado(resultado.ordenTrabajo); }
+      return resultado;
+    } catch { return { errorGeneral: "No pudimos confirmar la incorporación. Actualizá el detalle antes de volver a intentarlo." }; }
+  }, {} as EstadoCreacionOrdenTrabajo);
   const [pendienteCatalogo, cargar] = useTransition();
-  const bloqueo = useRef(false);
+  const bloqueoLocal = useRef(false);
+  const bloqueo = incorporacion?.bloqueo ?? bloqueoLocal;
+  const notificarActividad = incorporacion?.onActividad;
   const formulario = useRef<HTMLFormElement>(null);
   const [erroresSeleccionVigentes, setErroresSeleccionVigentes] = useState(true);
-  const pendiente = pendienteEnvio || pendienteCatalogo;
+  const pendiente = pendienteEnvio || pendienteCatalogo || Boolean(incorporacion?.bloqueado);
   const totalPaginas = Math.max(1, Math.ceil(catalogo.total / 10));
+  const esIncorporacion = Boolean(incorporacion);
+  useEffect(() => { if (esIncorporacion) setCatalogo({ ...inicial, pagina: 1 }); }, [inicial, esIncorporacion]);
   useEffect(() => {
-    if (!pendienteEnvio && !pendienteCatalogo) bloqueo.current = false;
+    if (!pendienteEnvio && !pendienteCatalogo) {
+      bloqueo.current = false;
+      notificarActividad?.(false);
+    }
     if (estado.errorGeneral) formulario.current?.querySelector<HTMLElement>('[role="alert"]')?.focus();
-  }, [pendienteEnvio, pendienteCatalogo, estado]);
+  }, [pendienteEnvio, pendienteCatalogo, estado, bloqueo, notificarActividad]);
 
   function cambiarPagina(pagina: number) {
-    if (bloqueo.current || pagina < 1 || pagina > totalPaginas) return;
+    if (bloqueo.current || pendiente || pagina < 1 || pagina > totalPaginas) return;
     bloqueo.current = true;
+    notificarActividad?.(true);
     cargar(async () => {
       try {
         const resultado = await consultarPresupuestosDisponiblesAction(siniestroId, pagina);
@@ -47,10 +69,11 @@ export default function FormularioOrdenTrabajo({ siniestroId, inicial }: Props) 
     setErroresSeleccionVigentes(false);
   }
 
-  return <form ref={formulario} noValidate aria-busy={pendiente} className="min-w-0 space-y-6" onSubmit={(event) => {
+  return <form ref={formulario} noValidate aria-label={incorporacion ? "Incorporar presupuestos" : "Crear orden de trabajo"} aria-busy={pendienteEnvio || pendienteCatalogo} className="min-w-0 space-y-6" onSubmit={(event) => {
     event.preventDefault();
     if (bloqueo.current || pendiente || seleccionados.length === 0) return;
     bloqueo.current = true;
+    notificarActividad?.(true);
     setErroresSeleccionVigentes(true);
     startTransition(() => enviar(seleccionados.map(({ id }) => id)));
   }}>
@@ -90,8 +113,8 @@ export default function FormularioOrdenTrabajo({ siniestroId, inicial }: Props) 
           </li>)}
         </ul>}
       </section>
-      <Button type="submit" disabled={seleccionados.length === 0}>{pendienteEnvio ? "Creando…" : "Crear orden de trabajo"}</Button>
+      <Button type="submit" disabled={seleccionados.length === 0}>{pendienteEnvio ? (incorporacion ? "Incorporando…" : "Creando…") : incorporacion ? "Incorporar presupuestos" : "Crear orden de trabajo"}</Button>
     </fieldset>
-    <p role="status" aria-live="polite">{pendienteEnvio ? "Creando orden de trabajo…" : pendienteCatalogo ? "Cargando presupuestos…" : ""}</p>
+    <p role="status" aria-live="polite">{pendienteEnvio ? (incorporacion ? "Incorporando presupuestos…" : "Creando orden de trabajo…") : pendienteCatalogo ? "Cargando presupuestos…" : ""}</p>
   </form>;
 }
