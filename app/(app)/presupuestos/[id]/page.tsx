@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
+import GestionEstadoPresupuesto from "@/components/presupuestos/GestionEstadoPresupuesto";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerPresupuestoPorId } from "@/lib/db/presupuesto";
 import { parametrosPresupuestoSchema, type ParametrosPresupuesto } from "@/lib/schemas/presupuesto";
@@ -19,6 +20,7 @@ export default async function PresupuestoDetallePage({ params }: { params: Promi
     <Link href={`/siniestros/${presupuesto.siniestro.id}`} className={clasesEnlaceTexto}>Volver al siniestro {presupuesto.siniestro.numeroSiniestro}</Link>
     <h1 className="break-words text-2xl font-bold">Presupuesto {presupuesto.numeroPresupuesto}</h1>
     <p>Estado: {presupuesto.estado}</p>
+    <GestionEstadoPresupuesto key={presupuesto.id} presupuestoId={presupuesto.id} estado={presupuesto.estado} />
     {autorizacion.usuario.rol === "ENCARGADO_DEL_TALLER" && puedeEditarPresupuesto(presupuesto.estado) ? <Link href={`/presupuestos/${presupuesto.id}/editar`} className={`${clasesEnlaceTexto} inline-block`}>Editar borrador</Link> : null}
     <section aria-labelledby="reparaciones-presupuesto" className="space-y-3">
       <h2 id="reparaciones-presupuesto" className="text-xl font-semibold">Reparaciones</h2>

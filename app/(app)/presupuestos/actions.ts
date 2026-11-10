@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { ErrorAutenticacion, ErrorAutorizacion, requerirRol } from "@/lib/auth";
-import { crearPresupuesto, actualizarPresupuestoPorId } from "@/lib/db/presupuesto";
+import {
+  crearPresupuesto,
+  actualizarPresupuestoPorId,
+  enviarPresupuestoPorId,
+  aprobarPresupuestoPorId,
+  rechazarPresupuestoPorId,
+  type DetallePresupuesto,
+} from "@/lib/db/presupuesto";
 import { listarReparaciones } from "@/lib/db/reparacion";
 import { listarRepuestos } from "@/lib/db/repuesto";
 import { catalogoPresupuestoQuerySchema } from "@/lib/schemas/catalogoPresupuesto";
@@ -97,5 +104,89 @@ export async function consultarCatalogoPresupuestoAction(entrada: unknown) {
     return { ok: true, ...datos, pagina } as const;
   } catch (error: unknown) {
     return { ok: false, error: errorServidor(error, "No pudimos cargar el catálogo. Intentá nuevamente.").errorGeneral! } as const;
+  }
+}
+
+export type EstadoTransicionPresupuesto = {
+  errorGeneral?: string;
+  mensajeExito?: string;
+};
+
+async function autorizarTransicionPresupuesto(id: unknown) {
+  await requerirRol(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
+  const parametro = parametrosPresupuestoSchema.safeParse({ id });
+  if (!parametro.success) return { valido: false } as const;
+  return { valido: true, id: parametro.data.id } as const;
+}
+
+function revalidarTransicionPresupuesto(presupuesto: Pick<DetallePresupuesto, "id" | "siniestro">) {
+  revalidatePath(`/presupuestos/${presupuesto.id}`);
+  revalidatePath(`/presupuestos/${presupuesto.id}/editar`);
+  revalidatePath(`/siniestros/${presupuesto.siniestro.id}`);
+}
+
+function errorTransicionPresupuesto(error: unknown): EstadoTransicionPresupuesto {
+  return {
+    errorGeneral: errorServidor(error, "No pudimos confirmar el registro del estado. Actualizá el detalle antes de volver a intentarlo.").errorGeneral,
+  };
+}
+
+export async function registrarEnvioPresupuestoAction(
+  id: unknown,
+): Promise<EstadoTransicionPresupuesto> {
+  try {
+    const parametro = await autorizarTransicionPresupuesto(id);
+    if (!parametro.valido) return { errorGeneral: "El presupuesto indicado no es válido." };
+    const resultado = await enviarPresupuestoPorId(parametro.id);
+    if (!resultado.enviado) {
+      switch (resultado.motivo) {
+        case "PRESUPUESTO_NO_ENCONTRADO": return { errorGeneral: "El presupuesto ya no existe." };
+        case "PRESUPUESTO_NO_ENVIABLE": return { errorGeneral: "El presupuesto ya no está en BORRADOR. Actualizá el detalle para consultar su estado." };
+      }
+    }
+    revalidarTransicionPresupuesto(resultado.presupuesto);
+    return { mensajeExito: "El envío externo del presupuesto quedó registrado." };
+  } catch (error: unknown) {
+    return errorTransicionPresupuesto(error);
+  }
+}
+
+export async function registrarAprobacionPresupuestoAction(
+  id: unknown,
+): Promise<EstadoTransicionPresupuesto> {
+  try {
+    const parametro = await autorizarTransicionPresupuesto(id);
+    if (!parametro.valido) return { errorGeneral: "El presupuesto indicado no es válido." };
+    const resultado = await aprobarPresupuestoPorId(parametro.id);
+    if (!resultado.aprobado) {
+      switch (resultado.motivo) {
+        case "PRESUPUESTO_NO_ENCONTRADO": return { errorGeneral: "El presupuesto ya no existe." };
+        case "PRESUPUESTO_NO_APROBABLE": return { errorGeneral: "El presupuesto ya no está en ENVIADO. Actualizá el detalle para consultar su estado." };
+      }
+    }
+    revalidarTransicionPresupuesto(resultado.presupuesto);
+    return { mensajeExito: "La respuesta externa de aprobación quedó registrada." };
+  } catch (error: unknown) {
+    return errorTransicionPresupuesto(error);
+  }
+}
+
+export async function registrarRechazoPresupuestoAction(
+  id: unknown,
+): Promise<EstadoTransicionPresupuesto> {
+  try {
+    const parametro = await autorizarTransicionPresupuesto(id);
+    if (!parametro.valido) return { errorGeneral: "El presupuesto indicado no es válido." };
+    const resultado = await rechazarPresupuestoPorId(parametro.id);
+    if (!resultado.rechazado) {
+      switch (resultado.motivo) {
+        case "PRESUPUESTO_NO_ENCONTRADO": return { errorGeneral: "El presupuesto ya no existe." };
+        case "PRESUPUESTO_NO_RECHAZABLE": return { errorGeneral: "El presupuesto ya no está en ENVIADO. Actualizá el detalle para consultar su estado." };
+      }
+    }
+    revalidarTransicionPresupuesto(resultado.presupuesto);
+    return { mensajeExito: "La respuesta externa de rechazo quedó registrada." };
+  } catch (error: unknown) {
+    return errorTransicionPresupuesto(error);
   }
 }

@@ -13,6 +13,7 @@ vi.mock("next/navigation", () => ({ notFound: d.notFound, redirect: d.redirect }
 vi.mock("next/link", () => ({ default: ({ children, ...props }: React.ComponentProps<"a">) => React.createElement("a", props, children) }));
 vi.mock("@/components/layout/ContenedorPagina", () => ({ default: ({ children }: { children: React.ReactNode }) => React.createElement("div", {}, children) }));
 vi.mock("@/components/presupuestos/ContextoSiniestroPresupuesto", () => ({ default: () => React.createElement("p", {}, "Contexto del siniestro") }));
+vi.mock("@/components/presupuestos/GestionEstadoPresupuesto", () => ({ default: (props: { presupuestoId: string; estado: string }) => React.createElement("section", { "data-presupuesto": props.presupuestoId, "data-estado": props.estado }, "Controles de estado") }));
 vi.mock("@/components/presupuestos/FormularioPresupuesto", () => ({ default: (props: { inicial?: { reparaciones: Array<{ costo: string }> }; siniestroId: string }) => React.createElement("form", { "data-siniestro": props.siniestroId }, JSON.stringify(props.inicial)) }));
 vi.mock("@/lib/schemas/presupuesto", async () => import("../../lib/schemas/presupuesto"));
 vi.mock("@/lib/schemas/siniestro", async () => import("../../lib/schemas/siniestro"));
@@ -58,7 +59,7 @@ describe("páginas de presupuestos", () => {
       expect(htmlCrear).toContain("Acceso denegado"); expect(htmlEditar).toContain("Acceso denegado");
       expect(d.siniestro).not.toHaveBeenCalled(); expect(d.reparaciones).not.toHaveBeenCalled(); expect(d.repuestos).not.toHaveBeenCalled();
       if (rol === "RECEPCIONISTA") { expect(htmlDetalle).toContain("P-1"); expect(htmlDetalle).not.toContain("Editar borrador"); }
-      else { expect(htmlDetalle).toContain("Acceso denegado"); expect(d.presupuesto).not.toHaveBeenCalled(); }
+      else { expect(htmlDetalle).toContain("Acceso denegado"); expect(htmlDetalle).not.toContain("Controles de estado"); expect(d.presupuesto).not.toHaveBeenCalled(); }
     }
   });
   it("propaga la redirección de sesión antes de consultar", async () => {
@@ -99,6 +100,17 @@ describe("páginas de presupuestos", () => {
     d.presupuesto.mockResolvedValue({ ...presupuesto, repuestos: [] });
     const html = renderToStaticMarkup(await DetallePage({ params: Promise.resolve({ id }) }));
     expect(html).toContain("Sin repuestos."); expect(html).toContain("Total de reparaciones: 0.10");
+  });
+  it("actualiza el estado consultado y la posibilidad de edición al volver a renderizar el detalle", async () => {
+    const antes = renderToStaticMarkup(await DetallePage({ params: Promise.resolve({ id }) }));
+    expect(antes).toContain('data-estado="BORRADOR"'); expect(antes).toContain("Editar borrador");
+    for (const estado of ["ENVIADO", "APROBADO", "RECHAZADO"]) {
+      d.presupuesto.mockResolvedValue({ ...presupuesto, estado });
+      const despues = renderToStaticMarkup(await DetallePage({ params: Promise.resolve({ id }) }));
+      expect(despues).toContain(`data-estado="${estado}"`);
+      expect(despues).toContain(`data-presupuesto="${id}"`);
+      expect(despues).not.toContain("Editar borrador");
+    }
   });
 });
 
