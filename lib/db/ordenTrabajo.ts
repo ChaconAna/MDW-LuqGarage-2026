@@ -118,6 +118,15 @@ export async function listarOrdenesTrabajo(page: number, limit: number) {
   return { ordenesTrabajo, total };
 }
 
+export async function listarOrdenesTrabajoPorSiniestro(siniestroId: string, page: number, limit: number) {
+  const where = { siniestroId };
+  const [ordenesTrabajo, total] = await prisma.$transaction([
+    prisma.ordenDeTrabajo.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { id: "asc" }, select: seleccionOrdenTrabajo }),
+    prisma.ordenDeTrabajo.count({ where }),
+  ]);
+  return { ordenesTrabajo, total };
+}
+
 export async function listarOrdenesTrabajoFinalizadas(
   page: number,
   limit: number,

@@ -3,19 +3,27 @@ import { redirect } from "next/navigation";
 import type { RolUsuario } from "@prisma/client";
 import { listarPresupuestosPorSiniestro } from "@/lib/db/presupuesto";
 import { listadoPresupuestosQuerySchema } from "@/lib/schemas/presupuesto";
+import { listadoOrdenesTrabajoQuerySchema } from "@/lib/schemas/ordenTrabajo";
 import { clasesEnlaceTexto } from "@/lib/utils";
 
 type PresupuestosSiniestroProps = {
   siniestroId: string;
   rol: RolUsuario;
   paginaParametro: string | string[] | undefined;
+  ordenesPage?: string | string[];
 };
 
-export default async function PresupuestosSiniestro({ siniestroId, rol, paginaParametro }: PresupuestosSiniestroProps) {
+export default async function PresupuestosSiniestro({ siniestroId, rol, paginaParametro, ordenesPage }: PresupuestosSiniestroProps) {
   const base = `/siniestros/${siniestroId}`;
-  const hrefPagina = (pagina: number) => pagina === 1 ? base : `${base}?presupuestosPage=${pagina}`;
+  const independiente = listadoOrdenesTrabajoQuerySchema.safeParse({ page: ordenesPage, limit: 10 });
+  const hrefPagina = (pagina: number) => {
+    const parametros = new URLSearchParams();
+    if (pagina > 1) parametros.set("presupuestosPage", String(pagina));
+    if (typeof ordenesPage === "string" && independiente.success && independiente.data.page > 1) parametros.set("ordenesPage", String(independiente.data.page));
+    return parametros.size ? `${base}?${parametros}` : base;
+  };
   const query = listadoPresupuestosQuerySchema.safeParse({ page: paginaParametro, limit: 10 });
-  if ((paginaParametro !== undefined && typeof paginaParametro !== "string") || !query.success) redirect(base);
+  if ((paginaParametro !== undefined && typeof paginaParametro !== "string") || !query.success) redirect(hrefPagina(1));
   const { presupuestos, total } = await listarPresupuestosPorSiniestro(siniestroId, query.data.page, 10);
   const totalPaginas = Math.max(1, Math.ceil(total / 10));
   if (query.data.page > totalPaginas) redirect(hrefPagina(totalPaginas));

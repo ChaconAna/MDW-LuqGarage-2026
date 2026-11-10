@@ -16,6 +16,7 @@ vi.mock("@/components/presupuestos/ContextoSiniestroPresupuesto", () => ({ defau
 vi.mock("@/components/presupuestos/GestionEstadoPresupuesto", () => ({ default: (props: { presupuestoId: string; estado: string }) => React.createElement("section", { "data-presupuesto": props.presupuestoId, "data-estado": props.estado }, "Controles de estado") }));
 vi.mock("@/components/presupuestos/FormularioPresupuesto", () => ({ default: (props: { inicial?: { reparaciones: Array<{ costo: string }> }; siniestroId: string }) => React.createElement("form", { "data-siniestro": props.siniestroId }, JSON.stringify(props.inicial)) }));
 vi.mock("@/lib/schemas/presupuesto", async () => import("../../lib/schemas/presupuesto"));
+vi.mock("@/lib/schemas/ordenTrabajo", async () => import("../../lib/schemas/ordenTrabajo"));
 vi.mock("@/lib/schemas/siniestro", async () => import("../../lib/schemas/siniestro"));
 vi.mock("@/lib/services/presupuesto", async () => import("../../lib/services/presupuesto"));
 vi.mock("@/lib/utils", () => ({ clasesEnlaceTexto: "enlace" }));

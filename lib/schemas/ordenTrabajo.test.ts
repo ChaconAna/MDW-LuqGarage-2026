@@ -14,6 +14,16 @@ const presupuestoId2 = "40000000-0000-4000-8000-000000000003";
 const sectorId1 = "40000000-0000-4000-8000-000000000004";
 const sectorId2 = "40000000-0000-4000-8000-000000000005";
 
+it.each([Number.MAX_VALUE, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1])("rechaza página con desplazamiento inseguro %s", (page) => {
+  expect(listadoOrdenesTrabajoQuerySchema.safeParse({ page, limit: 10 }).success).toBe(false);
+});
+
+it("acepta el mayor desplazamiento seguro con límite diez", () => {
+  const page = Math.floor(Number.MAX_SAFE_INTEGER / 10) + 1;
+  expect(listadoOrdenesTrabajoQuerySchema.safeParse({ page, limit: 10 }).success).toBe(true);
+  expect(listadoOrdenesTrabajoQuerySchema.safeParse({ page: page + 1, limit: 10 }).success).toBe(false);
+});
+
 describe("parametrosOrdenTrabajoSchema", () => {
   it("acepta un UUID válido", () => {
     expect(

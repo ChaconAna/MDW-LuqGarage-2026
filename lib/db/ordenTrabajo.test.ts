@@ -17,12 +17,19 @@ vi.mock("./client", () => ({
 
 import {
   listarOrdenesTrabajo,
+  listarOrdenesTrabajoPorSiniestro,
   listarOrdenesTrabajoFinalizadas,
   obtenerOrdenTrabajoFinalizadaPorId,
   obtenerOrdenTrabajoPorId,
 } from "./ordenTrabajo";
 
 describe("consultas de Orden de Trabajo", () => {
+  it("filtra listado y conteo por siniestro con paginación estable", async () => {
+    transaccionPrisma.mockResolvedValue([[], 0]);
+    await listarOrdenesTrabajoPorSiniestro("siniestro", 2, 10);
+    expect(ordenDeTrabajoPrisma.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { siniestroId: "siniestro" }, skip: 10, take: 10, orderBy: { id: "asc" } }));
+    expect(ordenDeTrabajoPrisma.count).toHaveBeenCalledWith({ where: { siniestroId: "siniestro" } });
+  });
   beforeEach(() => {
     ordenDeTrabajoPrisma.count.mockReset();
     ordenDeTrabajoPrisma.findFirst.mockReset();
