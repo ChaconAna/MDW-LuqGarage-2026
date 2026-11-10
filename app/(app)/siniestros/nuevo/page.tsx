@@ -282,7 +282,7 @@ export default async function SiniestroNuevoPage({
             </Link>
 
             <h1 className="text-2xl font-bold">Registrar siniestro</h1>
-            <FormularioRegistroSiniestro>
+            <FormularioRegistroSiniestro seleccionesValidas={seleccionesValidas}>
               <section aria-labelledby="clientes-activos" className="space-y-3">
                 <h2 id="clientes-activos" className="text-xl font-semibold">
                   Clientes activos
