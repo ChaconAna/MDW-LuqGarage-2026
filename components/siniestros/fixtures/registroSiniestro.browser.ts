@@ -187,7 +187,12 @@ const pruebas = [
   async () => {
     await completar();
     exigir(innerWidth === 375, "Viewport de 375 px");
-    exigir(document.documentElement.scrollWidth <= document.documentElement.clientWidth, "No desbordar horizontalmente");
+    const ancho = document.documentElement.clientWidth;
+    const desbordados = [...document.querySelectorAll("*")]
+      .filter(elemento => elemento.getBoundingClientRect().right > ancho + 1)
+      .slice(-8)
+      .map(elemento => elemento.tagName.toLowerCase() + "#" + elemento.id + "." + (elemento.getAttribute("class")?.slice(0, 60) ?? ""));
+    exigir(document.documentElement.scrollWidth <= ancho, "No desbordar horizontalmente: " + document.documentElement.scrollWidth + " > " + ancho + "; " + desbordados.join(", "));
     exigir([...document.querySelectorAll("input")].every(input => input.labels.length > 0), "Etiquetas de todos los controles");
     boton().focus(); exigir(document.activeElement === boton(), "Botón accesible mediante foco");
     exigir(document.querySelector('input[name="gradoDano"]:checked').value === "MODERADO", "Radio nativo de grado");

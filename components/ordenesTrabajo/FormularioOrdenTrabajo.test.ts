@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -37,6 +38,7 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
   let requestsDeEscritura = 0;
 
   beforeAll(async () => {
+    expect(archivosCss.length).toBeGreaterThan(0);
     const bundle = await build({
       stdin: {
         contents: `const nombres = ${JSON.stringify(casosFormulario)};\n${escenarioFormulario}`,
@@ -126,7 +128,7 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
 
   afterAll(async () => {
     if (chrome && chrome.exitCode === null && !chrome.killed) {
-      const terminado = once(chrome, "exit");
+      const terminado = once(chrome, "close");
       chrome.kill();
       await terminado;
     }
@@ -135,13 +137,13 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
     if (perfil) {
       const destino = path.resolve(perfil);
       if (path.dirname(destino) === path.resolve(tmpdir()) && path.basename(destino).startsWith("luq-ot-integracion-")) {
-        rmSync(destino, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+        await rm(destino, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
       }
     }
   });
 
-  for (const [indice, nombre] of casosFormulario.entries()) {
-    it.skipIf(indice === casosFormulario.length - 1 && archivosCss.length === 0)(nombre, () => {
+  for (const nombre of casosFormulario) {
+    it(nombre, () => {
       expect(reportes.find((reporte) => reporte.nombre === nombre)?.error).toBeNull();
       expect(requestsDeEscritura).toBe(0);
     });
