@@ -203,8 +203,14 @@ const pruebas = [
   async () => {
     await montar(undefined, true);
     exigir(texto().includes("No hay reparaciones disponibles"), "Catálogo vacío");
-    respuesta = {errores: {reparaciones: "Agregá al menos una reparación."}, errorGeneral: "Revisá los campos indicados."};
+    respuesta = {errores: {reparaciones: "Agregá al menos una reparación.", repuestos: "Revisá los repuestos."}, errorGeneral: "Revisá los campos indicados."};
     await enviar(); exigir(texto().includes("Agregá al menos una reparación."), "Validación de reparación mínima");
+    for (const tipo of ["reparaciones", "repuestos"]) {
+      const grupo = seccion(tipo), error = document.getElementById("error-" + tipo);
+      exigir(grupo.getAttribute("aria-describedby") === error.id, "Error asociado al grupo de " + tipo);
+      const referencia = grupo.querySelector("select") ?? grupo.querySelector("h2");
+      exigir(referencia.compareDocumentPosition(error) & Node.DOCUMENT_POSITION_FOLLOWING, "Error debajo del grupo de " + tipo);
+    }
     await escribir("numero-presupuesto", "P-CORREGIDO"); exigir(document.getElementById("numero-presupuesto").value === "P-CORREGIDO", "Permite corregir");
   },
   async () => { await probarInvalidacion("reparaciones"); },

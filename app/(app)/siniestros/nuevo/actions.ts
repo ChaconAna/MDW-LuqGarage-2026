@@ -69,23 +69,23 @@ export async function registrarSiniestroAction(
     if (!esFechaSiniestroValida(resultado.data.fechaSiniestro, fechaRegistro)) {
       return { errores: {
         fechaSiniestro: "La fecha del siniestro no puede ser posterior a la fecha de registro.",
-      } };
+      }, errorGeneral: "La fecha del siniestro no puede ser posterior a la fecha de registro." };
     }
 
     const registro = await registrarSiniestroConDocumentos(resultado.data, fechaRegistro);
     if (!registro.creado) {
       switch (registro.motivo) {
         case "NUMERO_DUPLICADO":
-          return { errores: { numeroSiniestro: "Ya existe un siniestro con ese número." } };
+          return { errores: { numeroSiniestro: "Ya existe un siniestro con ese número." }, errorGeneral: "Ya existe un siniestro con ese número." };
         case "CLIENTE_NO_ENCONTRADO":
         case "CLIENTE_INACTIVO":
-          return { errores: { clienteId: "El cliente ya no está disponible. Elegí un cliente activo." } };
+          return { errores: { clienteId: "El cliente ya no está disponible. Elegí un cliente activo." }, errorGeneral: "El cliente ya no está disponible. Elegí un cliente activo." };
         case "VEHICULO_NO_ENCONTRADO":
         case "VEHICULO_INACTIVO":
-          return { errores: { vehiculoId: "El vehículo ya no está disponible. Elegí un vehículo activo." } };
+          return { errores: { vehiculoId: "El vehículo ya no está disponible. Elegí un vehículo activo." }, errorGeneral: "El vehículo ya no está disponible. Elegí un vehículo activo." };
         case "ASEGURADORA_NO_ENCONTRADA":
         case "ASEGURADORA_INACTIVA":
-          return { errores: { aseguradoraId: "La aseguradora ya no está disponible. Elegí una aseguradora activa." } };
+          return { errores: { aseguradoraId: "La aseguradora ya no está disponible. Elegí una aseguradora activa." }, errorGeneral: "La aseguradora ya no está disponible. Elegí una aseguradora activa." };
         case "ALMACENAMIENTO_FALLIDO":
           return { errores: {}, errorGeneral: "No fue posible almacenar la documentación. El siniestro no se registró." };
       }

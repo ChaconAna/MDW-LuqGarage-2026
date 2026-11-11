@@ -79,10 +79,9 @@ export default function FormularioOrdenTrabajo({ siniestroId, inicial, incorpora
   }}>
     {estado.errorGeneral ? <p role="alert" tabIndex={-1}>{estado.errorGeneral}</p> : null}
     {errorCatalogo ? <p role="alert">{errorCatalogo}</p> : null}
-    <fieldset disabled={pendiente} className="min-w-0 space-y-4">
+    <fieldset disabled={pendiente} aria-describedby={estado.errorSeleccion && erroresSeleccionVigentes ? "ayuda-presupuestos error-presupuestos" : "ayuda-presupuestos"} className="min-w-0 space-y-4">
       <legend className="text-xl font-semibold">Presupuestos aprobados disponibles</legend>
       <p id="ayuda-presupuestos">Seleccioná uno o varios presupuestos. La selección se conserva al cambiar de página.</p>
-      {estado.errorSeleccion && erroresSeleccionVigentes ? <p id="error-presupuestos" role="alert">{estado.errorSeleccion}</p> : null}
       {catalogo.presupuestos.length === 0 ? <p>No hay presupuestos aprobados disponibles para este siniestro.</p> : <ul className="space-y-3">
         {catalogo.presupuestos.map((presupuesto) => <li key={presupuesto.id}>
           <label className="flex min-h-11 items-center gap-3 break-words" htmlFor={`presupuesto-${presupuesto.id}`}>
@@ -99,6 +98,7 @@ export default function FormularioOrdenTrabajo({ siniestroId, inicial, incorpora
           </label>
         </li>)}
       </ul>}
+      {estado.errorSeleccion && erroresSeleccionVigentes ? <p id="error-presupuestos" role="alert">{estado.errorSeleccion}</p> : null}
       <nav aria-label="Paginación de presupuestos disponibles" className="flex flex-wrap items-center gap-3">
         <Button type="button" variant="outline" disabled={catalogo.pagina <= 1} onClick={() => cambiarPagina(catalogo.pagina - 1)}>Anterior</Button>
         <span>Página {catalogo.pagina} de {totalPaginas}</span>

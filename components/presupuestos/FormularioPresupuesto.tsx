@@ -66,14 +66,13 @@ export default function FormularioPresupuesto({ siniestroId, inicial, catalogoRe
           <p id="ayuda-numero-presupuesto" className="text-sm">El número y el siniestro no pueden modificarse después del alta.</p>
           <p id="error-numero-presupuesto" className="text-sm">{estado.errores.numeroPresupuesto}</p>
         </div>
-        <section aria-labelledby="titulo-reparaciones" className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
+        <section aria-labelledby="titulo-reparaciones" aria-describedby={erroresReparaciones.reparaciones ? "error-reparaciones" : undefined} className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
           <h2 id="titulo-reparaciones" className="text-xl font-semibold">Reparaciones obligatorias</h2>
           <p className="text-sm">Agregá al menos una reparación. Costo con punto y dos decimales, por ejemplo 0.00.</p>
           <SelectorCatalogoPresupuesto tipo="reparaciones" inicial={catalogoReparaciones} seleccionados={reparaciones.map(({ reparacionId }) => reparacionId)} disabled={pendiente} onAgregar={(opcion) => {
             setReparaciones((actuales) => actuales.some(({ reparacionId }) => reparacionId === opcion.id) ? actuales : [...actuales, { reparacionId: opcion.id, nombre: opcion.nombre, costo: "" }]);
             setRespuestaSinErroresReparaciones(estado);
           }} />
-          {erroresReparaciones.reparaciones ? <p role="alert">{erroresReparaciones.reparaciones}</p> : null}
           {reparaciones.length === 0 ? <p>No incorporaste reparaciones.</p> : null}
           {reparaciones.map((detalle, indice) => {
             const errorCosto = erroresReparaciones[`reparaciones.${indice}.costo`];
@@ -81,7 +80,6 @@ export default function FormularioPresupuesto({ siniestroId, inicial, catalogoRe
             return (
               <div key={detalle.reparacionId} className="min-w-0 space-y-2 border-t border-current/20 pt-3">
                 <p className="break-words font-medium">{detalle.nombre}</p>
-                {errorId ? <p role="alert">{errorId}</p> : null}
                 <label htmlFor={`costo-${detalle.reparacionId}`} className="block break-words">Costo de {detalle.nombre}</label>
                 <Input id={`costo-${detalle.reparacionId}`} value={detalle.costo} inputMode="decimal" required aria-invalid={Boolean(errorCosto)} aria-describedby={errorCosto ? `error-costo-${detalle.reparacionId}` : undefined} onChange={(evento) => setReparaciones((actuales) => actuales.map((fila) => fila.reparacionId === detalle.reparacionId ? { ...fila, costo: evento.target.value } : fila))} />
                 {errorCosto ? <p id={`error-costo-${detalle.reparacionId}`} className="text-sm">{errorCosto}</p> : null}
@@ -89,17 +87,18 @@ export default function FormularioPresupuesto({ siniestroId, inicial, catalogoRe
                   setReparaciones((actuales) => actuales.filter(({ reparacionId }) => reparacionId !== detalle.reparacionId));
                   setRespuestaSinErroresReparaciones(estado);
                 }}>Quitar reparación</Button>
+                {errorId ? <p role="alert">{errorId}</p> : null}
               </div>
             );
           })}
+          {erroresReparaciones.reparaciones ? <p id="error-reparaciones" role="alert">{erroresReparaciones.reparaciones}</p> : null}
         </section>
-        <section aria-labelledby="titulo-repuestos" className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
+        <section aria-labelledby="titulo-repuestos" aria-describedby={erroresRepuestos.repuestos ? "error-repuestos" : undefined} className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
           <h2 id="titulo-repuestos" className="text-xl font-semibold">Repuestos opcionales</h2>
           <SelectorCatalogoPresupuesto tipo="repuestos" inicial={catalogoRepuestos} seleccionados={repuestos.map(({ repuestoId }) => repuestoId)} disabled={pendiente} onAgregar={(opcion) => {
             setRepuestos((actuales) => actuales.some(({ repuestoId }) => repuestoId === opcion.id) ? actuales : [...actuales, { repuestoId: opcion.id, nombre: opcion.nombre, cantidad: "1" }]);
             setRespuestaSinErroresRepuestos(estado);
           }} />
-          {erroresRepuestos.repuestos ? <p role="alert">{erroresRepuestos.repuestos}</p> : null}
           {repuestos.length === 0 ? <p>No incorporaste repuestos.</p> : null}
           {repuestos.map((detalle, indice) => {
             const errorCantidad = erroresRepuestos[`repuestos.${indice}.cantidad`];
@@ -107,7 +106,6 @@ export default function FormularioPresupuesto({ siniestroId, inicial, catalogoRe
             return (
               <div key={detalle.repuestoId} className="min-w-0 space-y-2 border-t border-current/20 pt-3">
                 <p className="break-words font-medium">{detalle.nombre}</p>
-                {errorId ? <p role="alert">{errorId}</p> : null}
                 <label htmlFor={`cantidad-${detalle.repuestoId}`} className="block break-words">Cantidad de {detalle.nombre}</label>
                 <Input id={`cantidad-${detalle.repuestoId}`} value={detalle.cantidad} type="number" min="1" step="1" required aria-invalid={Boolean(errorCantidad)} aria-describedby={errorCantidad ? `error-cantidad-${detalle.repuestoId}` : undefined} onChange={(evento) => setRepuestos((actuales) => actuales.map((fila) => fila.repuestoId === detalle.repuestoId ? { ...fila, cantidad: evento.target.value } : fila))} />
                 {errorCantidad ? <p id={`error-cantidad-${detalle.repuestoId}`} className="text-sm">{errorCantidad}</p> : null}
@@ -115,9 +113,11 @@ export default function FormularioPresupuesto({ siniestroId, inicial, catalogoRe
                   setRepuestos((actuales) => actuales.filter(({ repuestoId }) => repuestoId !== detalle.repuestoId));
                   setRespuestaSinErroresRepuestos(estado);
                 }}>Quitar repuesto</Button>
+                {errorId ? <p role="alert">{errorId}</p> : null}
               </div>
             );
           })}
+          {erroresRepuestos.repuestos ? <p id="error-repuestos" role="alert">{erroresRepuestos.repuestos}</p> : null}
         </section>
       </fieldset>
       <p aria-live="polite" className="break-words">Total de reparaciones: {total ?? "Completá los costos con el formato indicado."}</p>

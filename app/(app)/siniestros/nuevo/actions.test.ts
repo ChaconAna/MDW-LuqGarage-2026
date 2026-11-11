@@ -152,6 +152,7 @@ describe("registrarSiniestroAction", () => {
     formData.set("fechaSiniestro", "2026-11-10");
     const resultado = await registrarSiniestroAction({ errores: {} }, formData);
     expect(resultado.errores.fechaSiniestro).toMatch(/posterior/);
+    expect(resultado.errorGeneral).toBe(resultado.errores.fechaSiniestro);
     sinRegistro();
   });
 
@@ -222,6 +223,8 @@ describe("registrarSiniestroAction", () => {
     dependencias.registrarSiniestroConDocumentos.mockResolvedValue({ creado: false, motivo });
     const resultado = await registrarSiniestroAction({ errores: {} }, formularioValido());
     expect(resultado.errores[campo]).toEqual(expect.any(String));
+    expect(resultado.errorGeneral).toBe(resultado.errores[campo]);
+    expect(resultado.errorGeneral).not.toMatch(/técnico|secreto/i);
     sinRedireccion();
   });
 

@@ -34,8 +34,6 @@ export default function SelectorVehiculoActivo({
 
   return (
     <div className="space-y-3" aria-busy={pendiente}>
-      {errorSeleccion ? <p role="alert">{errorSeleccion}</p> : null}
-
       <div role="status" className="space-y-1">
         {vehiculoSeleccionado ? (
           <>
@@ -54,7 +52,7 @@ export default function SelectorVehiculoActivo({
       {vehiculos.length === 0 ? (
         <p>No hay vehículos activos disponibles.</p>
       ) : (
-        <fieldset className="space-y-3">
+        <fieldset className="space-y-3" aria-describedby={errorSeleccion ? "error-seleccion-vehiculo" : undefined}>
           <legend className="font-medium">Seleccionar vehículo activo</legend>
           <p>
             Mostrando {vehiculos.length} de {total} vehículos activos (hasta {limite}{" "}
@@ -90,6 +88,7 @@ export default function SelectorVehiculoActivo({
           </ul>
         </fieldset>
       )}
+      {errorSeleccion ? <p id="error-seleccion-vehiculo" role="alert">{errorSeleccion}</p> : null}
 
       <nav
         aria-label="Paginación de vehículos activos"

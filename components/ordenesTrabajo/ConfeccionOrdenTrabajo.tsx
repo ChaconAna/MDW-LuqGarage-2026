@@ -71,7 +71,6 @@ export default function ConfeccionOrdenTrabajo({ inicialOrden, catalogoInicial }
         }}>
           <fieldset disabled={ocupada} className="min-w-0 space-y-4">
             <legend className="sr-only">Editar observaciones de la orden de trabajo</legend>
-            {resultado.errorObservaciones && !mensajeExito ? <p id="error-observaciones" role="alert">{resultado.errorObservaciones}</p> : null}
             {orden.sectores.map((sector) => <div key={sector.id} className="space-y-2">
               <label htmlFor={`observacion-${sector.id}`} className="block font-medium">Observación de {sector.nombre}</label>
               <textarea id={`observacion-${sector.id}`} value={cambios[sector.id] ?? sector.observacion ?? ""} rows={3}
@@ -83,6 +82,7 @@ export default function ConfeccionOrdenTrabajo({ inicialOrden, catalogoInicial }
                   setConfirmando(false);
                 }} />
             </div>)}
+            {resultado.errorObservaciones && !mensajeExito ? <p id="error-observaciones" role="alert">{resultado.errorObservaciones}</p> : null}
             {orden.sectores.length === 0 ? <p>No hay sectores cuyas observaciones puedan editarse.</p> : null}
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button type="submit" disabled={!sinGuardar}>{pendiente ? "Guardando…" : "Guardar observaciones"}</Button>

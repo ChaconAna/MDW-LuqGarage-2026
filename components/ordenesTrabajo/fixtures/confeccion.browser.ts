@@ -105,6 +105,8 @@ async function caso(i, probar){try{await probar();reportes.push({nombre:nombres[
     await montar();await escribir("Texto conservado");respuesta={errorGeneral:"El sector ya no pertenece.",errorObservaciones:"Revisá las observaciones."};await enviar(obs());
     exigir(textarea().value==="Texto conservado"&&texto().includes(respuesta.errorGeneral),"Texto conservado y rechazo visible");
     exigir(document.getElementById("error-observaciones")&&textarea().getAttribute("aria-invalid")==="true","Error junto al formulario y asociado al control");
+    exigir(textarea().compareDocumentPosition(document.getElementById("error-observaciones")) & Node.DOCUMENT_POSITION_FOLLOWING,"Error debajo de la observación");
+    exigir(textarea().getAttribute("aria-describedby")==="error-observaciones","Error accesible desde el control");
     exigir(boton("Finalizar orden de trabajo").matches(":disabled"),"Protección continúa después del error");
   });
   await caso(4,async()=>{

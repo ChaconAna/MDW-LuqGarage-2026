@@ -6,6 +6,7 @@ export const casosFormulario = [
   "conserva los valores al paginar y cambiar una selección",
   "exige las tres selecciones antes de habilitar el envío",
   "mantiene etiquetas, foco y ancho de 375 px con nombres de archivo largos",
+  "sitúa el error de selección de URL debajo del grupo correspondiente",
 ] as const;
 
 // Fixture ejecutada en un navegador real. La Action y el router se sustituyen
@@ -38,11 +39,11 @@ function App() {
   const cp = Number(q.get("clientesPage") || 1), vp = Number(q.get("vehiculosPage") || 1), ap = Number(q.get("aseguradorasPage") || 1);
   const paginacion = pagina => ({pagina, totalPaginas: 2, total: 11, limite: 10});
   return <div data-escenario={version} className="mx-auto max-w-4xl p-6 sm:p-8"><Navegacion seleccionesValidas={selecciones}>
-    <h1>Registrar siniestro</h1><Formulario seleccionesValidas={selecciones}>
-      <section data-entidad="clienteId"><h2>Clientes activos</h2><Clientes clientes={clientes.slice((cp-1)*10, cp*10)} clienteSeleccionado={clientes.find(x => x.id === selecciones.clienteId) || null} {...paginacion(cp)}/></section>
-      <section data-entidad="vehiculoId"><h2>Vehículos activos</h2><Vehiculos vehiculos={vehiculos.slice((vp-1)*10, vp*10)} vehiculoSeleccionado={vehiculos.find(x => x.id === selecciones.vehiculoId) || null} {...paginacion(vp)}/></section>
-      <section data-entidad="aseguradoraId"><h2>Aseguradoras activas</h2><Aseguradoras aseguradoras={aseguradoras.slice((ap-1)*10, ap*10)} aseguradoraSeleccionada={aseguradoras.find(x => x.id === selecciones.aseguradoraId) || null} {...paginacion(ap)}/></section>
-    </Formulario></Navegacion></div>;
+    <h1>Registrar siniestro</h1><Formulario seleccionesValidas={selecciones}
+      selectorCliente={<section data-entidad="clienteId"><h2>Clientes activos</h2><Clientes clientes={clientes.slice((cp-1)*10, cp*10)} clienteSeleccionado={clientes.find(x => x.id === selecciones.clienteId) || null} errorSeleccion={q.has("clienteError") ? "Cliente inválido simulado" : undefined} {...paginacion(cp)}/></section>}
+      selectorVehiculo={<section data-entidad="vehiculoId"><h2>Vehículos activos</h2><Vehiculos vehiculos={vehiculos.slice((vp-1)*10, vp*10)} vehiculoSeleccionado={vehiculos.find(x => x.id === selecciones.vehiculoId) || null} {...paginacion(vp)}/></section>}
+      selectorAseguradora={<section data-entidad="aseguradoraId"><h2>Aseguradoras activas</h2><Aseguradoras aseguradoras={aseguradoras.slice((ap-1)*10, ap*10)} aseguradoraSeleccionada={aseguradoras.find(x => x.id === selecciones.aseguradoraId) || null} {...paginacion(ap)}/></section>}
+    /></Navegacion></div>;
 }
 window.__navegar = href => { history.pushState(null, "", href); root.render(<App key={version}/>); };
 window.__accionSimulada = async (_anterior, fd) => {
@@ -113,14 +114,30 @@ const pruebas = [
     exigir(llamadas.length === 1, "Permitir corregir el archivo y reenviar");
   },
   async () => {
-    resultado = {errores: {numeroSiniestro: "Número duplicado simulado", clienteId: "Cliente no disponible simulado", DENUNCIA: "Archivo inválido simulado"}, errorGeneral: "Error general simulado"};
+    resultado = {errores: {numeroSiniestro: "Número duplicado simulado", clienteId: "Cliente no disponible simulado", vehiculoId: "Vehículo no disponible simulado", aseguradoraId: "Aseguradora no disponible simulada", DENUNCIA: "Archivo inválido simulado", documentos: "Falta documentación simulada"}, errorGeneral: "Número duplicado simulado"};
     await completar(); const antes = captura(); await enviar();
     const numero = document.getElementById("numero-siniestro");
     exigir(numero.getAttribute("aria-invalid") === "true" && numero.getAttribute("aria-describedby") === "error-numero-siniestro", "Asociación de error por campo");
     exigir(document.getElementById("error-numero-siniestro").textContent.includes("duplicado"), "Error del número");
     exigir(document.getElementById("documento-DENUNCIA").getAttribute("aria-invalid") === "true", "Error documental");
     exigir(document.body.textContent.includes("Cliente no disponible simulado"), "Error de selección fuera de página");
-    exigir(document.querySelector('[role="alert"]').textContent.includes("Error general"), "Error general visible");
+    exigir(document.querySelector('form > [role="alert"]').textContent === "Número duplicado simulado", "Motivo de negocio concreto arriba del formulario");
+    for (const [entidad, idError, mensaje] of [
+      ["clienteId", "error-cliente-activo", "Cliente no disponible simulado"],
+      ["vehiculoId", "error-vehiculo-activo", "Vehículo no disponible simulado"],
+      ["aseguradoraId", "error-aseguradora-activa", "Aseguradora no disponible simulada"],
+    ]) {
+      const selector = document.querySelector('[data-entidad="' + entidad + '"]');
+      const error = document.getElementById(idError);
+      exigir(selector && error && selector.nextElementSibling === error, "Error inmediatamente después del selector de " + entidad);
+      exigir(error.textContent.includes(mensaje), "Motivo específico de " + entidad);
+      exigir(selector.parentElement.getAttribute("role") === "group" && selector.parentElement.getAttribute("aria-describedby") === idError, "Error asociado únicamente al grupo de " + entidad);
+    }
+    const campoArchivo = document.getElementById("documento-DENUNCIA");
+    exigir(campoArchivo.compareDocumentPosition(document.getElementById("error-DENUNCIA")) & Node.DOCUMENT_POSITION_FOLLOWING, "Error documental debajo del archivo");
+    const errorDocumentos = document.getElementById("error-documentos");
+    exigir(document.getElementById("documento-CERTIFICADO_COBERTURA").compareDocumentPosition(errorDocumentos) & Node.DOCUMENT_POSITION_FOLLOWING, "Error del grupo debajo de los documentos");
+    exigir(errorDocumentos.closest("fieldset").getAttribute("aria-describedby") === errorDocumentos.id, "Error documental asociado al grupo");
     exigir(captura() === antes, "No reiniciar textos o FileLists al devolver errores");
     exigir(document.activeElement === numero, "Foco sobre el primer campo inválido");
     valor("numero-siniestro", "SIN-CORREGIDO"); await pausa(); await enviar();
@@ -174,6 +191,13 @@ const pruebas = [
     exigir([...document.querySelectorAll("input")].every(input => input.labels.length > 0), "Etiquetas de todos los controles");
     boton().focus(); exigir(document.activeElement === boton(), "Botón accesible mediante foco");
     exigir(document.querySelector('input[name="gradoDano"]:checked').value === "MODERADO", "Radio nativo de grado");
+  },
+  async () => {
+    await montar(inicial + "&clienteError=1");
+    const grupo = document.querySelector('[data-entidad="clienteId"] fieldset');
+    const error = document.getElementById("error-seleccion-cliente");
+    exigir(grupo && error && grupo.compareDocumentPosition(error) & Node.DOCUMENT_POSITION_FOLLOWING, "Error debajo del selector de cliente");
+    exigir(grupo.getAttribute("aria-describedby") === error.id, "Error de URL asociado al grupo de radios");
   },
 ];
 (async () => {

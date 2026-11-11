@@ -34,8 +34,6 @@ export default function SelectorClienteActivo({
 
   return (
     <div className="space-y-3" aria-busy={pendiente}>
-      {errorSeleccion ? <p role="alert">{errorSeleccion}</p> : null}
-
       <div role="status" className="space-y-1">
         {clienteSeleccionado ? (
           <>
@@ -54,7 +52,7 @@ export default function SelectorClienteActivo({
       {clientes.length === 0 ? (
         <p>No hay clientes activos disponibles.</p>
       ) : (
-        <fieldset className="space-y-3">
+        <fieldset className="space-y-3" aria-describedby={errorSeleccion ? "error-seleccion-cliente" : undefined}>
           <legend className="font-medium">Seleccionar cliente activo</legend>
           <p>
             Mostrando {clientes.length} de {total} clientes activos (hasta {limite}{" "}
@@ -89,6 +87,7 @@ export default function SelectorClienteActivo({
           </ul>
         </fieldset>
       )}
+      {errorSeleccion ? <p id="error-seleccion-cliente" role="alert">{errorSeleccion}</p> : null}
 
       <nav
         aria-label="Paginación de clientes activos"

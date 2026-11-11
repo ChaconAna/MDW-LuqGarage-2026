@@ -55,12 +55,16 @@ const etiquetasGrado: Record<GradoDano, string> = {
 
 type TipoObligatorio = (typeof documentosObligatorios)[number]["tipo"];
 type FormularioRegistroSiniestroProps = {
-  children: ReactNode;
+  selectorCliente: ReactNode;
+  selectorVehiculo: ReactNode;
+  selectorAseguradora: ReactNode;
   seleccionesValidas: SeleccionesValidas;
 };
 
 export default function FormularioRegistroSiniestro({
-  children,
+  selectorCliente,
+  selectorVehiculo,
+  selectorAseguradora,
   seleccionesValidas,
 }: FormularioRegistroSiniestroProps) {
   const [numeroSiniestro, setNumeroSiniestro] = useState("");
@@ -233,13 +237,21 @@ export default function FormularioRegistroSiniestro({
           if (pendienteEnvio) evento.preventDefault();
         }}
       >
-        {errores.clienteId ? <p role="alert">Cliente: {errores.clienteId}</p> : null}
-        {errores.vehiculoId ? <p role="alert">Vehículo: {errores.vehiculoId}</p> : null}
-        {errores.aseguradoraId ? <p role="alert">Aseguradora: {errores.aseguradoraId}</p> : null}
-        {children}
+        <div role="group" aria-label="Selección de cliente" aria-describedby={errores.clienteId ? "error-cliente-activo" : undefined} className="space-y-3">
+          {selectorCliente}
+          {errores.clienteId ? <p id="error-cliente-activo" role="alert">Cliente: {errores.clienteId}</p> : null}
+        </div>
+        <div role="group" aria-label="Selección de vehículo" aria-describedby={errores.vehiculoId ? "error-vehiculo-activo" : undefined} className="space-y-3">
+          {selectorVehiculo}
+          {errores.vehiculoId ? <p id="error-vehiculo-activo" role="alert">Vehículo: {errores.vehiculoId}</p> : null}
+        </div>
+        <div role="group" aria-label="Selección de aseguradora" aria-describedby={errores.aseguradoraId ? "error-aseguradora-activa" : undefined} className="space-y-3">
+          {selectorAseguradora}
+          {errores.aseguradoraId ? <p id="error-aseguradora-activa" role="alert">Aseguradora: {errores.aseguradoraId}</p> : null}
+        </div>
       </fieldset>
 
-      <fieldset disabled={pendienteEnvio} className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
+      <fieldset disabled={pendienteEnvio} aria-describedby={errores.documentos ? "error-documentos" : undefined} className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
         <legend className="px-1 text-xl font-semibold">Documentación obligatoria</legend>
         <p id="ayuda-documentos" className="text-sm">
           Seleccioná una foto por categoría. Podés reemplazarla antes de registrar.
@@ -248,7 +260,6 @@ export default function FormularioRegistroSiniestro({
           Los archivos quedan solo en esta pantalla. Si recargás o salís, deberás
           seleccionarlos nuevamente.
         </p>
-        {errores.documentos ? <p role="alert">{errores.documentos}</p> : null}
 
         {documentosObligatorios.map(({ tipo, etiqueta }) => (
           <div key={tipo} className="min-w-0 space-y-2">
@@ -275,6 +286,7 @@ export default function FormularioRegistroSiniestro({
             {errores[tipo] ? <p id={`error-${tipo}`} className="text-sm">{errores[tipo]}</p> : null}
           </div>
         ))}
+        {errores.documentos ? <p id="error-documentos" role="alert">{errores.documentos}</p> : null}
       </fieldset>
 
       <fieldset disabled={pendienteEnvio} className="min-w-0 space-y-3 rounded-lg border border-current/20 p-4">

@@ -92,6 +92,8 @@ async function caso(indice, ejecutar) {
     const alerta = form().querySelector('[role="alert"]');
     exigir(alerta.textContent === respuesta.errorGeneral && alerta.compareDocumentPosition(document.querySelector("fieldset")) & Node.DOCUMENT_POSITION_FOLLOWING, "Error de negocio arriba del catálogo");
     exigir(document.getElementById("error-presupuestos").textContent === respuesta.errorSeleccion, "Error junto a selección");
+    exigir(document.querySelector("fieldset ul").compareDocumentPosition(document.getElementById("error-presupuestos")) & Node.DOCUMENT_POSITION_FOLLOWING, "Error debajo de los presupuestos seleccionables");
+    exigir(document.querySelector("fieldset").getAttribute("aria-describedby").includes("error-presupuestos"), "Error asociado al grupo");
     exigir(check(11).checked && texto().includes("Selección (2)"), "Conserva todas las selecciones");
     await paginar("Anterior"); exigir(check(1).checked, "También conserva opción fuera de página");
     exigir(document.activeElement === alerta, "Error general recibe foco");
