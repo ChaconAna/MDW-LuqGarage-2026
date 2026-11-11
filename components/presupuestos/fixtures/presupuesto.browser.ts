@@ -28,11 +28,11 @@ async function hasta(condicion) {
   for (let i=0; i<400; i++) { if (condicion()) return; await pausa(10); }
   throw new Error("Tiempo agotado esperando el estado del formulario");
 }
-function registrar(modo, datos, presupuestoId) {
-  llamadas.push({modo, datos, presupuestoId});
+function registrar(modo, datos, presupuestoId, siniestroId) {
+  llamadas.push({modo, datos, presupuestoId, siniestroId});
   return diferir ? new Promise(resolve => {resolver = resolve;}) : Promise.resolve(respuesta);
 }
-window.__crear = (_anterior, datos) => registrar("crear", datos);
+window.__crear = (siniestroId, _anterior, datos) => registrar("crear", datos, undefined, siniestroId);
 window.__actualizar = (presupuestoId, _anterior, datos) => registrar("editar", datos, presupuestoId);
 window.__catalogo = async query => {
   lecturas.push(query);
@@ -42,7 +42,7 @@ window.__catalogo = async query => {
 };
 async function montar(inicial, vacio = false) {
   llamadas = []; lecturas = []; respuesta = {errores: {}}; diferir = false; fallaCatalogo = false;
-  root.render(<Formulario key={++montaje} siniestroId={id(500)} inicial={inicial}
+  root.render(<Formulario key={++montaje} {...(inicial ? {inicial} : {accionCrear: window.__crear.bind(null, id(500))})}
     catalogoReparaciones={{opciones: vacio ? [] : reparaciones.slice(0, 10), total: vacio ? 0 : 11}}
     catalogoRepuestos={{opciones: vacio ? [] : repuestos.slice(0, 10), total: vacio ? 0 : 11}} />);
   await pausa(20);
@@ -135,7 +135,8 @@ const pruebas = [
     await enviar();
     exigir(llamadas.length === 1, "Un único envío");
     const datos = llamadas[0].datos;
-    exigir(datos.siniestroId === id(500) && datos.numeroPresupuesto === "P-PRUEBA", "Datos del alta");
+    exigir(llamadas[0].siniestroId === id(500) && datos.numeroPresupuesto === "P-PRUEBA", "ID asociado a la Action desde la página");
+    exigir(!Object.hasOwn(datos, "siniestroId"), "El formulario no incluye el ID de URL en el payload editable");
     exigir(JSON.stringify(datos.reparaciones) === JSON.stringify([{reparacionId: id(1), costo: "0.10"}, {reparacionId: id(11), costo: "0.20"}]), "Envía todas las reparaciones y textos decimales");
     exigir(datos.repuestos[0].repuestoId === id(111) && datos.repuestos[0].cantidad === 3, "Envía cantidad entera");
   },

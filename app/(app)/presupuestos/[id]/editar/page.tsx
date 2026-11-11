@@ -24,6 +24,6 @@ export default async function PresupuestoEditarPage({ params }: { params: Promis
     {volver}
     <h1 className="text-2xl font-bold">Editar presupuesto BORRADOR</h1>
     <p className="break-words">Siniestro asociado: {presupuesto.siniestro.numeroSiniestro}. Esta asociación no puede modificarse.</p>
-    <FormularioPresupuesto siniestroId={presupuesto.siniestro.id} inicial={serializarDetallePresupuesto(presupuesto)} catalogoReparaciones={reparaciones} catalogoRepuestos={repuestos} />
+    <FormularioPresupuesto inicial={serializarDetallePresupuesto(presupuesto)} catalogoReparaciones={reparaciones} catalogoRepuestos={repuestos} />
   </div></ContenedorPagina></main>;
 }

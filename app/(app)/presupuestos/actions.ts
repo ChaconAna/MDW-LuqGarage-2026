@@ -32,6 +32,7 @@ function errorServidor(
 }
 
 export async function crearPresupuestoAction(
+  siniestroIdDeRuta: string,
   _anterior: EstadoFormularioPresupuesto,
   entrada: unknown,
 ): Promise<EstadoFormularioPresupuesto> {
@@ -39,7 +40,8 @@ export async function crearPresupuestoAction(
   let siniestroId: string;
   try {
     await requerirRol(["ENCARGADO_DEL_TALLER"]);
-    const datos = crearPresupuestoSchema.safeParse(entrada);
+    const campos = typeof entrada === "object" && entrada !== null ? entrada : {};
+    const datos = crearPresupuestoSchema.safeParse({ ...campos, siniestroId: siniestroIdDeRuta });
     if (!datos.success) return erroresValidacionPresupuesto(datos.error);
     const resultado = await crearPresupuesto(datos.data);
     if (!resultado.creado) {

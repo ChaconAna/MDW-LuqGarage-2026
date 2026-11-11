@@ -23,7 +23,7 @@ const reparacionId = "30000000-0000-4000-8000-000000000003";
 const repuestoId = "40000000-0000-4000-8000-000000000004";
 const anterior = { errores: {} };
 const colecciones = () => ({ reparaciones: [{ reparacionId, costo: "0.00" }], repuestos: [{ repuestoId, cantidad: 1 }] });
-const alta = () => ({ ...colecciones(), numeroPresupuesto: "P-1", siniestroId });
+const alta = () => ({ ...colecciones(), numeroPresupuesto: "P-1" });
 const redireccion = new Error("REDIRECCION_SIMULADA");
 
 beforeEach(() => {
@@ -45,22 +45,28 @@ function sinExito() {
 describe("Actions de presupuestos", () => {
   it("crea con los schemas reales, costo cero y revalida antes de redirigir", async () => {
     const datos = alta();
-    await expect(crearPresupuestoAction(anterior, datos)).rejects.toBe(redireccion);
+    await expect(crearPresupuestoAction(siniestroId, anterior, datos)).rejects.toBe(redireccion);
     expect(d.requerirRol).toHaveBeenCalledWith(["ENCARGADO_DEL_TALLER"]);
-    expect(d.crear).toHaveBeenCalledWith(datos);
+    expect(d.crear).toHaveBeenCalledWith({ ...datos, siniestroId });
     expect(d.requerirRol.mock.invocationCallOrder[0]).toBeLessThan(d.crear.mock.invocationCallOrder[0]!);
     expect(d.revalidatePath.mock.calls).toEqual([["/siniestros"], [`/siniestros/${siniestroId}`]]);
     expect(d.revalidatePath.mock.invocationCallOrder.at(-1)).toBeLessThan(d.redirect.mock.invocationCallOrder[0]!);
     expect(d.redirect).toHaveBeenCalledWith(`/presupuestos/${id}`);
   });
   it("admite repuestos omitidos sin exigirlos", async () => {
-    const datos = { numeroPresupuesto: "P-1", siniestroId, reparaciones: colecciones().reparaciones };
-    await expect(crearPresupuestoAction(anterior, datos)).rejects.toBe(redireccion);
-    expect(d.crear).toHaveBeenCalledWith({ ...datos, repuestos: [] });
+    const datos = { numeroPresupuesto: "P-1", reparaciones: colecciones().reparaciones };
+    await expect(crearPresupuestoAction(siniestroId, anterior, datos)).rejects.toBe(redireccion);
+    expect(d.crear).toHaveBeenCalledWith({ ...datos, siniestroId, repuestos: [] });
+  });
+  it("usa el ID asociado desde la página aunque el cliente envíe otro", async () => {
+    const otroSiniestroId = "20000000-0000-4000-8000-000000000099";
+    await expect(crearPresupuestoAction(siniestroId, anterior, { ...alta(), siniestroId: otroSiniestroId })).rejects.toBe(redireccion);
+    expect(d.crear).toHaveBeenCalledWith({ ...alta(), siniestroId });
+    expect(d.revalidatePath).toHaveBeenCalledWith(`/siniestros/${siniestroId}`);
   });
   it.each(["crear", "editar", "catalogo"])("autoriza antes de cualquier operación de %s", async (operacion) => {
     d.requerirRol.mockRejectedValue(new d.ErrorAutorizacion());
-    const resultado = operacion === "crear" ? await crearPresupuestoAction(anterior, alta())
+    const resultado = operacion === "crear" ? await crearPresupuestoAction(siniestroId, anterior, alta())
       : operacion === "editar" ? await actualizarPresupuestoAction(id, anterior, colecciones())
       : await consultarCatalogoPresupuestoAction({ tipo: "reparaciones", page: 1, limit: 10 });
     expect(JSON.stringify(resultado)).toMatch(/permisos/);
@@ -70,12 +76,11 @@ describe("Actions de presupuestos", () => {
   });
   it("informa la sesión ausente", async () => {
     d.requerirRol.mockRejectedValue(new d.ErrorAutenticacion());
-    expect((await crearPresupuestoAction(anterior, alta())).errorGeneral).toMatch(/sesión/);
+    expect((await crearPresupuestoAction(siniestroId, anterior, alta())).errorGeneral).toMatch(/sesión/);
     expect(d.crear).not.toHaveBeenCalled(); sinExito();
   });
   it.each([
     ["número vacío", { numeroPresupuesto: "" }, "numeroPresupuesto"],
-    ["siniestro inválido", { siniestroId: "inválido" }, "siniestroId"],
     ["sin reparaciones", { reparaciones: [] }, "reparaciones"],
     ["costo negativo", { reparaciones: [{ reparacionId, costo: "-0.01" }] }, "reparaciones.0.costo"],
     ["costo sin decimales", { reparaciones: [{ reparacionId, costo: "1" }] }, "reparaciones.0.costo"],
@@ -86,13 +91,18 @@ describe("Actions de presupuestos", () => {
     ["reparación repetida", { reparaciones: [{ reparacionId, costo: "1.00" }, { reparacionId, costo: "2.00" }] }, "reparaciones.1.reparacionId"],
     ["repuesto repetido", { repuestos: [{ repuestoId, cantidad: 1 }, { repuestoId, cantidad: 2 }] }, "repuestos.1.repuestoId"],
   ] as const)("rechaza %s y devuelve el error en su campo o fila", async (_caso, cambio, campo) => {
-    const resultado = await crearPresupuestoAction(anterior, { ...alta(), ...cambio });
+    const resultado = await crearPresupuestoAction(siniestroId, anterior, { ...alta(), ...cambio });
     expect(resultado.errores[campo]).toBeTruthy(); expect(resultado.errorGeneral).toBeTruthy();
+    expect(d.crear).not.toHaveBeenCalled(); sinExito();
+  });
+  it("valida el UUID asociado antes de persistir", async () => {
+    const resultado = await crearPresupuestoAction("inválido", anterior, alta());
+    expect(resultado.errores.siniestroId).toBeTruthy();
     expect(d.crear).not.toHaveBeenCalled(); sinExito();
   });
   it.each(["NUMERO_DUPLICADO", "SINIESTRO_NO_ENCONTRADO", "REPARACION_NO_ENCONTRADA", "REPUESTO_NO_ENCONTRADO"])("muestra el rechazo de alta %s arriba del formulario", async (motivo) => {
     d.crear.mockResolvedValue({ creado: false, motivo });
-    const resultado = await crearPresupuestoAction(anterior, alta());
+    const resultado = await crearPresupuestoAction(siniestroId, anterior, alta());
     expect(resultado.errorGeneral).toMatch(/existe|existen/);
     if (motivo === "NUMERO_DUPLICADO") expect(resultado.errores.numeroPresupuesto).toMatch(/Ya existe/);
     sinExito();
@@ -122,7 +132,7 @@ describe("Actions de presupuestos", () => {
   it("no expone errores técnicos ni reintenta", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     d.crear.mockRejectedValue(new Error("secreto-simulado"));
-    const resultado = await crearPresupuestoAction(anterior, alta());
+    const resultado = await crearPresupuestoAction(siniestroId, anterior, alta());
     expect(resultado.errorGeneral).toMatch(/No pudimos confirmar/);
     expect(JSON.stringify([resultado, log.mock.calls])).not.toContain("secreto-simulado");
     expect(d.crear).toHaveBeenCalledTimes(1); sinExito(); log.mockRestore();

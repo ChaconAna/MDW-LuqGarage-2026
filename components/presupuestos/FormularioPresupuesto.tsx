@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
-import { crearPresupuestoAction, actualizarPresupuestoAction } from "@/app/(app)/presupuestos/actions";
+import { actualizarPresupuestoAction } from "@/app/(app)/presupuestos/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { costoReparacionSchema, type DatosCreacionPresupuesto } from "@/lib/schemas/presupuesto";
@@ -12,19 +12,21 @@ import SelectorCatalogoPresupuesto from "./SelectorCatalogoPresupuesto";
 type ReparacionFormulario = DatosCreacionPresupuesto["reparaciones"][number] & { nombre: string };
 type RepuestoFormulario = Omit<DatosCreacionPresupuesto["repuestos"][number], "cantidad"> & { nombre: string; cantidad: string };
 type FormularioPresupuestoProps = {
-  siniestroId: string;
-  inicial?: ReturnType<typeof serializarDetallePresupuesto>;
   catalogoReparaciones: PaginaCatalogoPresupuesto;
   catalogoRepuestos: PaginaCatalogoPresupuesto;
-};
+} & (
+  | { inicial?: undefined; accionCrear: (anterior: EstadoFormularioPresupuesto, entrada: unknown) => Promise<EstadoFormularioPresupuesto> }
+  | { inicial: ReturnType<typeof serializarDetallePresupuesto>; accionCrear?: never }
+);
 
 const estadoInicial: EstadoFormularioPresupuesto = { errores: {} };
 
-export default function FormularioPresupuesto({ siniestroId, inicial, catalogoReparaciones, catalogoRepuestos }: FormularioPresupuestoProps) {
+export default function FormularioPresupuesto(props: FormularioPresupuestoProps) {
+  const { inicial, catalogoReparaciones, catalogoRepuestos } = props;
   const [numero, setNumero] = useState(inicial?.numeroPresupuesto ?? "");
   const [reparaciones, setReparaciones] = useState<ReparacionFormulario[]>(() => inicial?.reparaciones.map((detalle) => ({ reparacionId: detalle.reparacion.id, nombre: detalle.reparacion.nombre, costo: detalle.costo })) ?? []);
   const [repuestos, setRepuestos] = useState<RepuestoFormulario[]>(() => inicial?.repuestos.map((detalle) => ({ repuestoId: detalle.repuesto.id, nombre: detalle.repuesto.nombre, cantidad: String(detalle.cantidad) })) ?? []);
-  const accion = inicial ? actualizarPresupuestoAction.bind(null, inicial.id) : crearPresupuestoAction;
+  const accion = inicial ? actualizarPresupuestoAction.bind(null, inicial.id) : props.accionCrear;
   const [estado, enviar, pendiente] = useActionState(accion, estadoInicial);
   const [respuestaSinErroresReparaciones, setRespuestaSinErroresReparaciones] = useState<EstadoFormularioPresupuesto | null>(null);
   const [respuestaSinErroresRepuestos, setRespuestaSinErroresRepuestos] = useState<EstadoFormularioPresupuesto | null>(null);
@@ -51,7 +53,7 @@ export default function FormularioPresupuesto({ siniestroId, inicial, catalogoRe
       reparaciones: reparaciones.map(({ reparacionId, costo }) => ({ reparacionId, costo })),
       repuestos: repuestos.map(({ repuestoId, cantidad }) => ({ repuestoId, cantidad: Number(cantidad) })),
     };
-    const entrada = inicial ? colecciones : { ...colecciones, numeroPresupuesto: numero, siniestroId };
+    const entrada = inicial ? colecciones : { ...colecciones, numeroPresupuesto: numero };
     startTransition(() => enviar(entrada));
   }
 

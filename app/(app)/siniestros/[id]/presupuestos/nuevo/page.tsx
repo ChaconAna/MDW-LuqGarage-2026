@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import ContextoSiniestroPresupuesto from "@/components/presupuestos/ContextoSiniestroPresupuesto";
 import FormularioPresupuesto from "@/components/presupuestos/FormularioPresupuesto";
+import { crearPresupuestoAction } from "@/app/(app)/presupuestos/actions";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerSiniestroPorId } from "@/lib/db/siniestro";
 import { listarReparaciones } from "@/lib/db/reparacion";
@@ -22,6 +23,6 @@ export default async function PresupuestoNuevoPage({ params }: { params: Promise
     <Link href={`/siniestros/${siniestro.id}`} className={clasesEnlaceTexto}>Volver al siniestro</Link>
     <h1 className="text-2xl font-bold">Crear presupuesto</h1>
     <ContextoSiniestroPresupuesto siniestro={siniestro} />
-    <FormularioPresupuesto siniestroId={siniestro.id} catalogoReparaciones={reparaciones} catalogoRepuestos={repuestos} />
+    <FormularioPresupuesto accionCrear={crearPresupuestoAction.bind(null, siniestro.id)} catalogoReparaciones={reparaciones} catalogoRepuestos={repuestos} />
   </div></ContenedorPagina></main>;
 }

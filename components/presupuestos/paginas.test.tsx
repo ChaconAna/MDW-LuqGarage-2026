@@ -3,18 +3,19 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Prisma, type RolUsuario } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const d = vi.hoisted(() => ({ autorizar: vi.fn(), siniestro: vi.fn(), presupuesto: vi.fn(), listar: vi.fn(), reparaciones: vi.fn(), repuestos: vi.fn(), notFound: vi.fn(), redirect: vi.fn() }));
+const d = vi.hoisted(() => ({ autorizar: vi.fn(), siniestro: vi.fn(), presupuesto: vi.fn(), listar: vi.fn(), reparaciones: vi.fn(), repuestos: vi.fn(), notFound: vi.fn(), redirect: vi.fn(), crearAction: vi.fn(), formulario: vi.fn() }));
 vi.mock("@/lib/authPagina", () => ({ autorizarPagina: d.autorizar }));
 vi.mock("@/lib/db/siniestro", () => ({ obtenerSiniestroPorId: d.siniestro }));
 vi.mock("@/lib/db/presupuesto", () => ({ obtenerPresupuestoPorId: d.presupuesto, listarPresupuestosPorSiniestro: d.listar }));
 vi.mock("@/lib/db/reparacion", () => ({ listarReparaciones: d.reparaciones }));
 vi.mock("@/lib/db/repuesto", () => ({ listarRepuestos: d.repuestos }));
 vi.mock("next/navigation", () => ({ notFound: d.notFound, redirect: d.redirect }));
+vi.mock("@/app/(app)/presupuestos/actions", () => ({ crearPresupuestoAction: d.crearAction }));
 vi.mock("next/link", () => ({ default: ({ children, ...props }: React.ComponentProps<"a">) => React.createElement("a", props, children) }));
 vi.mock("@/components/layout/ContenedorPagina", () => ({ default: ({ children }: { children: React.ReactNode }) => React.createElement("div", {}, children) }));
 vi.mock("@/components/presupuestos/ContextoSiniestroPresupuesto", () => ({ default: () => React.createElement("p", {}, "Contexto del siniestro") }));
 vi.mock("@/components/presupuestos/GestionEstadoPresupuesto", () => ({ default: (props: { presupuestoId: string; estado: string }) => React.createElement("section", { "data-presupuesto": props.presupuestoId, "data-estado": props.estado }, "Controles de estado") }));
-vi.mock("@/components/presupuestos/FormularioPresupuesto", () => ({ default: (props: { inicial?: { reparaciones: Array<{ costo: string }> }; siniestroId: string }) => React.createElement("form", { "data-siniestro": props.siniestroId }, JSON.stringify(props.inicial)) }));
+vi.mock("@/components/presupuestos/FormularioPresupuesto", () => ({ default: (props: { inicial?: { reparaciones: Array<{ costo: string }> }; accionCrear?: (anterior: unknown, entrada: unknown) => Promise<unknown> }) => { d.formulario(props); return React.createElement("form", {}, JSON.stringify(props.inicial)); } }));
 vi.mock("@/lib/schemas/presupuesto", async () => import("../../lib/schemas/presupuesto"));
 vi.mock("@/lib/schemas/ordenTrabajo", async () => import("../../lib/schemas/ordenTrabajo"));
 vi.mock("@/lib/schemas/siniestro", async () => import("../../lib/schemas/siniestro"));
@@ -78,6 +79,15 @@ describe("páginas de presupuestos", () => {
     d.siniestro.mockResolvedValue(null);
     await expect(CrearPage({ params: Promise.resolve({ id: siniestroId }) })).rejects.toBe(interrupcion404);
     expect(d.reparaciones).not.toHaveBeenCalled();
+  });
+  it("asocia el UUID de la ruta a la Action sin pasarlo como prop editable al formulario", async () => {
+    renderToStaticMarkup(await CrearPage({ params: Promise.resolve({ id: siniestroId }) }));
+    const props = d.formulario.mock.calls[0]?.[0] as { accionCrear: (anterior: unknown, entrada: unknown) => Promise<unknown>; siniestroId?: string };
+    expect(props).not.toHaveProperty("siniestroId");
+    const anterior = { errores: {} };
+    const entrada = { numeroPresupuesto: "P-1", reparaciones: [] };
+    await props.accionCrear(anterior, entrada);
+    expect(d.crearAction).toHaveBeenCalledExactlyOnceWith(siniestroId, anterior, entrada);
   });
   it.each([EditarPage, DetallePage])("resuelve presupuesto inexistente como 404", async (pagina) => {
     d.presupuesto.mockResolvedValue(null);
