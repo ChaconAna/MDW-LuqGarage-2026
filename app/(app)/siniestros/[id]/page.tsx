@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import SeccionDetalleSiniestro from "@/components/siniestros/SeccionDetalleSiniestro";
+import PresupuestosSiniestro from "@/components/presupuestos/PresupuestosSiniestro";
+import OrdenesTrabajoSiniestro from "@/components/ordenesTrabajo/OrdenesTrabajoSiniestro";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerSiniestroPorId } from "@/lib/db/siniestro";
 import { clasesEnlaceTexto } from "@/lib/utils";
@@ -13,6 +15,7 @@ import {
 
 type SiniestroDetallePageProps = {
   params: Promise<ParametrosSiniestro>;
+  searchParams: Promise<{ presupuestosPage?: string | string[]; ordenesPage?: string | string[] }>;
 };
 
 const formateadorFecha = new Intl.DateTimeFormat("es-AR", {
@@ -23,6 +26,7 @@ const formateadorFecha = new Intl.DateTimeFormat("es-AR", {
 
 export default async function SiniestroDetallePage({
   params,
+  searchParams,
 }: SiniestroDetallePageProps) {
   const autorizacion = await autorizarPagina([
     "RECEPCIONISTA",
@@ -69,6 +73,19 @@ export default async function SiniestroDetallePage({
             </h1>
             <p className="mt-1 text-sm opacity-75">Estado: {siniestro.estado}</p>
           </header>
+
+          <PresupuestosSiniestro
+            siniestroId={siniestro.id}
+            rol={autorizacion.usuario.rol}
+            paginaParametro={(await searchParams).presupuestosPage}
+            ordenesPage={(await searchParams).ordenesPage}
+          />
+
+          {autorizacion.usuario.rol === "ENCARGADO_DEL_TALLER" ? <OrdenesTrabajoSiniestro
+            siniestroId={siniestro.id}
+            paginaParametro={(await searchParams).ordenesPage}
+            presupuestosPage={(await searchParams).presupuestosPage}
+          /> : null}
 
           <SeccionDetalleSiniestro
             idTitulo="datos-siniestro"

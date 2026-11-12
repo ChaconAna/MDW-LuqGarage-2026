@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const costoReparacionSchema = z
+export const costoReparacionSchema = z
   .string()
   .regex(/^(?:0|[1-9]\d{0,9})\.\d{2}$/);
 
@@ -64,10 +64,26 @@ export type ParametrosPresupuesto = z.infer<
   typeof parametrosPresupuestoSchema
 >;
 
-export const listadoPresupuestosQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
+const paginacionPresupuestosBaseSchema = z.object({
+  page: z.coerce.number().int().positive().safe().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
 });
+
+export function validarDesplazamientoPresupuestos(
+  { page, limit }: z.infer<typeof paginacionPresupuestosBaseSchema>,
+  contexto: z.RefinementCtx,
+) {
+  if (!Number.isSafeInteger((page - 1) * limit)) {
+    contexto.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["page"],
+      message: "El desplazamiento de paginación excede el rango de enteros seguros.",
+    });
+  }
+}
+
+export const listadoPresupuestosQuerySchema = paginacionPresupuestosBaseSchema
+  .superRefine(validarDesplazamientoPresupuestos);
 
 export const crearPresupuestoSchema = z
   .object({

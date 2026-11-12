@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
@@ -5,6 +6,7 @@ import TablaSiniestros from "@/components/siniestros/TablaSiniestros";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarSiniestros } from "@/lib/db/siniestro";
 import { listadoSiniestrosQuerySchema } from "@/lib/schemas/siniestro";
+import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_SINIESTROS = 10;
 
@@ -77,6 +79,9 @@ export default async function SiniestrosPage({
     <main>
       <ContenedorPagina ancho="wide">
         <h1 className="text-2xl font-bold">Siniestros</h1>
+        <Link href="/siniestros/nuevo" className={`${clasesEnlaceTexto} mt-4 inline-block`}>
+          Registrar siniestro
+        </Link>
 
         {siniestros.length === 0 ? (
           <p className="mt-6 rounded-lg border border-current/20 p-6">

@@ -282,53 +282,57 @@ export default async function SiniestroNuevoPage({
             </Link>
 
             <h1 className="text-2xl font-bold">Registrar siniestro</h1>
-            <FormularioRegistroSiniestro>
-              <section aria-labelledby="clientes-activos" className="space-y-3">
-                <h2 id="clientes-activos" className="text-xl font-semibold">
-                  Clientes activos
-                </h2>
-
-                <SelectorClienteActivo
-                  clientes={clientes}
-                  clienteSeleccionado={clienteSeleccionado}
-                  errorSeleccion={errorSeleccion}
-                  pagina={paginaClientes}
-                  totalPaginas={totalPaginasClientes}
-                  total={total}
-                  limite={LIMITE_CLIENTES}
-                />
-              </section>
-
-              <section aria-labelledby="vehiculos-activos" className="space-y-3">
-                <h2 id="vehiculos-activos" className="text-xl font-semibold">
-                  Vehículos activos
-                </h2>
-                <SelectorVehiculoActivo
-                  vehiculos={vehiculos}
-                  vehiculoSeleccionado={vehiculoSeleccionado}
-                  errorSeleccion={errorSeleccionVehiculo}
-                  pagina={paginaVehiculos}
-                  totalPaginas={totalPaginasVehiculos}
-                  total={totalVehiculos}
-                  limite={LIMITE_VEHICULOS}
-                />
-              </section>
-
-              <section aria-labelledby="aseguradoras-activas" className="space-y-3">
-                <h2 id="aseguradoras-activas" className="text-xl font-semibold">
-                  Aseguradoras activas
-                </h2>
-                <SelectorAseguradoraActiva
-                  aseguradoras={aseguradoras}
-                  aseguradoraSeleccionada={aseguradoraSeleccionada}
-                  errorSeleccion={errorSeleccionAseguradora}
-                  pagina={paginaAseguradoras}
-                  totalPaginas={totalPaginasAseguradoras}
-                  total={totalAseguradoras}
-                  limite={LIMITE_ASEGURADORAS}
-                />
-              </section>
-            </FormularioRegistroSiniestro>
+            <FormularioRegistroSiniestro
+              seleccionesValidas={seleccionesValidas}
+              selectorCliente={
+                <section aria-labelledby="clientes-activos" className="space-y-3">
+                  <h2 id="clientes-activos" className="text-xl font-semibold">
+                    Clientes activos
+                  </h2>
+                  <SelectorClienteActivo
+                    clientes={clientes}
+                    clienteSeleccionado={clienteSeleccionado}
+                    errorSeleccion={errorSeleccion}
+                    pagina={paginaClientes}
+                    totalPaginas={totalPaginasClientes}
+                    total={total}
+                    limite={LIMITE_CLIENTES}
+                  />
+                </section>
+              }
+              selectorVehiculo={
+                <section aria-labelledby="vehiculos-activos" className="space-y-3">
+                  <h2 id="vehiculos-activos" className="text-xl font-semibold">
+                    Vehículos activos
+                  </h2>
+                  <SelectorVehiculoActivo
+                    vehiculos={vehiculos}
+                    vehiculoSeleccionado={vehiculoSeleccionado}
+                    errorSeleccion={errorSeleccionVehiculo}
+                    pagina={paginaVehiculos}
+                    totalPaginas={totalPaginasVehiculos}
+                    total={totalVehiculos}
+                    limite={LIMITE_VEHICULOS}
+                  />
+                </section>
+              }
+              selectorAseguradora={
+                <section aria-labelledby="aseguradoras-activas" className="space-y-3">
+                  <h2 id="aseguradoras-activas" className="text-xl font-semibold">
+                    Aseguradoras activas
+                  </h2>
+                  <SelectorAseguradoraActiva
+                    aseguradoras={aseguradoras}
+                    aseguradoraSeleccionada={aseguradoraSeleccionada}
+                    errorSeleccion={errorSeleccionAseguradora}
+                    pagina={paginaAseguradoras}
+                    totalPaginas={totalPaginasAseguradoras}
+                    total={totalAseguradoras}
+                    limite={LIMITE_ASEGURADORAS}
+                  />
+                </section>
+              }
+            />
           </div>
         </NavegacionSelectores>
       </ContenedorPagina>

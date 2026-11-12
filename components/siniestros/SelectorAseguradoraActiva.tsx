@@ -34,8 +34,6 @@ export default function SelectorAseguradoraActiva({
 
   return (
     <div className="space-y-3" aria-busy={pendiente}>
-      {errorSeleccion ? <p role="alert">{errorSeleccion}</p> : null}
-
       <div role="status" className="space-y-1">
         {aseguradoraSeleccionada ? (
           <>
@@ -53,7 +51,7 @@ export default function SelectorAseguradoraActiva({
       {aseguradoras.length === 0 ? (
         <p>No hay aseguradoras activas disponibles.</p>
       ) : (
-        <fieldset className="space-y-3">
+        <fieldset className="space-y-3" aria-describedby={errorSeleccion ? "error-seleccion-aseguradora" : undefined}>
           <legend className="font-medium">Seleccionar aseguradora activa</legend>
           <p>
             Mostrando {aseguradoras.length} de {total} aseguradoras activas (hasta {limite}{" "}
@@ -88,6 +86,7 @@ export default function SelectorAseguradoraActiva({
           </ul>
         </fieldset>
       )}
+      {errorSeleccion ? <p id="error-seleccion-aseguradora" role="alert">{errorSeleccion}</p> : null}
 
       <nav
         aria-label="Paginación de aseguradoras activas"

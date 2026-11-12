@@ -14,7 +14,7 @@ https://mdw-luq-garage-2026.vercel.app/
 
 LuqGarage es un MVP académico desarrollado para Metodologías y Desarrollos Web (MDW) 2026. Busca centralizar la gestión de un taller de chapa y pintura que trabaja con compañías aseguradoras.
 
-El backend desarrollado durante las clases 1 a 7 se mantiene funcional y comprende tres procesos: registro de siniestros, gestión de presupuestos y generación de órdenes de trabajo. La Clase 10 incorpora la interfaz con React y Next.js, un sistema de diseño y el consumo de las consultas existentes, sin habilitar automáticamente nuevas operaciones de escritura.
+El backend desarrollado durante las clases 1 a 7 se mantiene funcional y comprende tres procesos: registro de siniestros, gestión de presupuestos y generación de órdenes de trabajo. La Clase 10 incorporó la interfaz con React y Next.js y un sistema de diseño. Durante la Clase 12 se agregaron formularios y Server Actions para recorrer el flujo principal desde la interfaz, reutilizando las reglas del backend.
 
 Roles: recepcionista (gestiona la información administrativa y los siniestros), encargado del taller (gestiona presupuestos y órdenes de trabajo), mecánico (consulta órdenes finalizadas) y administrador (gestiona usuarios, roles y permisos).
 
@@ -24,7 +24,7 @@ Flujo principal: `Siniestro → Presupuesto → aprobación/rechazo → Orden de
 
 El flujo del MVP termina al finalizar la generación de la Orden de Trabajo. La ejecución y el seguimiento de las reparaciones dentro del taller quedan fuera del alcance actual.
 
-La especificación funcional completa y el mapa de pantallas del flujo principal están en [`docs/spec.md`](./docs/spec.md). Las interacciones del flujo que allí figuran como pendientes todavía no tienen una pantalla implementada.
+La especificación funcional completa y el mapa de pantallas del flujo principal están en [`docs/spec.md`](./docs/spec.md).
 
 ## Interfaz disponible
 
@@ -32,11 +32,26 @@ La especificación funcional completa y el mapa de pantallas del flujo principal
 |---|---|---|
 | `/` | Punto de entrada y redirección según la sesión y el rol vigente | Público |
 | `/login` | Inicio de sesión con Google | Público; los usuarios autenticados son redirigidos a una pantalla autorizada |
-| `/siniestros` | Listado y filtro de siniestros | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
+| `/siniestros` | Listado paginado y filtro de los siniestros de la página | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
+| `/siniestros/nuevo` | Registro de siniestro con documentación obligatoria | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
 | `/siniestros/[id]` | Detalle de un siniestro | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
+| `/siniestros/[id]/presupuestos/nuevo` | Creación de presupuesto en `BORRADOR` | `ENCARGADO_DEL_TALLER` |
+| `/presupuestos/[id]` | Consulta del presupuesto y registro manual de envío, aprobación o rechazo según su estado | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER` |
+| `/presupuestos/[id]/editar` | Edición de presupuesto en `BORRADOR` | `ENCARGADO_DEL_TALLER` |
+| `/siniestros/[id]/ordenes-trabajo/nueva` | Selección de presupuestos aprobados y creación de Orden de Trabajo en `BORRADOR` | `ENCARGADO_DEL_TALLER` |
+| `/ordenes-trabajo` | Listado de todas las órdenes para el Encargado y sólo de las `FINALIZADA` para el Mecánico | `ENCARGADO_DEL_TALLER`, `MECANICO` |
+| `/ordenes-trabajo/[id]` | Consulta de la orden; incorporación de presupuestos, edición de observaciones por sector y finalización si está en `BORRADOR` | `ENCARGADO_DEL_TALLER` consulta y confecciona; `MECANICO` consulta sólo `FINALIZADA` |
 | `/sistema` | Galería del sistema de diseño | `RECEPCIONISTA`, `ENCARGADO_DEL_TALLER`, `MECANICO`, `ADMINISTRADOR` |
 
 Las pantallas privadas validan la sesión, el estado activo del Usuario y su rol vigente en el servidor. La interfaz utiliza Tailwind CSS 4 y componentes base de shadcn/ui, con un tema oscuro permanente y estilos reutilizables.
+
+### Fuera del alcance
+
+El envío de comunicaciones a aseguradoras y la recepción automática de sus respuestas no forman parte de estas pantallas: el envío y la respuesta se registran manualmente después de ocurrir fuera de LuqGarage. La ejecución y el seguimiento físico de reparaciones también quedan fuera del alcance del MVP.
+
+### Pruebas integrales pendientes
+
+Las pruebas automatizadas del flujo de escritura usan dependencias simuladas. Sigue pendiente una prueba integral de persistencia y archivos con PostgreSQL y Supabase Storage en un entorno aislado, además de la comprobación manual de la interfaz a 375 px y en el despliegue. No se ha confirmado que la configuración local esté aislada de los recursos de producción.
 
 ## Stack
 

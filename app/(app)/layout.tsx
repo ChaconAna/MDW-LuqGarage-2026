@@ -61,6 +61,9 @@ export default async function AppLayout({ children }: AppLayoutProps) {
                     Siniestros
                   </Link>
                 ) : null}
+                {rol === "ENCARGADO_DEL_TALLER" || rol === "MECANICO" ? (
+                  <Link href="/ordenes-trabajo" className={clasesEnlaceTexto}>Órdenes de trabajo</Link>
+                ) : null}
                 <Link
                   href="/sistema"
                   className={clasesEnlaceTexto}

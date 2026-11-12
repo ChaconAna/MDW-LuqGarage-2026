@@ -1,11 +1,39 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { GradoDano, TipoDocumentoSiniestro } from "@prisma/client";
 
+import { registrarSiniestroAction } from "@/app/(app)/siniestros/nuevo/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { DatosCreacionSiniestroMultipart } from "@/lib/schemas/siniestro";
+import {
+  construirMultipartRegistroSiniestro,
+  LIMITE_ENVIO_SINIESTRO_BYTES,
+  MENSAJE_LIMITE_SINIESTRO,
+  medirEnvioRegistroSiniestro,
+  type EstadoRegistroSiniestro,
+} from "@/lib/services/registroSiniestroFormulario";
+import { useNavegacionSelectores, type SeleccionesValidas } from "./NavegacionSelectores";
+
+const estadoInicial: EstadoRegistroSiniestro = { errores: {} };
+
+async function validarYEnviar(
+  anterior: EstadoRegistroSiniestro,
+  formData: FormData,
+): Promise<EstadoRegistroSiniestro> {
+  let tamano: number;
+  try {
+    tamano = await medirEnvioRegistroSiniestro(formData);
+  } catch {
+    return { errores: {}, errorGeneral: "No pudimos preparar los archivos para el envío. Revisá la selección e intentá nuevamente." };
+  }
+  if (tamano > LIMITE_ENVIO_SINIESTRO_BYTES) {
+    return { errores: {}, errorGeneral: MENSAJE_LIMITE_SINIESTRO };
+  }
+  // La redirección de éxito pertenece a la Action y debe propagarse sin capturarla.
+  return registrarSiniestroAction(anterior, formData);
+}
 
 const documentosObligatorios = [
   { tipo: TipoDocumentoSiniestro.DENUNCIA, etiqueta: "Foto de la denuncia" },
@@ -26,18 +54,18 @@ const etiquetasGrado: Record<GradoDano, string> = {
 };
 
 type TipoObligatorio = (typeof documentosObligatorios)[number]["tipo"];
-type CampoError = keyof DatosCreacionSiniestroMultipart | TipoDocumentoSiniestro;
-
 type FormularioRegistroSiniestroProps = {
-  children: ReactNode;
-  errores?: Partial<Record<CampoError, string>>;
-  errorGeneral?: string;
+  selectorCliente: ReactNode;
+  selectorVehiculo: ReactNode;
+  selectorAseguradora: ReactNode;
+  seleccionesValidas: SeleccionesValidas;
 };
 
 export default function FormularioRegistroSiniestro({
-  children,
-  errores = {},
-  errorGeneral,
+  selectorCliente,
+  selectorVehiculo,
+  selectorAseguradora,
+  seleccionesValidas,
 }: FormularioRegistroSiniestroProps) {
   const [numeroSiniestro, setNumeroSiniestro] = useState("");
   const [fechaSiniestro, setFechaSiniestro] = useState("");
@@ -47,13 +75,59 @@ export default function FormularioRegistroSiniestro({
     Partial<Record<TipoObligatorio, File>>
   >({});
   const [adicionales, setAdicionales] = useState<File[]>([]);
+  const [estado, enviar, pendienteEnvio] = useActionState(validarYEnviar, estadoInicial);
+  const { pendiente: pendienteSeleccion } = useNavegacionSelectores();
+  const bloqueoEnvio = useRef(false);
+  const formulario = useRef<HTMLFormElement>(null);
+  const errores = estado.errores;
+  const errorGeneral = estado.errorGeneral ?? (
+    Object.keys(errores).length > 0 ? "Revisá los campos indicados." : undefined
+  );
+  const formularioCompleto = Boolean(
+    numeroSiniestro && fechaSiniestro && gradoDano && numeroPoliza &&
+    seleccionesValidas.clienteId && seleccionesValidas.vehiculoId && seleccionesValidas.aseguradoraId &&
+    documentosObligatorios.every(({ tipo }) => documentos[tipo]),
+  );
+
+  useEffect(() => {
+    if (!pendienteEnvio) {
+      bloqueoEnvio.current = false;
+      if (Object.keys(estado.errores).length > 0) {
+        formulario.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      }
+    }
+  }, [pendienteEnvio, estado]);
+
+  function registrar(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (bloqueoEnvio.current || pendienteEnvio || pendienteSeleccion || !formularioCompleto) return;
+    bloqueoEnvio.current = true;
+
+    const archivos: DatosCreacionSiniestroMultipart["documentos"] = [];
+    for (const { tipo } of documentosObligatorios) {
+      const archivo = documentos[tipo];
+      if (archivo) archivos.push({ tipo, archivo });
+    }
+    archivos.push(...adicionales.map((archivo) => ({ tipo: TipoDocumentoSiniestro.ADICIONAL, archivo })));
+    const formData = construirMultipartRegistroSiniestro({
+      numeroSiniestro, fechaSiniestro, gradoDano, numeroPoliza,
+      clienteId: seleccionesValidas.clienteId ?? "",
+      vehiculoId: seleccionesValidas.vehiculoId ?? "",
+      aseguradoraId: seleccionesValidas.aseguradoraId ?? "",
+    }, archivos);
+
+    // El envío manual evita que React reinicie los inputs de archivos al devolver errores.
+    startTransition(() => enviar(formData));
+  }
 
   return (
     <form
+      ref={formulario}
       id="formulario-registro-siniestro"
       className="min-w-0 space-y-6"
       aria-describedby="ayuda-registro-siniestro"
-      onSubmit={(evento) => evento.preventDefault()}
+      aria-busy={pendienteEnvio}
+      onSubmit={registrar}
     >
       <p id="ayuda-registro-siniestro">
         Completá los datos, seleccioná las tres entidades y adjuntá la documentación.
@@ -62,7 +136,7 @@ export default function FormularioRegistroSiniestro({
 
       {errorGeneral ? <p role="alert">{errorGeneral}</p> : null}
 
-      <fieldset className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
+      <fieldset disabled={pendienteEnvio} className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
         <legend className="px-1 text-xl font-semibold">Datos del siniestro</legend>
         <div className="grid min-w-0 gap-4 sm:grid-cols-2">
           <div className="min-w-0 space-y-2">
@@ -155,14 +229,29 @@ export default function FormularioRegistroSiniestro({
         </p>
       </fieldset>
 
-      <section aria-label="Cliente, vehículo y aseguradora obligatorios" className="min-w-0 space-y-6">
-        {errores.clienteId ? <p role="alert">Cliente: {errores.clienteId}</p> : null}
-        {errores.vehiculoId ? <p role="alert">Vehículo: {errores.vehiculoId}</p> : null}
-        {errores.aseguradoraId ? <p role="alert">Aseguradora: {errores.aseguradoraId}</p> : null}
-        {children}
-      </section>
+      <fieldset
+        disabled={pendienteEnvio}
+        aria-label="Cliente, vehículo y aseguradora obligatorios"
+        className="min-w-0 space-y-6"
+        onClickCapture={(evento) => {
+          if (pendienteEnvio) evento.preventDefault();
+        }}
+      >
+        <div role="group" aria-label="Selección de cliente" aria-describedby={errores.clienteId ? "error-cliente-activo" : undefined} className="space-y-3">
+          {selectorCliente}
+          {errores.clienteId ? <p id="error-cliente-activo" role="alert">Cliente: {errores.clienteId}</p> : null}
+        </div>
+        <div role="group" aria-label="Selección de vehículo" aria-describedby={errores.vehiculoId ? "error-vehiculo-activo" : undefined} className="space-y-3">
+          {selectorVehiculo}
+          {errores.vehiculoId ? <p id="error-vehiculo-activo" role="alert">Vehículo: {errores.vehiculoId}</p> : null}
+        </div>
+        <div role="group" aria-label="Selección de aseguradora" aria-describedby={errores.aseguradoraId ? "error-aseguradora-activa" : undefined} className="space-y-3">
+          {selectorAseguradora}
+          {errores.aseguradoraId ? <p id="error-aseguradora-activa" role="alert">Aseguradora: {errores.aseguradoraId}</p> : null}
+        </div>
+      </fieldset>
 
-      <fieldset className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
+      <fieldset disabled={pendienteEnvio} aria-describedby={errores.documentos ? "error-documentos" : undefined} className="min-w-0 space-y-4 rounded-lg border border-current/20 p-4">
         <legend className="px-1 text-xl font-semibold">Documentación obligatoria</legend>
         <p id="ayuda-documentos" className="text-sm">
           Seleccioná una foto por categoría. Podés reemplazarla antes de registrar.
@@ -171,7 +260,6 @@ export default function FormularioRegistroSiniestro({
           Los archivos quedan solo en esta pantalla. Si recargás o salís, deberás
           seleccionarlos nuevamente.
         </p>
-        {errores.documentos ? <p role="alert">{errores.documentos}</p> : null}
 
         {documentosObligatorios.map(({ tipo, etiqueta }) => (
           <div key={tipo} className="min-w-0 space-y-2">
@@ -186,7 +274,7 @@ export default function FormularioRegistroSiniestro({
               required
               onChange={(evento) => {
                 const archivo = evento.target.files?.[0];
-                if (archivo) setDocumentos((actuales) => ({ ...actuales, [tipo]: archivo }));
+                setDocumentos((actuales) => ({ ...actuales, [tipo]: archivo }));
               }}
               aria-invalid={Boolean(errores[tipo])}
               aria-describedby={`ayuda-documentos ayuda-archivos archivo-${tipo}${errores[tipo] ? ` error-${tipo}` : ""}`}
@@ -198,9 +286,10 @@ export default function FormularioRegistroSiniestro({
             {errores[tipo] ? <p id={`error-${tipo}`} className="text-sm">{errores[tipo]}</p> : null}
           </div>
         ))}
+        {errores.documentos ? <p id="error-documentos" role="alert">{errores.documentos}</p> : null}
       </fieldset>
 
-      <fieldset className="min-w-0 space-y-3 rounded-lg border border-current/20 p-4">
+      <fieldset disabled={pendienteEnvio} className="min-w-0 space-y-3 rounded-lg border border-current/20 p-4">
         <legend className="px-1 text-xl font-semibold">Fotografías adicionales (opcional)</legend>
         <label htmlFor="documentos-adicionales" className="block font-medium">
           Seleccionar fotografías adicionales
@@ -213,7 +302,7 @@ export default function FormularioRegistroSiniestro({
           multiple
           onChange={(evento) => {
             const archivos = Array.from(evento.target.files ?? []);
-            if (archivos.length > 0) setAdicionales(archivos);
+            setAdicionales(archivos);
           }}
           aria-invalid={Boolean(errores.ADICIONAL)}
           aria-describedby={`ayuda-adicionales ayuda-archivos${errores.ADICIONAL ? " error-adicionales" : ""}`}
@@ -235,9 +324,20 @@ export default function FormularioRegistroSiniestro({
       </fieldset>
 
       <div className="space-y-3">
-        <p id="guardado-no-disponible">El guardado de siniestros todavía no está disponible.</p>
-        <Button type="button" disabled aria-describedby="guardado-no-disponible" className="w-full sm:w-auto">
-          Registrar siniestro
+        <p id="ayuda-envio" className="text-sm">
+          Completá los datos obligatorios y las tres selecciones. Máximo total: 4 MiB entre datos y archivos.
+        </p>
+        <p role="status" className="text-sm">
+          {pendienteEnvio ? "Registrando… Esperá el resultado antes de salir de esta pantalla." :
+            pendienteSeleccion ? "Esperá a que termine de actualizarse la selección." : null}
+        </p>
+        <Button
+          type="submit"
+          disabled={!formularioCompleto || pendienteEnvio || pendienteSeleccion}
+          aria-describedby="ayuda-envio"
+          className="w-full sm:w-auto"
+        >
+          {pendienteEnvio ? "Registrando…" : "Registrar siniestro"}
         </Button>
       </div>
     </form>

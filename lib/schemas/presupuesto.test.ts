@@ -3,12 +3,35 @@ import { describe, expect, it } from "vitest";
 import {
   actualizarPresupuestoSchema,
   crearPresupuestoSchema,
+  listadoPresupuestosQuerySchema,
 } from "./presupuesto";
 
 const siniestroId = "10000000-0000-4000-8000-000000000001";
 const reparacionId = "20000000-0000-4000-8000-000000000001";
 const otraReparacionId = "20000000-0000-4000-8000-000000000002";
 const repuestoId = "30000000-0000-4000-8000-000000000001";
+
+describe("paginación segura de presupuestos", () => {
+  it("conserva los valores predeterminados", () => {
+    expect(listadoPresupuestosQuerySchema.parse({})).toEqual({ page: 1, limit: 10 });
+  });
+
+  it.each(["1e100", Number.MAX_SAFE_INTEGER + 1, Infinity, Number.MAX_SAFE_INTEGER])(
+    "rechaza una página o desplazamiento inseguro: %s",
+    (page) => {
+      const resultado = listadoPresupuestosQuerySchema.safeParse({ page, limit: 10 });
+      expect(resultado.success).toBe(false);
+      if (!resultado.success) expect(resultado.error.issues.some(({ path }) => path[0] === "page")).toBe(true);
+    },
+  );
+
+  it.each([1, 10, 100])("admite el límite técnico seguro para limit=%s sin un máximo de negocio", (limit) => {
+    const page = Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number.MAX_SAFE_INTEGER / limit) + 1);
+    expect(listadoPresupuestosQuerySchema.safeParse({ page, limit }).success).toBe(true);
+    expect(Number.isSafeInteger((page - 1) * limit)).toBe(true);
+    expect(listadoPresupuestosQuerySchema.safeParse({ page: page + 1, limit }).success).toBe(false);
+  });
+});
 
 function crearBodyValido() {
   return {

@@ -105,6 +105,34 @@ export function obtenerPresupuestoPorId(id: string) {
   });
 }
 
+export async function listarPresupuestosPorSiniestro(
+  siniestroId: string,
+  page: number,
+  limit: number,
+) {
+  const where = { siniestroId };
+  const [presupuestos, total] = await prisma.$transaction([
+    prisma.presupuesto.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { id: "asc" },
+      select: seleccionPresupuesto,
+    }),
+    prisma.presupuesto.count({ where }),
+  ]);
+  return { presupuestos, total };
+}
+
+export async function listarPresupuestosAprobadosDisponibles(siniestroId: string, page: number, limit: number) {
+  const where = { siniestroId, estado: "APROBADO", ordenTrabajoId: null } satisfies Prisma.PresupuestoWhereInput;
+  const [presupuestos, total] = await prisma.$transaction([
+    prisma.presupuesto.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: { id: "asc" }, select: { id: true, numeroPresupuesto: true } }),
+    prisma.presupuesto.count({ where }),
+  ]);
+  return { presupuestos, total };
+}
+
 export async function enviarPresupuestoPorId(id: string) {
   const transicion = await prisma.presupuesto.updateMany({
     where: {

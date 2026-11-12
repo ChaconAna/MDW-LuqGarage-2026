@@ -9,8 +9,12 @@ export type ParametrosOrdenTrabajo = z.infer<
 >;
 
 export const listadoOrdenesTrabajoQuerySchema = z.object({
-  page: z.coerce.number().int().positive().default(1),
+  page: z.coerce.number().int().positive().safe().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
+}).superRefine(({ page, limit }, contexto) => {
+  if (!Number.isSafeInteger((page - 1) * limit)) {
+    contexto.addIssue({ code: z.ZodIssueCode.custom, path: ["page"], message: "El desplazamiento de paginación excede el rango de enteros seguros." });
+  }
 });
 
 export const crearOrdenTrabajoSchema = z

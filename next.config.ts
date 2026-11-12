@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // preferimos enterarnos en el Pull Request y no en producción.
   typescript: { ignoreBuildErrors: false },
   eslint: { ignoreDuringBuilds: false },
+  experimental: {
+    serverActions: { bodySizeLimit: 4 * 1024 * 1024 },
+  },
 };
 
 export default nextConfig;
