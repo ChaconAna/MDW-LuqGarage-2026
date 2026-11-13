@@ -8,6 +8,9 @@ on:
 jobs:
   verificar:
     runs-on: ubuntu-latest
+    env:
+      # Distribución oficial: https://googlechromelabs.github.io/chrome-for-testing/
+      CHROME_VERSION: '157.0.8103.78'
     steps:
       - uses: actions/checkout@v4
 
@@ -31,5 +34,107 @@ jobs:
       - name: Generar estilos para pruebas de navegador
         run: npm run build
 
+      - name: Preparar Chrome for Testing
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome_dir="$(mktemp -d "$RUNNER_TEMP/chrome-for-testing.XXXXXX")"
+          curl --fail --show-error --silent --location \
+            --connect-timeout 30 --max-time 300 \
+            "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip" \
+            --output "$chrome_dir/chrome.zip"
+          unzip -q "$chrome_dir/chrome.zip" -d "$chrome_dir"
+          echo "CHROME_PATH=$chrome_dir/chrome-linux64/chrome" >> "$GITHUB_ENV"
+
       - name: Tests
-        run: npm test
+        env:
+          LUQGARAGE_CHROME_SIN_SANDBOX: '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${CHROME_PATH:-}" || ! -f "$CHROME_PATH" || ! -x "$CHROME_PATH" ]]; then
+            echo "::error::CHROME_PATH debe apuntar al ejecutable de Chrome preparado."
+            exit 1
+          fi
+          if ! chrome_version_output="$("$CHROME_PATH" --version)"; then
+            echo "::error::Chrome no pudo ejecutar --version."
+            exit 1
+          fi
+          if [[ ! "$chrome_version_output" =~ (^|[[:space:]])([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)($|[[:space:]]) ]] || [[ "${BASH_REMATCH[2]:-}" != "$CHROME_VERSION" ]]; then
+            echo "::error::Versión inesperada: $chrome_version_output; esperada: $CHROME_VERSION."
+            exit 1
+          fi
+          echo "Chrome validado: $CHROME_PATH ($chrome_version_output)"
+          npm test -- --reporter=verbose --reporter=json --outputFile.json="$RUNNER_TEMP/vitest-results.json"
+
+      - name: Comprobar ejecución de las cinco suites de navegador
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [[ ! -f "$RUNNER_TEMP/vitest-results.json" ]]; then
+            echo "::error::No se generó el reporte JSON de Vitest. Revisá los pasos anteriores: las pruebas pudieron no iniciarse o interrumpirse antes de escribirlo."
+            exit 1
+          fi
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const reporte = JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'vitest-results.json'), 'utf8'));
+          const archivos = [
+            'components/siniestros/FormularioRegistroSiniestro.test.ts',
+            'components/presupuestos/FormularioPresupuesto.test.ts',
+            'components/presupuestos/GestionEstadoPresupuesto.test.ts',
+            'components/ordenesTrabajo/FormularioOrdenTrabajo.test.ts',
+            'components/ordenesTrabajo/ConfeccionOrdenTrabajo.test.ts',
+          ];
+          let total = 0;
+          for (const archivo of archivos) {
+            const resultados = reporte.testResults.filter(resultado => resultado.name === path.resolve(archivo));
+            if (resultados.length !== 1) throw new Error(`Suite ausente o duplicada: ${archivo}`);
+            const resultado = resultados[0];
+            const casos = resultado.assertionResults;
+            if (resultado.status !== 'passed' || casos.length === 0 || casos.some(caso => caso.status !== 'passed')) {
+              throw new Error(`Suite con escenarios omitidos, fallidos o sin ejecutar: ${archivo}`);
+            }
+            total += casos.length;
+            console.log(`${archivo}: ${casos.length} escenarios aprobados, ninguno omitido.`);
+          }
+          console.log(`Navegador: ${archivos.length} suites y ${total} escenarios aprobados.`);
+          NODE
+
+  preparar_bd_pruebas:
+    runs-on: ubuntu-latest
+    env:
+      PRUEBAS_PERSISTENCIA: '1'
+      # Credenciales ficticias exclusivas del servicio temporal de este job.
+      DATABASE_URL: postgresql://luqgarage_test:luqgarage_ci_only@127.0.0.1:5432/luqgarage_test
+      DIRECT_URL: postgresql://luqgarage_test:luqgarage_ci_only@127.0.0.1:5432/luqgarage_test
+    services:
+      postgres:
+        image: postgres:16.16-bookworm
+        env:
+          POSTGRES_DB: luqgarage_test
+          POSTGRES_USER: luqgarage_test
+          POSTGRES_PASSWORD: luqgarage_ci_only
+        ports:
+          - '127.0.0.1:5432:5432'
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U luqgarage_test -d luqgarage_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Aplicar migraciones a la base de pruebas
+        run: npx --no-install prisma migrate deploy
+
+      - name: Comprobar estado de las migraciones
+        run: npx --no-install prisma migrate status

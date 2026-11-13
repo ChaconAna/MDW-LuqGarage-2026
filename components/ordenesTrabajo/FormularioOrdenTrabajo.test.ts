@@ -36,6 +36,32 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
   let perfil: string | undefined;
   let reportes: Reporte[] = [];
   let requestsDeEscritura = 0;
+  let cierreChrome: Promise<void> | undefined;
+  let chromeCerrado = false;
+  let codigoSalida: number | null = null;
+  let senalSalida: NodeJS.Signals | null = null;
+  let stderrChrome = "";
+  let stderrTruncado = false;
+
+  function diagnosticoChrome(motivo: string): string {
+    // Omitir la última línea si quedó truncada y ocultar URLs y credenciales etiquetadas.
+    const stderr = (stderrTruncado ? stderrChrome.slice(0, stderrChrome.lastIndexOf("\n") + 1) : stderrChrome)
+      .replace(/[a-z][a-z0-9+.-]*:\/\/[^\s]+/gi, "[URL omitida]")
+      .replace(/\b(authorization|cookie|password|passwd|token|secret|api[_-]?key)\b[^\r\n]*/gi, "[dato omitido]");
+    return `${motivo} Código: ${codigoSalida ?? "sin código"}; señal: ${senalSalida ?? "sin señal"}. stderr: ${stderr.trim() || "(sin líneas completas)"}${stderrTruncado ? " [diagnóstico truncado]" : ""}`;
+  }
+
+  async function esperarCierre(cierre: Promise<void>, limiteMs = 1000): Promise<boolean> {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        cierre.then(() => true),
+        new Promise<boolean>((resolve) => { timeout = setTimeout(() => resolve(false), limiteMs); }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 
   beforeAll(async () => {
     expect(archivosCss.length).toBeGreaterThan(0);
@@ -107,18 +133,46 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
     const direccion = servidor.address();
     if (!direccion || typeof direccion === "string") throw new Error("Servidor local no disponible.");
     perfil = mkdtempSync(path.join(tmpdir(), "luq-ot-integracion-"));
+    const sinSandbox =
+      process.platform === "linux" &&
+      process.env.GITHUB_ACTIONS === "true" &&
+      process.env.RUNNER_ENVIRONMENT === "github-hosted" &&
+      process.env.LUQGARAGE_CHROME_SIN_SANDBOX === "1";
     chrome = spawn(navegador!, [
+      ...(sinSandbox ? ["--no-sandbox"] : []),
       "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
       "--disable-background-networking", "--disable-component-update", "--disable-sync",
       "--user-data-dir=" + perfil, "http://127.0.0.1:" + direccion.port,
-    ], { windowsHide: true, stdio: "ignore" });
+    ], { windowsHide: true, stdio: ["ignore", "ignore", "pipe"] });
+
+    // Registrar el cierre inmediatamente: también puede ocurrir antes de afterAll.
+    cierreChrome = new Promise<void>((resolve) => {
+      chrome!.once("close", () => { chromeCerrado = true; resolve(); });
+    });
+    chrome.stderr?.setEncoding("utf8");
+    chrome.stderr?.on("data", (datos: string) => {
+      const disponibles = Math.max(0, 4096 - stderrChrome.length);
+      if (datos.length > disponibles) stderrTruncado = true;
+      stderrChrome += datos.slice(0, disponibles);
+    });
+    const terminacionAnticipada = new Promise<never>((_resolve, reject) => {
+      chrome!.on("error", (error: NodeJS.ErrnoException) => {
+        const codigo = /^E[A-Z0-9]+$/.test(error.code ?? "") ? error.code : "desconocido";
+        reject(new Error(diagnosticoChrome(`Chrome no pudo iniciarse o recibir una señal (${codigo}).`)));
+      });
+      chrome!.once("exit", (codigo, senal) => {
+        codigoSalida = codigo;
+        senalSalida = senal;
+        reject(new Error(diagnosticoChrome("Chrome terminó antes de devolver el reporte.")));
+      });
+    });
 
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
       reportes = await Promise.race([
         resultados,
-        new Promise<never>((_resolve, reject) => { timeout = setTimeout(() => reject(new Error("Chrome no devolvió el resultado de integración.")), 40000); }),
-        new Promise<never>((_resolve, reject) => { chrome?.once("error", reject); }),
+        new Promise<never>((_resolve, reject) => { timeout = setTimeout(() => reject(new Error(diagnosticoChrome("Chrome no devolvió el resultado de integración."))), 40000); }),
+        terminacionAnticipada,
       ]);
       expect(reportes.map(({ nombre }) => nombre)).toEqual([...casosFormulario]);
     } finally {
@@ -127,19 +181,46 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
   }, 60000);
 
   afterAll(async () => {
-    if (chrome && chrome.exitCode === null && !chrome.killed) {
-      const terminado = once(chrome, "close");
-      chrome.kill();
-      await terminado;
-    }
-    servidor?.closeAllConnections();
-    if (servidor?.listening) await new Promise<void>((resolve) => servidor?.close(() => resolve()));
-    if (perfil) {
-      const destino = path.resolve(perfil);
-      if (path.dirname(destino) === path.resolve(tmpdir()) && path.basename(destino).startsWith("luq-ot-integracion-")) {
-        await rm(destino, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    const errores: unknown[] = [];
+    try {
+      if (chrome && cierreChrome && !chromeCerrado) {
+        if (chrome.exitCode === null && chrome.signalCode === null) chrome.kill();
+        if (!await esperarCierre(cierreChrome)) {
+          if (chrome.exitCode === null && chrome.signalCode === null) chrome.kill("SIGKILL");
+          if (!await esperarCierre(cierreChrome)) {
+            throw new Error(diagnosticoChrome("Chrome no confirmó su cierre tras intentar terminarlo."));
+          }
+        }
       }
+    } catch (error) {
+      errores.push(error);
     }
+    try {
+      if (servidor?.listening) {
+        const cierreServidor = new Promise<void>((resolve, reject) => {
+          servidor!.close((error) => error ? reject(new Error("No se pudo cerrar el servidor de pruebas.")) : resolve());
+        });
+        servidor.closeAllConnections();
+        if (!await esperarCierre(cierreServidor)) throw new Error("El servidor de pruebas no confirmó su cierre.");
+      }
+    } catch (error) {
+      errores.push(error);
+    }
+    try {
+      if (perfil) {
+        const destino = path.resolve(perfil);
+        if (path.dirname(destino) === path.resolve(tmpdir()) && path.basename(destino).startsWith("luq-ot-integracion-")) {
+          const borrado = rm(destino, { recursive: true, force: true, maxRetries: 2, retryDelay: 100 });
+          // Limitar la espera no cancela rm; Promise.race también maneja un rechazo tardío.
+          if (!await esperarCierre(borrado, 3000)) {
+            throw new Error("El borrado del perfil temporal no terminó dentro de 3000 ms; puede continuar en segundo plano.");
+          }
+        }
+      }
+    } catch (error) {
+      errores.push(error);
+    }
+    if (errores.length) throw new AggregateError(errores, "No se pudo completar la limpieza del navegador.");
   });
 
   for (const nombre of casosFormulario) {
