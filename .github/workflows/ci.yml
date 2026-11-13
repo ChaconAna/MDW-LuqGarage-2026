@@ -47,6 +47,8 @@ jobs:
           echo "CHROME_PATH=$chrome_dir/chrome-linux64/chrome" >> "$GITHUB_ENV"
 
       - name: Tests
+        env:
+          LUQGARAGE_CHROME_SIN_SANDBOX: '1'
         shell: bash
         run: |
           set -euo pipefail

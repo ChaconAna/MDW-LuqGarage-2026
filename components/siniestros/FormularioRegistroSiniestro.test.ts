@@ -133,7 +133,13 @@ describe.skipIf(!navegador)("integración del formulario en navegador", () => {
     const direccion = servidor.address();
     if (!direccion || typeof direccion === "string") throw new Error("Servidor local no disponible.");
     perfil = mkdtempSync(path.join(tmpdir(), "luq-registro-integracion-"));
+    const sinSandbox =
+      process.platform === "linux" &&
+      process.env.GITHUB_ACTIONS === "true" &&
+      process.env.RUNNER_ENVIRONMENT === "github-hosted" &&
+      process.env.LUQGARAGE_CHROME_SIN_SANDBOX === "1";
     chrome = spawn(navegador!, [
+      ...(sinSandbox ? ["--no-sandbox"] : []),
       "--headless=new", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
       "--disable-background-networking", "--disable-component-update", "--disable-sync",
       "--user-data-dir=" + perfil, "http://127.0.0.1:" + direccion.port,
