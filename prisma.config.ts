@@ -1,7 +1,13 @@
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
 
-config({ path: ".env.local" });
+import { validarEntornoPruebas } from "./lib/schemas/entornoPruebas";
+
+if (process.env.PRUEBAS_PERSISTENCIA === "1") {
+  validarEntornoPruebas(process.env);
+} else {
+  config({ path: ".env.local" });
+}
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
