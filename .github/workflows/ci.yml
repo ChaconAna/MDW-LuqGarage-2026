@@ -98,3 +98,41 @@ jobs:
           }
           console.log(`Navegador: ${archivos.length} suites y ${total} escenarios aprobados.`);
           NODE
+
+  preparar_bd_pruebas:
+    runs-on: ubuntu-latest
+    env:
+      PRUEBAS_PERSISTENCIA: '1'
+      # Credenciales ficticias exclusivas del servicio temporal de este job.
+      DATABASE_URL: postgresql://luqgarage_test:luqgarage_ci_only@127.0.0.1:5432/luqgarage_test
+      DIRECT_URL: postgresql://luqgarage_test:luqgarage_ci_only@127.0.0.1:5432/luqgarage_test
+    services:
+      postgres:
+        image: postgres:16.16-bookworm
+        env:
+          POSTGRES_DB: luqgarage_test
+          POSTGRES_USER: luqgarage_test
+          POSTGRES_PASSWORD: luqgarage_ci_only
+        ports:
+          - '127.0.0.1:5432:5432'
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432 -U luqgarage_test -d luqgarage_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Aplicar migraciones a la base de pruebas
+        run: npx --no-install prisma migrate deploy
+
+      - name: Comprobar estado de las migraciones
+        run: npx --no-install prisma migrate status
