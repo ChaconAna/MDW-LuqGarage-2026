@@ -4,6 +4,8 @@ import { validarEntornoAutenticacionE2e } from "./entornoE2e";
 
 const urlBase =
   "postgresql://luqgarage_test:clave-ficticia@127.0.0.1:5432/luqgarage_test";
+const credencial = "credencial-e2e-ficticia-de-32-caracteres";
+const usuarioId = "10000000-0000-4000-8000-000000000001";
 
 function entornoValido() {
   return {
@@ -13,6 +15,8 @@ function entornoValido() {
     DATABASE_URL: urlBase,
     DIRECT_URL: urlBase,
     AUTH_URL: "http://127.0.0.1:3000",
+    AUTENTICACION_E2E_CREDENCIAL: credencial,
+    AUTENTICACION_E2E_USUARIO_ID: usuarioId,
   };
 }
 
@@ -77,6 +81,8 @@ describe("validarEntornoAutenticacionE2e", () => {
     "DATABASE_URL",
     "DIRECT_URL",
     "AUTH_URL",
+    "AUTENTICACION_E2E_CREDENCIAL",
+    "AUTENTICACION_E2E_USUARIO_ID",
   ])("rechaza la configuración incompleta sin %s", (campo) => {
     const entorno: Record<string, unknown> = entornoValido();
     delete entorno[campo];
@@ -114,6 +120,24 @@ describe("validarEntornoAutenticacionE2e", () => {
         AUTENTICACION_E2E: undefined,
       }),
     ).toBe(false);
+  });
+
+  it("rechaza una credencial E2E insuficiente", () => {
+    expect(() =>
+      validarEntornoAutenticacionE2e({
+        ...entornoValido(),
+        AUTENTICACION_E2E_CREDENCIAL: "credencial-corta",
+      }),
+    ).toThrow(/Configuración/);
+  });
+
+  it("rechaza un identificador de Usuario E2E inválido", () => {
+    expect(() =>
+      validarEntornoAutenticacionE2e({
+        ...entornoValido(),
+        AUTENTICACION_E2E_USUARIO_ID: "usuario-no-uuid",
+      }),
+    ).toThrow(/Configuración/);
   });
 
   it("no considera GitHub Actions suficiente para habilitar E2E", () => {

@@ -12,6 +12,12 @@ const authUrlE2eSchema = z
     mensajeConfiguracion,
   );
 
+const credencialE2eSchema = z.string().min(32).max(256);
+
+export const credencialesAutenticacionE2eSchema = z.object({
+  credencial: credencialE2eSchema,
+});
+
 export const entornoAutenticacionE2eSchema = z
   .object({
     AUTENTICACION_E2E: z.literal("1"),
@@ -20,6 +26,8 @@ export const entornoAutenticacionE2eSchema = z
     DATABASE_URL: urlBasePruebasSchema,
     DIRECT_URL: urlBasePruebasSchema,
     AUTH_URL: authUrlE2eSchema,
+    AUTENTICACION_E2E_CREDENCIAL: credencialE2eSchema,
+    AUTENTICACION_E2E_USUARIO_ID: z.string().uuid(),
   })
   .refine(
     (entorno) => entorno.DATABASE_URL === entorno.DIRECT_URL,

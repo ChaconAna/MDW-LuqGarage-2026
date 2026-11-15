@@ -5,7 +5,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const dependencias = vi.hoisted(() => ({
   configuracion: undefined as unknown,
   autorizarInicioSesionGoogle: vi.fn(),
+  obtenerUsuarioParaAutorizacionPorId: vi.fn(),
   obtenerUsuarioParaSesionPorGoogleSub: vi.fn(),
+  crearProveedorCredentials: vi.fn(),
   safeParsePerfilGoogle: vi.fn((perfil: unknown) => ({
     success: true as const,
     data: perfil,
@@ -29,8 +31,14 @@ vi.mock("next-auth/providers/google", () => ({
   default: vi.fn(),
 }));
 
+vi.mock("next-auth/providers/credentials", () => ({
+  default: dependencias.crearProveedorCredentials,
+}));
+
 vi.mock("@/lib/db/usuario", () => ({
   autorizarInicioSesionGoogle: dependencias.autorizarInicioSesionGoogle,
+  obtenerUsuarioParaAutorizacionPorId:
+    dependencias.obtenerUsuarioParaAutorizacionPorId,
   obtenerUsuarioParaSesionPorGoogleSub:
     dependencias.obtenerUsuarioParaSesionPorGoogleSub,
 }));
@@ -41,18 +49,24 @@ vi.mock("@/lib/schemas/autenticacion", () => ({
   },
 }));
 
+vi.mock("@/lib/schemas/entornoE2e", () => ({
+  credencialesAutenticacionE2eSchema: { safeParse: vi.fn() },
+  validarEntornoAutenticacionE2e: vi.fn(() => false),
+}));
+
 import "./auth";
 
 function obtenerCallbacks() {
   const configuracion = dependencias.configuracion as NextAuthConfig;
   const jwt = configuracion.callbacks?.jwt;
   const session = configuracion.callbacks?.session;
+  const signIn = configuracion.callbacks?.signIn;
 
-  if (!jwt || !session) {
-    throw new Error("Se esperaban los callbacks jwt y session.");
+  if (!jwt || !session || !signIn) {
+    throw new Error("Se esperaban los callbacks signIn, jwt y session.");
   }
 
-  return { jwt, session };
+  return { jwt, session, signIn };
 }
 
 const perfilGoogle = {
@@ -68,6 +82,24 @@ describe("callbacks de sesión de Auth.js", () => {
       success: true,
       data: perfil,
     }));
+  });
+
+  it("mantiene el inicio de sesión Google con el perfil validado", async () => {
+    const { signIn } = obtenerCallbacks();
+    dependencias.autorizarInicioSesionGoogle.mockResolvedValue(true);
+
+    await expect(
+      signIn({
+        account: { provider: "google" },
+        profile: perfilGoogle,
+        user: {},
+      } as never),
+    ).resolves.toBe(true);
+
+    expect(dependencias.autorizarInicioSesionGoogle).toHaveBeenCalledWith({
+      googleSub: perfilGoogle.sub,
+      email: perfilGoogle.email,
+    });
   });
 
   it("construye los claims locales desde el Usuario encontrado por googleSub", async () => {
@@ -203,5 +235,14 @@ describe("callbacks de sesión de Auth.js", () => {
     expect(
       dependencias.obtenerUsuarioParaSesionPorGoogleSub,
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe("proveedores normales de Auth.js", () => {
+  it("no incorpora Credentials cuando E2E está deshabilitado", () => {
+    const configuracion = dependencias.configuracion as NextAuthConfig;
+
+    expect(configuracion.providers).toHaveLength(1);
+    expect(dependencias.crearProveedorCredentials).not.toHaveBeenCalled();
   });
 });
