@@ -61,8 +61,8 @@ Supabase Storage para archivos. Deploy en Vercel.
 
 ## Instalación y ejecución local
 
-Se recomienda utilizar Node.js 20, la misma versión utilizada por la CI del
-proyecto.
+Se recomienda utilizar la última versión de Node.js 22 (como mínimo 22.20.0),
+la misma rama utilizada por la CI del proyecto.
 
 1. Instalar las dependencias:
 

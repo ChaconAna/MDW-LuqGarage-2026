@@ -68,7 +68,9 @@ async function exito(origen, etiqueta, destino, operacion) {
   await montar(origen);
   const ruta = location.pathname;
   await elegir(etiqueta, destino); await confirmar(destino);
-  await hasta(() => texto().includes(mensajes[operacion]) && !document.querySelector('[role="group"]'));
+  // El mensaje puede renderizarse antes de que useEffect le asigne el foco.
+  await hasta(() => texto().includes(mensajes[operacion]) && !document.querySelector('[role="group"]')
+    && document.activeElement === document.querySelector('[role="status"][tabindex="-1"]'));
   exigir(llamadas.length === 1 && llamadas[0].operacion === operacion && llamadas[0].id === presupuestoId, "Invoca sólo la Action específica con el UUID");
   exigir(location.pathname === ruta, "Permanece en el detalle");
   exigir(document.getElementById("estado-servidor").textContent.includes(destino), "Estado proviene de las props actualizadas del servidor");

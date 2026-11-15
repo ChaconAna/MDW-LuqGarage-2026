@@ -16,7 +16,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias
@@ -127,7 +127,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Instalar dependencias
@@ -138,3 +138,6 @@ jobs:
 
       - name: Comprobar estado de las migraciones
         run: npx --no-install prisma migrate status
+
+      - name: Probar persistencia de Marca en PostgreSQL temporal
+        run: npx --no-install vitest run --config vitest.persistencia.config.ts --reporter=verbose --passWithNoTests=false
