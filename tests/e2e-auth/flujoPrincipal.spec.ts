@@ -81,11 +81,14 @@ test("completa Siniestro, Presupuesto aprobado y Orden de Trabajo finalizada", a
   await iniciarSesion(page);
 
   await page.goto("/siniestros/nuevo");
-  await page.locator(`input[name="clienteId"][value="${manifiesto.cliente.id}"]`).check();
+  await page.locator(`input[name="clienteId"][value="${manifiesto.cliente.id}"]`).click();
+  await expect(page).toHaveURL((url) => url.searchParams.get("clienteId") === manifiesto.cliente.id);
   await expect(page.getByText(`Cliente seleccionado: ${manifiesto.cliente.nombre} ${manifiesto.cliente.apellido}`)).toBeVisible();
-  await page.locator(`input[name="vehiculoId"][value="${manifiesto.vehiculo.id}"]`).check();
+  await page.locator(`input[name="vehiculoId"][value="${manifiesto.vehiculo.id}"]`).click();
+  await expect(page).toHaveURL((url) => url.searchParams.get("vehiculoId") === manifiesto.vehiculo.id);
   await expect(page.getByText(`Vehículo seleccionado: ${manifiesto.vehiculo.patente}`)).toBeVisible();
-  await page.locator(`input[name="aseguradoraId"][value="${manifiesto.aseguradora.id}"]`).check();
+  await page.locator(`input[name="aseguradoraId"][value="${manifiesto.aseguradora.id}"]`).click();
+  await expect(page).toHaveURL((url) => url.searchParams.get("aseguradoraId") === manifiesto.aseguradora.id);
   await expect(page.getByText(`Aseguradora seleccionada: ${manifiesto.aseguradora.nombre}`)).toBeVisible();
 
   await page.getByLabel("Número de siniestro (obligatorio)").fill(manifiesto.playwright.numeroSiniestro);
