@@ -3,6 +3,11 @@ import { randomBytes } from "node:crypto";
 import { defineConfig } from "@playwright/test";
 
 import { validarEntornoAutenticacionE2e } from "./lib/schemas/entornoE2e";
+import {
+  BUCKET_STORAGE_E2E,
+  crearCredencialStorageE2e,
+  URL_STORAGE_E2E,
+} from "./lib/services/storageHttpE2e";
 
 const baseURL = "http://127.0.0.1:3000";
 const entornoNextStart = {
@@ -14,6 +19,10 @@ const entornoNextStart = {
 if (!validarEntornoAutenticacionE2e(entornoNextStart)) {
   throw new Error("La autenticación E2E no está habilitada.");
 }
+
+const credencialStorageE2e = crearCredencialStorageE2e(
+  process.env.AUTENTICACION_E2E_CREDENCIAL!,
+);
 
 export default defineConfig({
   testDir: "./tests/e2e-auth",
@@ -43,6 +52,9 @@ export default defineConfig({
       DIRECT_URL: process.env.DIRECT_URL!,
       GITHUB_ACTIONS: process.env.GITHUB_ACTIONS!,
       PRUEBAS_PERSISTENCIA: "1",
+      SUPABASE_SECRET_KEY: credencialStorageE2e,
+      SUPABASE_STORAGE_BUCKET: BUCKET_STORAGE_E2E,
+      SUPABASE_URL: URL_STORAGE_E2E,
     },
   },
 });

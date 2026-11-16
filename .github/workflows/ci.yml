@@ -151,6 +151,7 @@ jobs:
           echo "::add-mask::$credencial_e2e"
           {
             echo "AUTH_URL=http://127.0.0.1:3000"
+            echo "NODE_ENV=production"
             echo "AUTENTICACION_E2E=1"
             echo "AUTENTICACION_E2E_CREDENCIAL=$credencial_e2e"
             echo "AUTENTICACION_E2E_USUARIO_ID=$usuario_e2e_id"

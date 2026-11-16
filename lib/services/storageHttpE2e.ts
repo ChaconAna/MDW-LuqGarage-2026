@@ -9,6 +9,8 @@ import {
 import { validarEntornoAutenticacionE2e } from "../schemas/entornoE2e";
 
 export const BUCKET_STORAGE_E2E = "documentos-siniestros-e2e";
+export const PUERTO_STORAGE_E2E = 54321;
+export const URL_STORAGE_E2E = `http://127.0.0.1:${PUERTO_STORAGE_E2E}`;
 
 const HOST_STORAGE_E2E = "127.0.0.1";
 const LIMITE_CUERPO_BYTES = 5 * 1024 * 1024;
