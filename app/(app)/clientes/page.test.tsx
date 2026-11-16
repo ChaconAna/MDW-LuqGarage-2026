@@ -149,6 +149,8 @@ describe("listado de clientes", () => {
       expect(pagina).toContain("Activo");
       expect(pagina).toContain("Inactivo");
       expect(pagina).toContain('href="/clientes/cliente-1"');
+      expect(pagina).toContain('href="/clientes/nuevo"');
+      expect(pagina).toContain("Registrar cliente");
       expect(dependencias.autorizar).toHaveBeenCalledWith([
         "RECEPCIONISTA",
         "ENCARGADO_DEL_TALLER",

@@ -78,4 +78,33 @@ describe("listarLocalidades", () => {
       resultado.localidades[1]?.provincia,
     );
   });
+
+  it("busca por Localidad o Provincia sin perder paginación ni conteo", async () => {
+    dependencias.transaccion.mockResolvedValue([[], 0]);
+
+    await listarLocalidades(3, 5, "  san martín  ");
+
+    const where = {
+      OR: [
+        { nombre: { contains: "san martín", mode: "insensitive" } },
+        {
+          provincia: {
+            nombre: { contains: "san martín", mode: "insensitive" },
+          },
+        },
+      ],
+    };
+    expect(dependencias.listar).toHaveBeenCalledExactlyOnceWith({
+      where,
+      skip: 10,
+      take: 5,
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        nombre: true,
+        provincia: { select: { id: true, nombre: true } },
+      },
+    });
+    expect(dependencias.contar).toHaveBeenCalledExactlyOnceWith({ where });
+  });
 });

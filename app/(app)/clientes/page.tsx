@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import TablaClientes from "@/components/clientes/TablaClientes";
@@ -5,6 +6,7 @@ import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarClientes } from "@/lib/db/cliente";
 import { listadoClientesQuerySchema } from "@/lib/schemas/cliente";
+import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_CLIENTES = 10;
 
@@ -72,6 +74,12 @@ export default async function ClientesPage({
     <main>
       <ContenedorPagina ancho="wide">
         <h1 className="text-2xl font-bold">Clientes</h1>
+        <Link
+          href="/clientes/nuevo"
+          className={`${clasesEnlaceTexto} mt-4 inline-block`}
+        >
+          Registrar cliente
+        </Link>
 
         {clientes.length === 0 ? (
           <p className="mt-6 rounded-lg border border-current/20 p-6">

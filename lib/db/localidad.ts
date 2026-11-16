@@ -1,10 +1,30 @@
-import type { ClienteTransaccion } from "./transaccion";
+import type { Prisma } from "@prisma/client";
 
 import { prisma } from "./client";
+import type { ClienteTransaccion } from "./transaccion";
 
-export async function listarLocalidades(page: number, limit: number) {
+export async function listarLocalidades(
+  page: number,
+  limit: number,
+  busqueda = "",
+) {
+  const termino = busqueda.trim();
+  const where = termino
+    ? ({
+        OR: [
+          { nombre: { contains: termino, mode: "insensitive" } },
+          {
+            provincia: {
+              nombre: { contains: termino, mode: "insensitive" },
+            },
+          },
+        ],
+      } satisfies Prisma.LocalidadWhereInput)
+    : undefined;
+
   const [localidades, total] = await prisma.$transaction([
     prisma.localidad.findMany({
+      ...(where ? { where } : {}),
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { id: "asc" },
@@ -19,7 +39,7 @@ export async function listarLocalidades(page: number, limit: number) {
         },
       },
     }),
-    prisma.localidad.count(),
+    where ? prisma.localidad.count({ where }) : prisma.localidad.count(),
   ]);
 
   return { localidades, total };
