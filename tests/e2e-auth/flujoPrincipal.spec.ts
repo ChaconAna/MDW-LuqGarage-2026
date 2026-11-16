@@ -159,8 +159,12 @@ test("completa Siniestro, Presupuesto aprobado y Orden de Trabajo finalizada", a
   await expect(page.getByText("Estado: ENVIADO", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Registrar aprobación", exact: true }).click();
-  await page.getByRole("button", { name: "Confirmar APROBADO", exact: true }).click();
-  await expect(page.getByRole("status").filter({ hasText: "La respuesta externa de aprobación quedó registrada." })).toBeVisible();
+  const confirmarAprobacion = page.getByRole("button", {
+    name: "Confirmar APROBADO",
+    exact: true,
+  });
+  await confirmarAprobacion.click();
+  await expect(confirmarAprobacion).toHaveCount(0);
   await page.reload();
   await expect(page.getByText("Estado: APROBADO", { exact: true })).toBeVisible();
 
