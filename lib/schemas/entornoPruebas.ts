@@ -3,7 +3,7 @@ import { z } from "zod";
 const mensajeConfiguracion =
   "Configuración de pruebas de persistencia inválida. Se requieren GitHub Actions y URLs idénticas de PostgreSQL para luqgarage_test en 127.0.0.1:5432, sin parámetros ni fragmentos.";
 
-const urlPruebasSchema = z.string().refine((valor) => {
+export const urlBasePruebasSchema = z.string().refine((valor) => {
   try {
     const url = new URL(valor);
     return (
@@ -25,8 +25,8 @@ const urlPruebasSchema = z.string().refine((valor) => {
 
 export const entornoPruebasSchema = z.object({
   GITHUB_ACTIONS: z.string().refine((valor) => valor === "true", mensajeConfiguracion),
-  DATABASE_URL: urlPruebasSchema,
-  DIRECT_URL: urlPruebasSchema,
+  DATABASE_URL: urlBasePruebasSchema,
+  DIRECT_URL: urlBasePruebasSchema,
 }).refine((entorno) => entorno.DATABASE_URL === entorno.DIRECT_URL, mensajeConfiguracion);
 
 export function validarEntornoPruebas(entorno: Record<string, unknown>): void {
