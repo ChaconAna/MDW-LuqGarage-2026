@@ -162,9 +162,12 @@ export async function actualizarClientePorId(
   }
 }
 
-export async function darDeBajaClientePorId(id: string) {
+export async function darDeBajaClientePorId(
+  id: string,
+  { soloSiActivo = false }: { soloSiActivo?: boolean } = {},
+) {
   const resultado = await prisma.cliente.updateMany({
-    where: { id },
+    where: { id, ...(soloSiActivo ? { activo: true } : {}) },
     data: { activo: false },
   });
 

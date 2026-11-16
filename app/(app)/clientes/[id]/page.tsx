@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import BajaCliente from "@/components/clientes/BajaCliente";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerClientePorId } from "@/lib/db/cliente";
@@ -121,6 +122,7 @@ export default async function ClienteDetallePage({
               </div>
             </dl>
           </section>
+          <BajaCliente clienteId={cliente.id} activo={cliente.activo} />
         </div>
       </ContenedorPagina>
     </main>
