@@ -40,6 +40,30 @@ beforeEach(() => {
 });
 
 describe("FormularioCliente", () => {
+  it("precarga la edición y permite cancelar al detalle sin guardar", () => {
+    const guardarAction = vi.fn(async () => ({ errores: {} }));
+    const datos = {
+      nombre: "Ana", apellido: "Pérez", dni: "30111222", telefono: "1155550101",
+      email: "ana@ejemplo.test", direccion: "Calle 123",
+    };
+    const pagina = renderToStaticMarkup(
+      <FormularioCliente
+        localidadesIniciales={{ localidades: [], total: 0, pagina: 1, busqueda: "" }}
+        datosIniciales={datos}
+        localidadInicial={{ id: "localidad", nombre: "San Martín", provincia: { id: "provincia", nombre: "Buenos Aires" } }}
+        guardarAction={guardarAction}
+        hrefCancelar="/clientes/cliente-id"
+      />,
+    );
+    for (const valor of Object.values(datos)) expect(pagina).toContain(`value="${valor}"`);
+    expect(pagina).toContain("Localidad seleccionada: San Martín");
+    expect(pagina).toContain("Buenos Aires");
+    expect(pagina).toContain("Guardar cambios");
+    expect(pagina).toContain('href="/clientes/cliente-id">Cancelar</a>');
+    expect(pagina).not.toContain('name="activo"');
+    expect(guardarAction).not.toHaveBeenCalled();
+  });
+
   it("presenta campos obligatorios, Localidad con Provincia y cancelación", () => {
     const pagina = renderToStaticMarkup(
       <FormularioCliente

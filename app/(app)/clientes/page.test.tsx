@@ -257,6 +257,8 @@ describe("detalle de cliente", () => {
       expect(pagina).toContain("Activo");
       expect(pagina).toContain('href="/clientes"');
       expect(pagina).toContain("Volver a clientes");
+      expect(pagina).toContain(`href="/clientes/${clienteId}/editar"`);
+      expect(pagina).toContain(">Editar</a>");
       expect(dependencias.obtener).toHaveBeenCalledExactlyOnceWith(clienteId);
       expect(dependencias.autorizar).toHaveBeenCalledWith([
         "RECEPCIONISTA",
@@ -277,6 +279,7 @@ describe("detalle de cliente", () => {
 
     expect(pagina).toContain("Nombre 2");
     expect(pagina).toContain("Inactivo");
+    expect(pagina).toContain(`href="/clientes/${clienteId}/editar"`);
   });
 
   it.each(["MECANICO", "ADMINISTRADOR"])(

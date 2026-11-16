@@ -65,6 +65,13 @@ export default async function ClienteDetallePage({
             </p>
           </header>
 
+          <Link
+            href={`/clientes/${cliente.id}/editar`}
+            className={clasesEnlaceTexto}
+          >
+            Editar
+          </Link>
+
           <section
             aria-labelledby="datos-cliente"
             className="rounded-lg border border-current/20 p-5"
