@@ -13,13 +13,13 @@ export const listadoClientesQuerySchema = z.object({
 
 export const crearClienteSchema = z
   .object({
-    nombre: z.string(),
-    apellido: z.string(),
-    dni: z.string(),
-    telefono: z.string(),
-    email: z.string(),
-    direccion: z.string(),
-    localidadId: z.string().uuid(),
+    nombre: z.string().trim().min(1, "Ingresá el nombre."),
+    apellido: z.string().trim().min(1, "Ingresá el apellido."),
+    dni: z.string().trim().min(1, "Ingresá el DNI."),
+    telefono: z.string().trim().min(1, "Ingresá el teléfono."),
+    email: z.string().trim().min(1, "Ingresá el email."),
+    direccion: z.string().trim().min(1, "Ingresá la dirección."),
+    localidadId: z.string().uuid("Seleccioná una Localidad válida."),
   })
   .strict();
 
