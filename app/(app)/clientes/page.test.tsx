@@ -6,7 +6,9 @@ const dependencias = vi.hoisted(() => ({
   autorizar: vi.fn(),
   auth: vi.fn(),
   listar: vi.fn(),
+  obtener: vi.fn(),
   redirect: vi.fn(),
+  notFound: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -19,15 +21,25 @@ vi.mock("@/lib/authPagina", () => ({
 }));
 vi.mock("@/lib/db/cliente", () => ({
   listarClientes: dependencias.listar,
+  obtenerClientePorId: dependencias.obtener,
 }));
 vi.mock("@/lib/utils", () => ({ clasesEnlaceTexto: "enlace" }));
 vi.mock("@/lib/schemas/cliente", async () =>
   import("../../../lib/schemas/cliente"),
 );
-vi.mock("next/navigation", () => ({ redirect: dependencias.redirect }));
+vi.mock("next/navigation", () => ({
+  redirect: dependencias.redirect,
+  notFound: dependencias.notFound,
+}));
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: React.ComponentProps<"a">) =>
-    React.createElement("a", props, children),
+  default: ({
+    children,
+    prefetch,
+    ...props
+  }: React.ComponentProps<"a"> & { prefetch?: boolean }) => {
+    void prefetch;
+    return React.createElement("a", props, children);
+  },
 }));
 vi.mock("@/components/layout/ContenedorPagina", () => ({
   default: ({ children }: { children: React.ReactNode }) =>
@@ -53,11 +65,16 @@ vi.mock("@/components/ui/button", () => ({
 }));
 
 import AppLayout from "../layout";
+import ClienteDetalleError from "./[id]/error";
+import LoadingClienteDetalle from "./[id]/loading";
+import ClienteDetallePage from "./[id]/page";
 import ClientesError from "./error";
 import LoadingClientes from "./loading";
 import ClientesPage from "./page";
 
 const redireccion = new Error("redirect");
+const noEncontrado = new Error("not found");
+const clienteId = "10000000-0000-4000-8000-000000000001";
 
 function cliente(indice: number, activo: boolean) {
   return {
@@ -100,8 +117,15 @@ beforeEach(() => {
     clientes: [cliente(1, true), cliente(2, false)],
     total: 2,
   });
+  dependencias.obtener.mockResolvedValue({
+    ...cliente(1, true),
+    id: clienteId,
+  });
   dependencias.redirect.mockImplementation(() => {
     throw redireccion;
+  });
+  dependencias.notFound.mockImplementation(() => {
+    throw noEncontrado;
   });
 });
 
@@ -124,6 +148,7 @@ describe("listado de clientes", () => {
       expect(pagina).toContain("Provincia 1");
       expect(pagina).toContain("Activo");
       expect(pagina).toContain("Inactivo");
+      expect(pagina).toContain('href="/clientes/cliente-1"');
       expect(dependencias.autorizar).toHaveBeenCalledWith([
         "RECEPCIONISTA",
         "ENCARGADO_DEL_TALLER",
@@ -206,6 +231,103 @@ describe("listado de clientes", () => {
     expect(pagina).toContain("No hay clientes registrados");
     expect(pagina).not.toContain("<table");
     expect(pagina).not.toContain("Paginación de clientes");
+  });
+});
+
+describe("detalle de cliente", () => {
+  it.each(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"])(
+    "muestra todos los datos para %s",
+    async (rol) => {
+      autorizar(rol);
+
+      const pagina = html(
+        await ClienteDetallePage({ params: Promise.resolve({ id: clienteId }) }),
+      );
+
+      expect(pagina).toContain("Nombre 1");
+      expect(pagina).toContain("Apellido 1");
+      expect(pagina).toContain("DNI-1");
+      expect(pagina).toContain("11-5555-0001");
+      expect(pagina).toContain("cliente1@ejemplo.test");
+      expect(pagina).toContain("Calle 1");
+      expect(pagina).toContain("Localidad 1");
+      expect(pagina).toContain("Provincia 1");
+      expect(pagina).toContain("Activo");
+      expect(pagina).toContain('href="/clientes"');
+      expect(pagina).toContain("Volver a clientes");
+      expect(dependencias.obtener).toHaveBeenCalledExactlyOnceWith(clienteId);
+      expect(dependencias.autorizar).toHaveBeenCalledWith([
+        "RECEPCIONISTA",
+        "ENCARGADO_DEL_TALLER",
+      ]);
+    },
+  );
+
+  it("permite consultar un cliente inactivo", async () => {
+    dependencias.obtener.mockResolvedValue({
+      ...cliente(2, false),
+      id: clienteId,
+    });
+
+    const pagina = html(
+      await ClienteDetallePage({ params: Promise.resolve({ id: clienteId }) }),
+    );
+
+    expect(pagina).toContain("Nombre 2");
+    expect(pagina).toContain("Inactivo");
+  });
+
+  it.each(["MECANICO", "ADMINISTRADOR"])(
+    "deniega a %s sin consultar el cliente",
+    async (rol) => {
+      dependencias.autorizar.mockResolvedValue({
+        autorizado: false,
+        usuario: { rol },
+      });
+
+      const pagina = html(
+        await ClienteDetallePage({ params: Promise.resolve({ id: clienteId }) }),
+      );
+
+      expect(pagina).toContain("Acceso denegado");
+      expect(dependencias.obtener).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["invalido", ""])(
+    "responde como no encontrado para el ID %j sin consultar",
+    async (id) => {
+      await expect(
+        ClienteDetallePage({ params: Promise.resolve({ id }) }),
+      ).rejects.toBe(noEncontrado);
+
+      expect(dependencias.notFound).toHaveBeenCalledOnce();
+      expect(dependencias.obtener).not.toHaveBeenCalled();
+    },
+  );
+
+  it("responde como no encontrado cuando el cliente no existe", async () => {
+    dependencias.obtener.mockResolvedValue(null);
+
+    await expect(
+      ClienteDetallePage({ params: Promise.resolve({ id: clienteId }) }),
+    ).rejects.toBe(noEncontrado);
+
+    expect(dependencias.obtener).toHaveBeenCalledExactlyOnceWith(clienteId);
+    expect(dependencias.notFound).toHaveBeenCalledOnce();
+  });
+
+  it("presenta estados de carga y error específicos", () => {
+    const carga = html(<LoadingClienteDetalle />);
+    expect(carga).toContain('role="status"');
+    expect(carga).toContain("Cargando detalle del cliente");
+
+    const error = html(
+      <ClienteDetalleError error={new Error("fallo")} reset={vi.fn()} />,
+    );
+    expect(error).toContain('role="alert"');
+    expect(error).toContain("No pudimos cargar el cliente");
+    expect(error).toContain("Reintentar");
   });
 });
 

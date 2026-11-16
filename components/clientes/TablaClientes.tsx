@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { clasesEnlaceTexto } from "@/lib/utils";
 
 type ClienteFila = {
   id: string;
@@ -118,7 +119,15 @@ export default function TablaClientes({
                 key={cliente.id}
                 className="border-b border-current/10 last:border-b-0"
               >
-                <td className="px-4 py-3 font-medium">{cliente.nombre}</td>
+                <th scope="row" className="px-4 py-3 font-medium">
+                  <Link
+                    href={`/clientes/${cliente.id}`}
+                    prefetch={false}
+                    className={clasesEnlaceTexto}
+                  >
+                    {cliente.nombre}
+                  </Link>
+                </th>
                 <td className="px-4 py-3">{cliente.apellido}</td>
                 <td className="whitespace-nowrap px-4 py-3">{cliente.dni}</td>
                 <td className="whitespace-nowrap px-4 py-3">{cliente.telefono}</td>
