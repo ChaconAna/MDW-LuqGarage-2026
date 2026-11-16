@@ -10,16 +10,21 @@ test("inicia sesión con Auth.js Credentials y accede al alta de siniestro", asy
 
   const inicioSesion = await page.request.post("/api/auth/callback/e2e", {
     form: {
-      callbackUrl: "http://127.0.0.1:3000/siniestros/nuevo",
+      callbackUrl: "/siniestros/nuevo",
       credencial: process.env.AUTENTICACION_E2E_CREDENCIAL!,
       csrfToken: cuerpoCsrf.csrfToken as string,
     },
     headers: { "X-Auth-Return-Redirect": "1" },
   });
   expect(inicioSesion.status()).toBe(200);
-  await expect(inicioSesion.json()).resolves.toMatchObject({
-    url: "http://127.0.0.1:3000/siniestros/nuevo",
-  });
+  const cuerpoInicioSesion = (await inicioSesion.json()) as { url?: unknown };
+  expect(typeof cuerpoInicioSesion.url).toBe("string");
+  const destino = new URL(cuerpoInicioSesion.url as string);
+  expect([
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+  ]).toContain(destino.origin);
+  expect(destino.pathname).toBe("/siniestros/nuevo");
 
   const respuestaSesion = await page.request.get("/api/auth/session");
   expect(respuestaSesion.status()).toBe(200);

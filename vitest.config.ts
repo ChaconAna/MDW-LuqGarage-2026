@@ -6,6 +6,7 @@ export default defineConfig({
       ...configDefaults.exclude,
       "**/*.integration.test.ts",
       "tests/e2e/**",
+      "tests/e2e-auth/**",
     ],
   },
 });
