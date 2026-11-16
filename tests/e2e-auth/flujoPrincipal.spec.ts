@@ -138,7 +138,12 @@ test("completa Siniestro, Presupuesto aprobado y Orden de Trabajo finalizada", a
 
   await page.getByRole("link", { name: "Crear presupuesto", exact: true }).click();
   await page.getByLabel("Número de presupuesto (obligatorio)").fill(manifiesto.playwright.numeroPresupuesto);
-  await page.getByLabel("Catálogo de reparaciones").selectOption(manifiesto.reparacion.id);
+  await page
+    .getByRole("combobox", {
+      name: "Catálogo de reparaciones",
+      exact: true,
+    })
+    .selectOption(manifiesto.reparacion.id);
   await page.getByRole("button", { name: "Agregar reparación", exact: true }).click();
   await page.getByLabel(`Costo de ${manifiesto.reparacion.nombre}`).fill("1000.00");
   await page.getByRole("button", { name: "Guardar borrador", exact: true }).click();
