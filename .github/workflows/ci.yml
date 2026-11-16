@@ -141,3 +141,44 @@ jobs:
 
       - name: Probar persistencia de Marca en PostgreSQL temporal
         run: npx --no-install vitest run --config vitest.persistencia.config.ts --reporter=verbose --passWithNoTests=false
+
+      - name: Preparar configuración segura de autenticación E2E
+        shell: bash
+        run: |
+          set -euo pipefail
+          credencial_e2e="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
+          usuario_e2e_id="$(node -e "process.stdout.write(require('node:crypto').randomUUID())")"
+          echo "::add-mask::$credencial_e2e"
+          {
+            echo "AUTH_URL=http://127.0.0.1:3000"
+            echo "AUTENTICACION_E2E=1"
+            echo "AUTENTICACION_E2E_CREDENCIAL=$credencial_e2e"
+            echo "AUTENTICACION_E2E_USUARIO_ID=$usuario_e2e_id"
+          } >> "$GITHUB_ENV"
+
+      - name: Instalar Chromium para Playwright
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Generar build para el E2E de autenticación
+        run: npm run build
+
+      - name: E2E de autenticación con Auth.js
+        shell: bash
+        run: |
+          set -uo pipefail
+          npm run test:e2e:auth 2>&1 \
+            | sed "s/${AUTENTICACION_E2E_CREDENCIAL}/***MASKED***/g" \
+            | tee "$RUNNER_TEMP/playwright-auth.log"
+          estado_e2e="${PIPESTATUS[0]}"
+          exit "$estado_e2e"
+
+      - name: Conservar diagnóstico del E2E de autenticación
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostico-e2e-auth-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            ${{ runner.temp }}/playwright-auth.log
+            test-results/
