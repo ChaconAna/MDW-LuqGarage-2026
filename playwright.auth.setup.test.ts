@@ -6,8 +6,11 @@ import { crearCredencialStorageE2e } from "./lib/services/storageHttpE2e";
 const dependencias = vi.hoisted(() => ({
   desconectar: vi.fn(),
   detenerStorage: vi.fn(),
+  eliminarFixture: vi.fn(),
   eliminarUsuario: vi.fn(),
   iniciarStorage: vi.fn(),
+  limpiarRecorrido: vi.fn(),
+  prepararFixture: vi.fn(),
   prepararUsuario: vi.fn(),
 }));
 
@@ -31,6 +34,15 @@ vi.mock("./lib/db/client", () => ({
   prisma: { $disconnect: dependencias.desconectar },
 }));
 
+vi.mock("./lib/db/flujoPrincipalE2e", () => ({
+  eliminarFlujoPrincipalE2e: dependencias.eliminarFixture,
+  prepararFlujoPrincipalE2e: dependencias.prepararFixture,
+}));
+
+vi.mock("./lib/db/limpiezaFlujoE2e", () => ({
+  limpiarRegistrosFlujoE2e: dependencias.limpiarRecorrido,
+}));
+
 const credencial = "credencial-e2e-ficticia-de-32-caracteres";
 const usuarioId = "10000000-0000-4000-8000-000000000001";
 const urlBase =
@@ -42,6 +54,7 @@ const variablesE2e = [
   "AUTENTICACION_E2E_USUARIO_ID",
   "DATABASE_URL",
   "DIRECT_URL",
+  "FLUJO_PRINCIPAL_E2E_MANIFIESTO",
   "GITHUB_ACTIONS",
   "NODE_ENV",
   "PRUEBAS_PERSISTENCIA",
@@ -87,6 +100,7 @@ beforeEach(() => {
     url: "http://127.0.0.1:54321",
   });
   dependencias.prepararUsuario.mockResolvedValue(true);
+  dependencias.prepararFixture.mockResolvedValue({ ejecucionId: usuarioId });
 });
 
 afterEach(() => {
@@ -122,6 +136,8 @@ describe("integración del Storage con Playwright", () => {
 
     await teardown?.();
 
+    expect(dependencias.limpiarRecorrido).toHaveBeenCalledOnce();
+    expect(dependencias.eliminarFixture).toHaveBeenCalledOnce();
     expect(dependencias.eliminarUsuario).toHaveBeenCalledExactlyOnceWith(
       usuarioId,
       true,
@@ -140,13 +156,16 @@ describe("integración del Storage con Playwright", () => {
       "Fallo de preparación simulado",
     );
 
-    expect(dependencias.eliminarUsuario).not.toHaveBeenCalled();
+    expect(dependencias.eliminarUsuario).toHaveBeenCalledExactlyOnceWith(
+      usuarioId,
+      false,
+    );
     expect(dependencias.desconectar).toHaveBeenCalledOnce();
     expect(dependencias.detenerStorage).toHaveBeenCalledOnce();
   });
 
   it("intenta todas las limpiezas aunque una de ellas falle", async () => {
-    dependencias.eliminarUsuario.mockRejectedValue(
+    dependencias.limpiarRecorrido.mockRejectedValue(
       new Error("Fallo de limpieza simulado."),
     );
     const globalSetup = await cargarGlobalSetup();
@@ -154,6 +173,8 @@ describe("integración del Storage con Playwright", () => {
 
     await expect(teardown?.()).rejects.toThrow("Fallo de limpieza simulado");
 
+    expect(dependencias.eliminarFixture).toHaveBeenCalledOnce();
+    expect(dependencias.eliminarUsuario).toHaveBeenCalledOnce();
     expect(dependencias.desconectar).toHaveBeenCalledOnce();
     expect(dependencias.detenerStorage).toHaveBeenCalledOnce();
   });
