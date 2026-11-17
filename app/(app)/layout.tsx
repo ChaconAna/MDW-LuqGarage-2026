@@ -42,6 +42,8 @@ export default async function AppLayout({ children }: AppLayoutProps) {
     rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER";
   const puedeVerClientes =
     rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER";
+  const puedeVerVehiculos =
+    rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER";
 
   return (
     <>
@@ -66,6 +68,11 @@ export default async function AppLayout({ children }: AppLayoutProps) {
                 {puedeVerClientes ? (
                   <Link href="/clientes" className={clasesEnlaceTexto}>
                     Clientes
+                  </Link>
+                ) : null}
+                {puedeVerVehiculos ? (
+                  <Link href="/vehiculos" className={clasesEnlaceTexto}>
+                    Vehículos
                   </Link>
                 ) : null}
                 {rol === "ENCARGADO_DEL_TALLER" || rol === "MECANICO" ? (

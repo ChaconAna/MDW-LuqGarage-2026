@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import BajaCliente from "@/components/clientes/BajaCliente";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerClientePorId } from "@/lib/db/cliente";
@@ -65,6 +66,13 @@ export default async function ClienteDetallePage({
             </p>
           </header>
 
+          <Link
+            href={`/clientes/${cliente.id}/editar`}
+            className={clasesEnlaceTexto}
+          >
+            Editar
+          </Link>
+
           <section
             aria-labelledby="datos-cliente"
             className="rounded-lg border border-current/20 p-5"
@@ -114,6 +122,7 @@ export default async function ClienteDetallePage({
               </div>
             </dl>
           </section>
+          <BajaCliente clienteId={cliente.id} activo={cliente.activo} />
         </div>
       </ContenedorPagina>
     </main>

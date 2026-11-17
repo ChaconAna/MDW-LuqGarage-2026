@@ -164,7 +164,11 @@ test("completa Siniestro, Presupuesto aprobado y Orden de Trabajo finalizada", a
     exact: true,
   });
   await confirmarAprobacion.click();
-  await expect(confirmarAprobacion).toHaveCount(0);
+  await expect(
+    page.getByRole("status").filter({
+      hasText: "La respuesta externa de aprobación quedó registrada.",
+    }),
+  ).toBeVisible({ timeout: 15000 });  
   await page.reload();
   await expect(page.getByText("Estado: APROBADO", { exact: true })).toBeVisible();
 

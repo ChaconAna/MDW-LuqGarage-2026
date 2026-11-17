@@ -27,6 +27,10 @@ type CampoTextoCliente = Exclude<keyof DatosCreacionCliente, "localidadId">;
 
 type FormularioClienteProps = {
   localidadesIniciales: PaginaLocalidadesFormulario;
+  datosIniciales?: Omit<DatosCreacionCliente, "localidadId">;
+  localidadInicial?: LocalidadSeleccionada;
+  guardarAction?: typeof crearClienteAction;
+  hrefCancelar?: string;
 };
 
 const estadoInicial: EstadoFormularioCliente = { errores: {} };
@@ -54,11 +58,17 @@ const textosIniciales = {
 
 export default function FormularioCliente({
   localidadesIniciales,
+  datosIniciales,
+  localidadInicial,
+  guardarAction = crearClienteAction,
+  hrefCancelar = "/clientes",
 }: FormularioClienteProps) {
-  const [textos, setTextos] = useState(textosIniciales);
-  const [localidad, setLocalidad] = useState<LocalidadSeleccionada>();
+  const [textos, setTextos] = useState(datosIniciales ?? textosIniciales);
+  const [localidad, setLocalidad] = useState<LocalidadSeleccionada | undefined>(
+    localidadInicial,
+  );
   const [estado, enviar, pendiente] = useActionState(
-    crearClienteAction,
+    guardarAction,
     estadoInicial,
   );
   const bloqueoEnvio = useRef(false);
@@ -163,10 +173,12 @@ export default function FormularioCliente({
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={pendiente}>
-          {pendiente ? "Guardando cliente…" : "Guardar cliente"}
+          {pendiente
+            ? "Guardando cliente…"
+            : datosIniciales ? "Guardar cambios" : "Guardar cliente"}
         </Button>
         <Button asChild type="button" variant="outline">
-          <Link href="/clientes">Cancelar</Link>
+          <Link href={hrefCancelar}>Cancelar</Link>
         </Button>
       </div>
     </form>

@@ -48,6 +48,10 @@ vi.mock("@/components/layout/ContenedorPagina", () => ({
 vi.mock("@/components/clientes/TablaClientes", async () =>
   import("../../../components/clientes/TablaClientes"),
 );
+vi.mock("@/components/clientes/BajaCliente", async () =>
+  import("../../../components/clientes/BajaCliente"),
+);
+vi.mock("@/app/(app)/clientes/[id]/actions", () => ({ darDeBajaClienteAction: vi.fn() }));
 vi.mock("@/components/ui/button", () => ({
   Button: (props: React.ComponentProps<"button"> & {
     asChild?: boolean;
@@ -257,6 +261,10 @@ describe("detalle de cliente", () => {
       expect(pagina).toContain("Activo");
       expect(pagina).toContain('href="/clientes"');
       expect(pagina).toContain("Volver a clientes");
+      expect(pagina).toContain(`href="/clientes/${clienteId}/editar"`);
+      expect(pagina).toContain(">Editar</a>");
+      expect(pagina).toContain("Dar de baja");
+      expect(pagina).not.toContain("Confirmar baja");
       expect(dependencias.obtener).toHaveBeenCalledExactlyOnceWith(clienteId);
       expect(dependencias.autorizar).toHaveBeenCalledWith([
         "RECEPCIONISTA",
@@ -277,6 +285,9 @@ describe("detalle de cliente", () => {
 
     expect(pagina).toContain("Nombre 2");
     expect(pagina).toContain("Inactivo");
+    expect(pagina).not.toContain("Dar de baja");
+    expect(pagina).toContain("Sus datos e historial se conservan");
+    expect(pagina).toContain(`href="/clientes/${clienteId}/editar"`);
   });
 
   it.each(["MECANICO", "ADMINISTRADOR"])(

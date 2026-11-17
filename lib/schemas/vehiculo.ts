@@ -6,6 +6,10 @@ export const parametrosVehiculoSchema = z.object({
 
 export type ParametrosVehiculo = z.infer<typeof parametrosVehiculoSchema>;
 
+export const bajaVehiculoSchema = parametrosVehiculoSchema.extend({
+  confirmado: z.literal(true),
+}).strict();
+
 export const listadoVehiculosQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(10),
