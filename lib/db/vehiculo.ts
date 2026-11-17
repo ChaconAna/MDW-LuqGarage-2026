@@ -164,9 +164,12 @@ export async function actualizarVehiculoPorId(
   }
 }
 
-export async function darDeBajaVehiculoPorId(id: string) {
+export async function darDeBajaVehiculoPorId(
+  id: string,
+  { soloSiActivo = false }: { soloSiActivo?: boolean } = {},
+) {
   const resultado = await prisma.vehiculo.updateMany({
-    where: { id },
+    where: { id, ...(soloSiActivo ? { activo: true } : {}) },
     data: { activo: false },
   });
 

@@ -7,6 +7,8 @@ const deps = vi.hoisted(() => ({
   redirect: vi.fn(), notFound: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/vehiculos/BajaVehiculo", async () => import("../../../components/vehiculos/BajaVehiculo"));
+vi.mock("@/app/(app)/vehiculos/[id]/actions", () => ({ darDeBajaVehiculoAction: vi.fn() }));
 vi.mock("@/auth", () => ({ auth: deps.auth, signOut: vi.fn() }));
 vi.mock("@/lib/authPagina", () => ({ autorizarPagina: deps.autorizar }));
 vi.mock("@/lib/db/vehiculo", () => ({ listarVehiculos: deps.listar, obtenerVehiculoPorId: deps.obtener }));
@@ -139,7 +141,7 @@ describe("detalle de Vehículo", () => {
     expect(pagina).toContain('href="/vehiculos"');
     expect(pagina).toContain("Editar");
     expect(pagina).toContain(`href="/vehiculos/${id}/editar"`);
-    expect(pagina).not.toContain("Dar de baja");
+    expect(pagina).toContain("Dar de baja");
     expect(pagina).not.toContain("Cliente");
     expect(deps.obtener).toHaveBeenCalledExactlyOnceWith(id);
     expect(deps.autorizar).toHaveBeenCalledWith(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
@@ -148,7 +150,11 @@ describe("detalle de Vehículo", () => {
 
   it("permite consultar vehículos inactivos", async () => {
     deps.obtener.mockResolvedValue(vehiculo(1, false));
-    expect(html(await VehiculoDetallePage({ params: Promise.resolve({ id }) }))).toContain("Inactivo");
+    const pagina = html(await VehiculoDetallePage({ params: Promise.resolve({ id }) }));
+    expect(pagina).toContain("Inactivo");
+    expect(pagina).toContain("Sus datos e historial se conservan");
+    expect(pagina).not.toContain("Dar de baja");
+    expect(pagina).not.toContain("Reactivar");
   });
 
   it.each(["MECANICO", "ADMINISTRADOR"])("deniega a %s antes de consultar", async () => {

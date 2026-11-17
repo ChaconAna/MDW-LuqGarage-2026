@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
+import BajaVehiculo from "@/components/vehiculos/BajaVehiculo";
 import { autorizarPagina } from "@/lib/authPagina";
 import { obtenerVehiculoPorId } from "@/lib/db/vehiculo";
 import { parametrosVehiculoSchema, type ParametrosVehiculo } from "@/lib/schemas/vehiculo";
@@ -74,6 +75,7 @@ export default async function VehiculoDetallePage({ params }: VehiculoDetallePag
               </div>
             </dl>
           </section>
+          <BajaVehiculo vehiculoId={vehiculo.id} activo={vehiculo.activo} />
         </div>
       </ContenedorPagina>
     </main>
