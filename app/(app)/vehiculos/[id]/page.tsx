@@ -44,6 +44,7 @@ export default async function VehiculoDetallePage({ params }: VehiculoDetallePag
             <h1 className="break-words text-2xl font-bold">Vehículo {vehiculo.patente}</h1>
             <p className="mt-1 text-sm opacity-75">Estado: {vehiculo.activo ? "Activo" : "Inactivo"}</p>
           </header>
+          <Link href={`/vehiculos/${vehiculo.id}/editar`} className={clasesEnlaceTexto}>Editar</Link>
           <section aria-labelledby="datos-vehiculo" className="rounded-lg border border-current/20 p-5">
             <h2 id="datos-vehiculo" className="text-lg font-semibold">Datos del vehículo</h2>
             <dl className="mt-4 grid gap-4 sm:grid-cols-2">

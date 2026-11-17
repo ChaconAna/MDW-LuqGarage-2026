@@ -30,7 +30,12 @@ describe.skipIf(!navegador)("formulario de alta de Vehículo en navegador", () =
           import React from "react";
           import {createRoot} from "react-dom/client";
           import Formulario from "@/components/vehiculos/FormularioVehiculo";
-          createRoot(document.getElementById("root")).render(<Formulario
+          const root = createRoot(document.getElementById("root"));
+          window.montarEdicion = (vehiculo) => root.render(<Formulario key="edicion"
+            vehiculoInicial={vehiculo} guardarAction={(...args) => window.crearSimulado(...args)} hrefCancelar={'/vehiculos/' + vehiculo.id}
+            marcasIniciales={${JSON.stringify({ opciones: marcas.slice(0, 10), total: 11, pagina: 1 })}}
+            tiposIniciales={${JSON.stringify({ opciones: tipos, total: 1, pagina: 1 })}} />);
+          root.render(<Formulario
             marcasIniciales={${JSON.stringify({ opciones: marcas.slice(0, 10), total: 11, pagina: 1 })}}
             tiposIniciales={${JSON.stringify({ opciones: tipos, total: 1, pagina: 1 })}} />);
         `,
@@ -86,6 +91,43 @@ describe.skipIf(!navegador)("formulario de alta de Vehículo en navegador", () =
     await page.getByLabel("Modelo (obligatorio)", { exact: true }).selectOption(uuid(101));
     await page.getByLabel("Tipo de vehículo (obligatorio)").selectOption(uuid(201));
   }
+
+  async function montarEdicion() {
+    await page.evaluate((vehiculo) => {
+      const montar = Reflect.get(window, "montarEdicion") as (datos: unknown) => void;
+      montar(vehiculo);
+    }, { id: uuid(500), patente: "ANT123", activo: false,
+      modelo: { id: uuid(999), nombre: "Modelo actual", marca: marcas[10] },
+      tipoVehiculo: { id: uuid(888), nombre: "Tipo actual" } });
+    await esperar(page.getByRole("button", { name: "Guardar cambios" })).toBeVisible();
+    await esperar(page.locator("#vehiculo-modelos")).toBeEnabled();
+  }
+
+  it("precarga la edición fuera de las páginas de catálogos y cancela al detalle sin guardar", async () => {
+    await montarEdicion();
+    await esperar(page.locator("#vehiculo-patente")).toHaveValue("ANT123");
+    await esperar(page.locator("#vehiculo-marcas")).toHaveValue(uuid(11));
+    await esperar(page.locator("#vehiculo-modelos")).toHaveValue(uuid(999));
+    await esperar(page.locator("#vehiculo-tipos")).toHaveValue(uuid(888));
+    await page.getByRole("link", { name: "Cancelar" }).click();
+    expect(navegar).toHaveBeenCalledExactlyOnceWith(`/vehiculos/${uuid(500)}`);
+    expect(crear).not.toHaveBeenCalled();
+  });
+
+  it("edita datos precargados, limpia Modelo al cambiar Marca y conserva datos ante errores", async () => {
+    await montarEdicion();
+    await page.locator("#vehiculo-patente").fill("NUE123");
+    await elegirMarca(2);
+    await esperar(page.locator("#vehiculo-modelos")).toHaveValue("");
+    await page.locator("#vehiculo-modelos").selectOption(uuid(102));
+    await page.locator("#vehiculo-tipos").selectOption(uuid(201));
+    crear.mockResolvedValue({ errores: { patente: "Patente duplicada." }, errorGeneral: "Revisá la patente." });
+    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    await esperar(page.getByRole("alert")).toHaveText("Revisá la patente.");
+    expect(crear.mock.calls[0]?.[1]).toEqual({ patente: "NUE123", marcaId: uuid(2), modeloId: uuid(102), tipoVehiculoId: uuid(201) });
+    await esperar(page.locator("#vehiculo-patente")).toHaveValue("NUE123");
+    await esperar(page.locator("#vehiculo-modelos")).toHaveValue(uuid(102));
+  });
 
   it("exige Marca antes del Modelo y permite cancelar sin guardar", async () => {
     await esperar(page.getByLabel("Modelo (obligatorio)", { exact: true })).toBeDisabled();

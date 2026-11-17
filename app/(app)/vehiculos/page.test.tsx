@@ -137,7 +137,8 @@ describe("detalle de Vehículo", () => {
       expect(pagina).toContain(texto);
     }
     expect(pagina).toContain('href="/vehiculos"');
-    expect(pagina).not.toContain("Editar");
+    expect(pagina).toContain("Editar");
+    expect(pagina).toContain(`href="/vehiculos/${id}/editar"`);
     expect(pagina).not.toContain("Dar de baja");
     expect(pagina).not.toContain("Cliente");
     expect(deps.obtener).toHaveBeenCalledExactlyOnceWith(id);
