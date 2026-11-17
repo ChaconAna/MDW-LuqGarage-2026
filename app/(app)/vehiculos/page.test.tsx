@@ -81,7 +81,7 @@ describe("listado de Vehículos", () => {
     expect(deps.listar).toHaveBeenCalledExactlyOnceWith(1, 10);
     expect(deps.autorizar).toHaveBeenCalledWith(["RECEPCIONISTA", "ENCARGADO_DEL_TALLER"]);
     expect(deps.autorizar.mock.invocationCallOrder[0]).toBeLessThan(deps.listar.mock.invocationCallOrder[0]!);
-    expect(pagina).not.toContain("/vehiculos/nuevo");
+    expect(pagina).toContain('href="/vehiculos/nuevo"');
     expect(pagina).not.toContain("Cliente");
   });
 

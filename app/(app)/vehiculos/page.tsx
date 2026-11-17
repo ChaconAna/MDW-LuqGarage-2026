@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
 import TablaVehiculos from "@/components/vehiculos/TablaVehiculos";
 import { autorizarPagina } from "@/lib/authPagina";
 import { listarVehiculos } from "@/lib/db/vehiculo";
 import { listadoVehiculosQuerySchema } from "@/lib/schemas/vehiculo";
+import { clasesEnlaceTexto } from "@/lib/utils";
 
 const LIMITE_VEHICULOS = 10;
 
@@ -50,6 +52,7 @@ export default async function VehiculosPage({ searchParams }: VehiculosPageProps
     <main>
       <ContenedorPagina ancho="wide">
         <h1 className="text-2xl font-bold">Vehículos</h1>
+        <Link href="/vehiculos/nuevo" className={`${clasesEnlaceTexto} mt-4 inline-block`}>Registrar vehículo</Link>
         {vehiculos.length === 0 ? (
           <p className="mt-6 rounded-lg border border-current/20 p-6">
             No hay vehículos registrados.
