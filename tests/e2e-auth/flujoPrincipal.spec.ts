@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request, type Response } from "@playwright/test";
 import { z } from "zod";
 
 import {
@@ -163,12 +163,87 @@ test("completa Siniestro, Presupuesto aprobado y Orden de Trabajo finalizada", a
     name: "Confirmar APROBADO",
     exact: true,
   });
-  await confirmarAprobacion.click();
-  await expect(
-    page.getByRole("status").filter({
-      hasText: "La respuesta externa de aprobación quedó registrada.",
-    }),
-  ).toBeVisible({ timeout: 15000 });  
+  // Diagnóstico temporal exclusivo de este paso; no inspecciona headers ni cuerpos.
+  const urlDetalle = page.url();
+  const inicioObservacion = performance.now();
+  const solicitudes = new Map<Request, { numero: number; inicio: number }>();
+  let alertaRegistrada = false;
+  let consultaAlerta: Promise<void> | undefined;
+  const registrarSolicitud = (solicitud: Request) => {
+    if (solicitud.method() !== "POST" || solicitud.url() !== urlDetalle) return;
+    const numero = solicitudes.size + 1;
+    solicitudes.set(solicitud, { numero, inicio: performance.now() });
+    console.log("[E2E-APROBACION] post_inicio", { numero });
+  };
+  const registrarRespuesta = (respuesta: Response) => {
+    const solicitud = solicitudes.get(respuesta.request());
+    if (!solicitud) return;
+    console.log("[E2E-APROBACION] post_respuesta", {
+      numero: solicitud.numero,
+      estadoHttp: respuesta.status(),
+      duracionMs: Math.round(performance.now() - solicitud.inicio),
+    });
+  };
+  const registrarFin = (solicitud: Request) => {
+    const datos = solicitudes.get(solicitud);
+    if (!datos) return;
+    console.log("[E2E-APROBACION] post_fin", {
+      numero: datos.numero,
+      duracionMs: Math.round(performance.now() - datos.inicio),
+    });
+  };
+  const registrarFallo = (solicitud: Request) => {
+    const datos = solicitudes.get(solicitud);
+    if (!datos) return;
+    console.log("[E2E-APROBACION] post_fallo", {
+      numero: datos.numero,
+      duracionMs: Math.round(performance.now() - datos.inicio),
+    });
+  };
+  const observarAlerta = async () => {
+    if (alertaRegistrada) return;
+    try {
+      if (await page.locator('[role="alert"]:visible').first().isVisible()) {
+        alertaRegistrada = true;
+        console.log("[E2E-APROBACION] alerta_visible");
+      }
+    } catch {
+      // La observación no reemplaza el error original si se cierra la página.
+    }
+  };
+  page.on("request", registrarSolicitud);
+  page.on("response", registrarRespuesta);
+  page.on("requestfinished", registrarFin);
+  page.on("requestfailed", registrarFallo);
+  const observacionAlertas = setInterval(() => {
+    if (!consultaAlerta) {
+      consultaAlerta = observarAlerta().finally(() => { consultaAlerta = undefined; });
+    }
+  }, 250);
+  try {
+    console.log("[E2E-APROBACION] confirmacion_inicio");
+    await confirmarAprobacion.click();
+    await expect(
+      page.getByRole("status").filter({
+        hasText: "La respuesta externa de aprobación quedó registrada.",
+      }),
+    ).toBeVisible({ timeout: 15000 });
+    console.log("[E2E-APROBACION] exito_visible");
+  } finally {
+    clearInterval(observacionAlertas);
+    page.off("request", registrarSolicitud);
+    page.off("response", registrarRespuesta);
+    page.off("requestfinished", registrarFin);
+    page.off("requestfailed", registrarFallo);
+    // Terminar la consulta en curso antes de la comprobación final, sin superponerlas.
+    await consultaAlerta;
+    await observarAlerta();
+    console.log("[E2E-APROBACION] observacion_fin", {
+      solicitudes: solicitudes.size,
+      alertaVisibleDetectada: alertaRegistrada,
+      duracionMs: Math.round(performance.now() - inicioObservacion),
+    });
+  }
   await page.reload();
   await expect(page.getByText("Estado: APROBADO", { exact: true })).toBeVisible();
 
