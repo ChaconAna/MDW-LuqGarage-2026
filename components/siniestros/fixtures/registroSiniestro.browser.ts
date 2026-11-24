@@ -178,9 +178,22 @@ const pruebas = [
     exigir(boton().disabled, "No enviar sin los UUID");
     document.querySelector("form").dispatchEvent(new Event("submit", {bubbles: true, cancelable: true})); await pausa();
     exigir(llamadas.length === 0, "Rechazar submit programático sin selección");
-    for (const entidad of ["clienteId", "vehiculoId", "aseguradoraId"]) {
-      document.querySelector('input[name="' + entidad + '"]').click();
-      await esperar(() => new URLSearchParams(location.search).has(entidad)); await pausa();
+    for (const [entidad, textoEsperado] of [
+      ["clienteId", "Cliente seleccionado: " + clientes[0].nombre + " " + clientes[0].apellido],
+      ["vehiculoId", "Vehículo seleccionado: " + vehiculos[0].patente],
+      ["aseguradoraId", "Aseguradora seleccionada: " + aseguradoras[0].nombre],
+    ]) {
+      const selector = () => document.querySelector('[data-entidad="' + entidad + '"]');
+      const radio = () => selector()?.querySelector('input[name="' + entidad + '"]');
+      const seleccionLista = () => selector()?.querySelector('[aria-busy]')?.getAttribute("aria-busy") === "false"
+        && radio()?.matches(":disabled") === false;
+      await esperar(seleccionLista);
+      const idEsperado = radio().value;
+      radio().click();
+      // La URL cambia antes del render: esperar también las props reflejadas en el DOM.
+      await esperar(() => new URLSearchParams(location.search).get(entidad) === idEsperado
+        && radio()?.checked && seleccionLista()
+        && selector()?.querySelector('[role="status"]')?.textContent.includes(textoEsperado));
     }
     await esperar(() => !boton().disabled);
   },
