@@ -14,7 +14,7 @@ vi.mock("./client", () => ({ prisma: {
     : typeof operacion === "function" ? operacion(d) : Promise.reject(new Error("Transacción simulada inválida")),
 } }));
 
-import { crearPresupuesto, actualizarPresupuestoPorId, listarPresupuestosPorSiniestro } from "./presupuesto";
+import { crearPresupuesto, actualizarPresupuestoPorId, listarPresupuestos, listarPresupuestosPorSiniestro } from "./presupuesto";
 import { listarReparaciones } from "./reparacion";
 import { listarRepuestos } from "./repuesto";
 
@@ -51,6 +51,66 @@ describe("lecturas paginadas para presupuestos", () => {
     expect(await listarPresupuestosPorSiniestro(siniestroId, 2, 10)).toMatchObject({ total: 11 });
     expect(d.presupuesto.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { siniestroId }, skip: 10, take: 10, orderBy: { id: "asc" } }));
     expect(d.presupuesto.count).toHaveBeenCalledWith({ where: { siniestroId } });
+  });
+});
+
+describe("listarPresupuestos con Prisma simulado", () => {
+  const estados = ["BORRADOR", "ENVIADO", "APROBADO", "RECHAZADO"] as const;
+  const presupuestos = estados.map((estado, indice) => ({
+    id: `10000000-0000-4000-8000-00000000000${indice + 1}`,
+    numeroPresupuesto: `P-${indice + 1}`,
+    estado,
+    siniestro: indice < 2
+      ? { id: siniestroId, numeroSiniestro: "SIN-1" }
+      : { id: "20000000-0000-4000-8000-000000000003", numeroSiniestro: "SIN-2" },
+  })) satisfies Awaited<ReturnType<typeof listarPresupuestos>>["presupuestos"];
+
+  it("lista distintos siniestros y los cuatro estados con identificadores y números para navegar", async () => {
+    d.presupuesto.findMany.mockResolvedValue(presupuestos);
+    d.presupuesto.count.mockResolvedValue(4);
+
+    expect(await listarPresupuestos(1, 10)).toEqual({ presupuestos, total: 4 });
+    expect(d.presupuesto.findMany).toHaveBeenCalledExactlyOnceWith({
+      skip: 0,
+      take: 10,
+      orderBy: { id: "asc" },
+      select: {
+        id: true,
+        numeroPresupuesto: true,
+        estado: true,
+        siniestro: { select: { id: true, numeroSiniestro: true } },
+      },
+    });
+    expect(d.presupuesto.count).toHaveBeenCalledExactlyOnceWith();
+    expect(d.presupuesto.create).not.toHaveBeenCalled();
+    expect(d.presupuesto.update).not.toHaveBeenCalled();
+    expect(d.siniestro.updateMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { page: 1, limit: 2, skip: 0, filas: presupuestos.slice(0, 2) },
+    { page: 2, limit: 2, skip: 2, filas: presupuestos.slice(2, 4) },
+    { page: 2, limit: 3, skip: 3, filas: presupuestos.slice(3, 4) },
+    { page: 5, limit: 1, skip: 4, filas: [] },
+  ])("pagina con page=$page y limit=$limit conservando el total global", async ({ page, limit, skip, filas }) => {
+    d.presupuesto.findMany.mockResolvedValue(filas);
+    d.presupuesto.count.mockResolvedValue(4);
+
+    expect(await listarPresupuestos(page, limit)).toEqual({ presupuestos: filas, total: 4 });
+    expect(d.presupuesto.findMany).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      skip,
+      take: limit,
+      orderBy: { id: "asc" },
+    }));
+    expect(d.presupuesto.count).toHaveBeenCalledExactlyOnceWith();
+  });
+
+  it("devuelve una lista vacía y total cero cuando no hay presupuestos", async () => {
+    d.presupuesto.findMany.mockResolvedValue([]);
+    d.presupuesto.count.mockResolvedValue(0);
+
+    expect(await listarPresupuestos(1, 10)).toEqual({ presupuestos: [], total: 0 });
+    expect(d.presupuesto.count).toHaveBeenCalledExactlyOnceWith();
   });
 });
 
