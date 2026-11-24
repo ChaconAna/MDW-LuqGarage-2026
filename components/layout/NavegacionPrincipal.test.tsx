@@ -20,6 +20,7 @@ import NavegacionPrincipal, { type EnlaceNavegacion } from "./NavegacionPrincipa
 
 const enlaces: EnlaceNavegacion[] = [
   { href: "/siniestros", etiqueta: "Siniestros" },
+  { href: "/presupuestos", etiqueta: "Presupuestos" },
   { href: "/clientes", etiqueta: "Clientes" },
   { href: "/vehiculos", etiqueta: "Vehículos" },
   { href: "/ordenes-trabajo", etiqueta: "Órdenes de trabajo" },
@@ -27,8 +28,8 @@ const enlaces: EnlaceNavegacion[] = [
 ];
 const roles = ["RECEPCIONISTA", "ENCARGADO_DEL_TALLER", "MECANICO", "ADMINISTRADOR"] as const;
 const destinosPorRol = {
-  RECEPCIONISTA: ["/siniestros", "/clientes", "/vehiculos", "/sistema"],
-  ENCARGADO_DEL_TALLER: ["/siniestros", "/clientes", "/vehiculos", "/ordenes-trabajo", "/sistema"],
+  RECEPCIONISTA: ["/siniestros", "/presupuestos", "/clientes", "/vehiculos", "/sistema"],
+  ENCARGADO_DEL_TALLER: ["/siniestros", "/presupuestos", "/clientes", "/vehiculos", "/ordenes-trabajo", "/sistema"],
   MECANICO: ["/ordenes-trabajo", "/sistema"],
   ADMINISTRADOR: ["/sistema"],
 } as const;
@@ -65,6 +66,8 @@ describe("sección activa de la navegación", () => {
     ["/siniestros/123", "/siniestros"],
     ["/siniestros/123/presupuestos/nuevo", "/siniestros"],
     ["/siniestros/123/ordenes-trabajo/nueva", "/siniestros"],
+    ["/presupuestos/123", "/presupuestos"],
+    ["/presupuestos/123/editar", "/presupuestos"],
     ["/clientes/nuevo", "/clientes"],
     ["/clientes/123/editar", "/clientes"],
     ["/vehiculos/nuevo", "/vehiculos"],
@@ -76,9 +79,10 @@ describe("sección activa de la navegación", () => {
     expect(html.match(/aria-current=/g)).toHaveLength(1);
     const actual = [...html.matchAll(/<a\b[^>]*>/g)].find(([tag]) => tag.includes(`href="${href}"`))?.[0];
     expect(actual).toContain('aria-current="location"');
+    expect(actual).toContain("border-b-link");
   });
 
-  it.each(["/", "/siniestros-extra", "/clientes2", "/vehiculos-extra/123", "/ordenes-trabajo-extra", "/sistema-extra", "/presupuestos/123", "/presupuestos/123/editar"])(
+  it.each(["/", "/siniestros-extra", "/clientes2", "/vehiculos-extra/123", "/ordenes-trabajo-extra", "/sistema-extra", "/presupuestos-extra", "/presupuestos2/123"])(
     "no marca coincidencias incorrectas para %s", (ruta) => {
       deps.pathname.mockReturnValue(ruta);
       expect(renderToStaticMarkup(<NavegacionPrincipal enlaces={enlaces} />)).not.toContain("aria-current");
@@ -100,6 +104,7 @@ describe("selección de enlaces en el servidor", () => {
     prepararRol(rol);
     const html = await encabezado();
     expect([...html.matchAll(/<a\b[^>]*href="([^"]+)"/g)].map((match) => match[1])).toEqual(destinosPorRol[rol]);
+    expect(html.includes(">Presupuestos</a>")).toBe(rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER");
     expect(html).toContain('aria-label="Navegación principal"');
     expect(html).toContain('alt="LuqGarage"');
     expect(html).toContain('type="submit"');
@@ -114,10 +119,18 @@ describe("selección de enlaces en el servidor", () => {
     expect(deps.auth).not.toHaveBeenCalled();
   });
 
+  it.each(["MECANICO", "ADMINISTRADOR"] as const)("no entrega el enlace de presupuestos a %s aunque visite esa sección", async (rol) => {
+    prepararRol(rol);
+    deps.pathname.mockReturnValue("/presupuestos/123");
+    const html = await encabezado();
+    expect(html).not.toContain('href="/presupuestos"');
+    expect(html).not.toContain("aria-current");
+  });
+
   it("no agrega un enlace por visitar una ruta fuera de los enlaces recibidos", () => {
-    deps.pathname.mockReturnValue("/clientes");
-    const html = renderToStaticMarkup(<NavegacionPrincipal enlaces={[enlaces[4]!]} />);
-    expect(html).not.toContain('href="/clientes"');
+    deps.pathname.mockReturnValue("/presupuestos");
+    const html = renderToStaticMarkup(<NavegacionPrincipal enlaces={[{ href: "/sistema", etiqueta: "Sistema" }]} />);
+    expect(html).not.toContain('href="/presupuestos"');
     expect(html).not.toContain("aria-current");
   });
 });
@@ -155,13 +168,15 @@ describe.skipIf(!navegador)("encabezado adaptable y accesible en navegador", () 
     await page.setViewportSize({ width: ancho, height: 900 });
     for (const rol of roles) {
       prepararRol(rol);
-      deps.pathname.mockReturnValue(destinosPorRol[rol][0]);
+      const rutaActual = rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER" ? "/presupuestos" : destinosPorRol[rol][0];
+      deps.pathname.mockReturnValue(rutaActual);
       await page.setContent(`<!doctype html><html lang="es" class="dark"><head><meta charset="utf-8"><base href="http://luqgarage.test"><style>${css}</style></head><body>${await encabezado()}</body></html>`);
       const logo = page.getByRole("img", { name: "LuqGarage" });
       await esperar.poll(() => logo.evaluate((img) => img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0)).toBe(true);
       const nav = page.getByRole("navigation", { name: "Navegación principal" });
       expect(await nav.locator("a").evaluateAll((items) => items.map((item) => item.getAttribute("href")))).toEqual(destinosPorRol[rol]);
       await esperar(nav.locator('[aria-current="page"]')).toHaveCount(1);
+      await esperar(nav.locator('[aria-current="page"]')).toHaveAttribute("href", rutaActual);
       const salir = page.getByRole("button", { name: "Cerrar sesión" });
       const cajas = await Promise.all([logo.boundingBox(), page.getByText(correo, { exact: true }).boundingBox(), salir.boundingBox()]);
       for (let i = 0; i < cajas.length; i++) {

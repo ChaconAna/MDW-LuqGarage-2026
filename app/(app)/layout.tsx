@@ -40,6 +40,8 @@ export default async function AppLayout({ children }: AppLayoutProps) {
   const etiquetaRol = etiquetasRol[rol];
   const puedeVerSiniestros =
     rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER";
+  const puedeVerPresupuestos =
+    rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER";
   const puedeVerClientes =
     rol === "RECEPCIONISTA" || rol === "ENCARGADO_DEL_TALLER";
   const puedeVerVehiculos =
@@ -47,6 +49,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
 
   const enlaces: EnlaceNavegacion[] = [];
   if (puedeVerSiniestros) enlaces.push({ href: "/siniestros", etiqueta: "Siniestros" });
+  if (puedeVerPresupuestos) enlaces.push({ href: "/presupuestos", etiqueta: "Presupuestos" });
   if (puedeVerClientes) enlaces.push({ href: "/clientes", etiqueta: "Clientes" });
   if (puedeVerVehiculos) enlaces.push({ href: "/vehiculos", etiqueta: "Vehículos" });
   if (rol === "ENCARGADO_DEL_TALLER" || rol === "MECANICO") {

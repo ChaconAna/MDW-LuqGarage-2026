@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export type EnlaceNavegacion = {
-  href: "/siniestros" | "/clientes" | "/vehiculos" | "/ordenes-trabajo" | "/sistema";
+  href: "/siniestros" | "/presupuestos" | "/clientes" | "/vehiculos" | "/ordenes-trabajo" | "/sistema";
   etiqueta: string;
 };
 
