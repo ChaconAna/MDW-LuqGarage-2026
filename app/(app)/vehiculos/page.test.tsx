@@ -7,6 +7,7 @@ const deps = vi.hoisted(() => ({
   redirect: vi.fn(), notFound: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/layout/NavegacionPrincipal", async () => import("../../../components/layout/NavegacionPrincipal"));
 vi.mock("@/components/layout/LogoLuqGarage", async () => import("../../../components/layout/LogoLuqGarage"));
 vi.mock("@/components/vehiculos/BajaVehiculo", async () => import("../../../components/vehiculos/BajaVehiculo"));
 vi.mock("@/app/(app)/vehiculos/[id]/actions", () => ({ darDeBajaVehiculoAction: vi.fn() }));
@@ -15,7 +16,7 @@ vi.mock("@/lib/authPagina", () => ({ autorizarPagina: deps.autorizar }));
 vi.mock("@/lib/db/vehiculo", () => ({ listarVehiculos: deps.listar, obtenerVehiculoPorId: deps.obtener }));
 vi.mock("@/lib/schemas/vehiculo", async () => import("../../../lib/schemas/vehiculo"));
 vi.mock("@/lib/utils", () => ({ clasesEnlaceTexto: "enlace" }));
-vi.mock("next/navigation", () => ({ redirect: deps.redirect, notFound: deps.notFound }));
+vi.mock("next/navigation", () => ({ redirect: deps.redirect, notFound: deps.notFound, usePathname: () => "/vehiculos" }));
 vi.mock("next/link", () => ({
   default: ({ children, prefetch, ...props }: React.ComponentProps<"a"> & { prefetch?: boolean }) => {
     void prefetch;

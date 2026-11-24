@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const d = vi.hoisted(() => ({ auth: vi.fn(), usuario: vi.fn(), listar: vi.fn(), finalizadas: vi.fn(), detalle: vi.fn(), finalizada: vi.fn(), siniestro: vi.fn(), disponibles: vi.fn(), porSiniestro: vi.fn(), redirect: vi.fn(), notFound: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/layout/NavegacionPrincipal", async () => import("../layout/NavegacionPrincipal"));
 vi.mock("@/components/layout/LogoLuqGarage", async () => import("../layout/LogoLuqGarage"));
 vi.mock("@/auth", () => ({ auth: d.auth, signOut: vi.fn() }));
 vi.mock("@/lib/db/usuario", () => ({ obtenerUsuarioParaAutorizacionPorId: d.usuario }));
@@ -16,7 +17,7 @@ vi.mock("@/lib/schemas/siniestro", async () => import("../../lib/schemas/siniest
 vi.mock("@/lib/schemas/presupuesto", async () => import("../../lib/schemas/presupuesto"));
 vi.mock("@/lib/services/ordenTrabajo", async () => import("../../lib/services/ordenTrabajo"));
 vi.mock("@/lib/utils", () => ({ clasesEnlaceTexto: "enlace" }));
-vi.mock("next/navigation", () => ({ redirect: d.redirect, notFound: d.notFound }));
+vi.mock("next/navigation", () => ({ redirect: d.redirect, notFound: d.notFound, usePathname: () => "/ordenes-trabajo" }));
 vi.mock("next/link", () => ({ default: ({ children, ...props }: React.ComponentProps<"a">) => React.createElement("a", props, children) }));
 vi.mock("@/components/layout/ContenedorPagina", () => ({ default: ({ children }: { children: React.ReactNode }) => React.createElement("div", {}, children) }));
 vi.mock("@/components/ui/button", () => ({ Button: ({ children }: { children: React.ReactNode }) => React.createElement("button", {}, children) }));

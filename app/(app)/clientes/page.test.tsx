@@ -12,6 +12,7 @@ const dependencias = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/layout/NavegacionPrincipal", async () => import("../../../components/layout/NavegacionPrincipal"));
 vi.mock("@/components/layout/LogoLuqGarage", async () =>
   import("../../../components/layout/LogoLuqGarage"),
 );
@@ -31,6 +32,7 @@ vi.mock("@/lib/schemas/cliente", async () =>
   import("../../../lib/schemas/cliente"),
 );
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/clientes",
   redirect: dependencias.redirect,
   notFound: dependencias.notFound,
 }));
