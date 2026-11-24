@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  // Cambiar en la clase 1 por el nombre real del sistema.
-  title: "Proyecto MDW 2026",
+  title: "LuqGarage",
   description: "Sistema desarrollado en Metodologías de Desarrollo Web — UAI",
 };
 

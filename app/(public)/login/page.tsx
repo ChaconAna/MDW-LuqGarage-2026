@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { signIn } from "@/auth";
+import LogoLuqGarage from "@/components/layout/LogoLuqGarage";
 import { Button } from "@/components/ui/button";
 import {
   ErrorAutenticacion,
@@ -32,7 +33,9 @@ export default async function LoginPage() {
 
   return (
     <main className="mx-auto max-w-2xl p-8">
-      <h1 className="text-2xl font-bold">LuqGarage</h1>
+      <h1>
+        <LogoLuqGarage tamano="login" />
+      </h1>
       <p className="mt-2 text-sm opacity-70">
         Sistema de gestión para un taller de chapa y pintura.
       </p>

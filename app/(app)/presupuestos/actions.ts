@@ -15,6 +15,7 @@ import {
 import { listarReparaciones } from "@/lib/db/reparacion";
 import { listarRepuestos } from "@/lib/db/repuesto";
 import { catalogoPresupuestoQuerySchema } from "@/lib/schemas/catalogoPresupuesto";
+import { entornoAutenticacionE2eSchema } from "../../../lib/schemas/entornoE2e";
 import { crearPresupuestoSchema, actualizarPresupuestoSchema, parametrosPresupuestoSchema } from "@/lib/schemas/presupuesto";
 import { erroresValidacionPresupuesto, type EstadoFormularioPresupuesto } from "@/lib/services/presupuestoFormulario";
 
@@ -156,20 +157,34 @@ export async function registrarEnvioPresupuestoAction(
 export async function registrarAprobacionPresupuestoAction(
   id: unknown,
 ): Promise<EstadoTransicionPresupuesto> {
+  // Diagnóstico temporal: retirar junto con la observación del paso E2E de aprobación.
+  const diagnosticoE2e = entornoAutenticacionE2eSchema.safeParse(process.env).success;
+  const inicio = performance.now();
+  if (diagnosticoE2e) console.error("[E2E-APROBACION] action_inicio");
+  function devolverResultado(resultado: EstadoTransicionPresupuesto) {
+    if (diagnosticoE2e) {
+      console.error("[E2E-APROBACION] action_retorno", {
+        resultado: resultado.mensajeExito ? "exito" : "error",
+        duracionMs: Math.round(performance.now() - inicio),
+      });
+    }
+    return resultado;
+  }
+
   try {
     const parametro = await autorizarTransicionPresupuesto(id);
-    if (!parametro.valido) return { errorGeneral: "El presupuesto indicado no es válido." };
+    if (!parametro.valido) return devolverResultado({ errorGeneral: "El presupuesto indicado no es válido." });
     const resultado = await aprobarPresupuestoPorId(parametro.id);
     if (!resultado.aprobado) {
       switch (resultado.motivo) {
-        case "PRESUPUESTO_NO_ENCONTRADO": return { errorGeneral: "El presupuesto ya no existe." };
-        case "PRESUPUESTO_NO_APROBABLE": return { errorGeneral: "El presupuesto ya no está en ENVIADO. Actualizá el detalle para consultar su estado." };
+        case "PRESUPUESTO_NO_ENCONTRADO": return devolverResultado({ errorGeneral: "El presupuesto ya no existe." });
+        case "PRESUPUESTO_NO_APROBABLE": return devolverResultado({ errorGeneral: "El presupuesto ya no está en ENVIADO. Actualizá el detalle para consultar su estado." });
       }
     }
     revalidarTransicionPresupuesto(resultado.presupuesto);
-    return { mensajeExito: "La respuesta externa de aprobación quedó registrada." };
+    return devolverResultado({ mensajeExito: "La respuesta externa de aprobación quedó registrada." });
   } catch (error: unknown) {
-    return errorTransicionPresupuesto(error);
+    return devolverResultado(errorTransicionPresupuesto(error));
   }
 }
 

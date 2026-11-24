@@ -136,3 +136,67 @@ it("informa incertidumbre si falla la actualización de las vistas después de p
   expect(resultado.mensajeExito).toBeUndefined(); expect(d.enviar).toHaveBeenCalledOnce();
   expect(d.redirect).not.toHaveBeenCalled();
 });
+
+describe("diagnóstico temporal de aprobación E2E", () => {
+  beforeEach(() => {
+    // Valores sintéticos: la persistencia y la sesión siguen simuladas.
+    const url = "postgresql://luqgarage_test:secreto-sintetico@127.0.0.1:5432/luqgarage_test";
+    vi.stubEnv("AUTENTICACION_E2E", "1");
+    vi.stubEnv("GITHUB_ACTIONS", "true");
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("DATABASE_URL", url);
+    vi.stubEnv("DIRECT_URL", url);
+    vi.stubEnv("AUTH_URL", "http://127.0.0.1:3000");
+    vi.stubEnv("AUTENTICACION_E2E_CREDENCIAL", "credencial-sintetica-no-debe-registrarse");
+    vi.stubEnv("AUTENTICACION_E2E_USUARIO_ID", usuarioId);
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it.each([
+    ["AUTENTICACION_E2E", "0"],
+    ["GITHUB_ACTIONS", "false"],
+    ["AUTENTICACION_E2E_CREDENCIAL", "invalida"],
+  ])("no registra diagnóstico si %s=%s", async (variable, valor) => {
+    vi.stubEnv(variable, valor);
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(await registrarAprobacionPresupuestoAction(id)).toEqual({
+      mensajeExito: "La respuesta externa de aprobación quedó registrada.",
+    });
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it("registra inicio antes de resolver y retorno sin incluir identificadores ni credenciales", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    let resolver: () => void = () => { throw new Error("Operación no preparada"); };
+    d.aprobar.mockImplementation(() => new Promise((resolve) => {
+      resolver = () => resolve({ aprobado: true, presupuesto: { id, siniestro: { id: siniestroId } } });
+    }));
+    const operacion = registrarAprobacionPresupuestoAction(id);
+    try {
+      await vi.waitFor(() => expect(d.aprobar).toHaveBeenCalledOnce());
+      expect(log.mock.calls).toEqual([["[E2E-APROBACION] action_inicio"]]);
+    } finally {
+      resolver();
+    }
+    expect(await operacion).toEqual({ mensajeExito: "La respuesta externa de aprobación quedó registrada." });
+    expect(log.mock.calls).toEqual([
+      ["[E2E-APROBACION] action_inicio"],
+      ["[E2E-APROBACION] action_retorno", { resultado: "exito", duracionMs: expect.any(Number) }],
+    ]);
+    expect(d.revalidatePath).toHaveBeenCalledTimes(3);
+  });
+
+  it("conserva el error original y sólo registra su categoría", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    d.aprobar.mockRejectedValue(new Error("credencial-sintetica-no-debe-registrarse"));
+    expect(await registrarAprobacionPresupuestoAction(id)).toEqual({
+      errorGeneral: "No pudimos confirmar el registro del estado. Actualizá el detalle antes de volver a intentarlo.",
+    });
+    expect(log.mock.calls).toEqual([
+      ["[E2E-APROBACION] action_inicio"],
+      ["Falló una operación del formulario de presupuestos."],
+      ["[E2E-APROBACION] action_retorno", { resultado: "error", duracionMs: expect.any(Number) }],
+    ]);
+    sinCambioConfirmado();
+  });
+});
