@@ -12,6 +12,9 @@ const dependencias = vi.hoisted(() => ({
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/layout/LogoLuqGarage", async () =>
+  import("../../../components/layout/LogoLuqGarage"),
+);
 vi.mock("@/auth", () => ({
   auth: dependencias.auth,
   signOut: vi.fn(),

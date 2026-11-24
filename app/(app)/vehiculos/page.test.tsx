@@ -7,6 +7,7 @@ const deps = vi.hoisted(() => ({
   redirect: vi.fn(), notFound: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/layout/LogoLuqGarage", async () => import("../../../components/layout/LogoLuqGarage"));
 vi.mock("@/components/vehiculos/BajaVehiculo", async () => import("../../../components/vehiculos/BajaVehiculo"));
 vi.mock("@/app/(app)/vehiculos/[id]/actions", () => ({ darDeBajaVehiculoAction: vi.fn() }));
 vi.mock("@/auth", () => ({ auth: deps.auth, signOut: vi.fn() }));

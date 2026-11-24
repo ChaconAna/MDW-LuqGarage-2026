@@ -5,6 +5,7 @@ import type { RolUsuario } from "@prisma/client";
 
 import { auth, signOut } from "@/auth";
 import ContenedorPagina from "@/components/layout/ContenedorPagina";
+import LogoLuqGarage from "@/components/layout/LogoLuqGarage";
 import { Button } from "@/components/ui/button";
 import { autorizarPagina } from "@/lib/authPagina";
 import { clasesEnlaceTexto } from "@/lib/utils";
@@ -51,7 +52,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
         <ContenedorPagina ancho="wide">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-6">
-              <p className="text-lg font-semibold">LuqGarage</p>
+              <LogoLuqGarage />
 
               <nav
                 aria-label="Navegación principal"

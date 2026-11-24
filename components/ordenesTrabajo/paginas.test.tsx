@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const d = vi.hoisted(() => ({ auth: vi.fn(), usuario: vi.fn(), listar: vi.fn(), finalizadas: vi.fn(), detalle: vi.fn(), finalizada: vi.fn(), siniestro: vi.fn(), disponibles: vi.fn(), porSiniestro: vi.fn(), redirect: vi.fn(), notFound: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/components/layout/LogoLuqGarage", async () => import("../layout/LogoLuqGarage"));
 vi.mock("@/auth", () => ({ auth: d.auth, signOut: vi.fn() }));
 vi.mock("@/lib/db/usuario", () => ({ obtenerUsuarioParaAutorizacionPorId: d.usuario }));
 vi.mock("@/lib/authPagina", async () => import("../../lib/authPagina"));
